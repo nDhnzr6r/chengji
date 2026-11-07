@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>总览 · 分数册</title>
+  <script>
+    (function () {
+      var mode = 'auto';
+      try { mode = localStorage.getItem('scorebook.theme') || 'auto'; } catch (e) {}
+      var dark = mode === 'dark' || (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+  <div id="boot" aria-hidden="true">
+    <div class="boot-inner">
+      <svg class="boot-mark" width="82" height="82" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2.4 15.2 L7 8.6 L11.2 11.4 L17.6 3.4"/>
+        <circle cx="17.6" cy="3.4" r="1.9" fill="currentColor" stroke="none"/>
+      </svg>
+      <div class="boot-name">分数册</div>
+      <div class="boot-sub" id="bootSub"></div>
+      <div class="boot-bar"><span></span></div>
+    </div>
+  </div>
+
+  <div id="app">
+    <div id="sideHost"></div>
+    <main id="main"></main>
+  </div>
+
+  <div id="dialogRoot"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <input type="file" id="fileInput" accept=".csv,text/csv" hidden>
+
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="assets/store.js"></script>
+  <script src="assets/ui.js"></script>
+  <script src="assets/charts.js"></script>
+  <script src="assets/views.js"></script>
+  <script src="assets/tour.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

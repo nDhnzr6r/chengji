@@ -1,0 +1,7 @@
+.taste-skill/
+.shots/
+.tmp/
+.chrome-cdp/
+.chrome-shot/
+.chrome-tmp/
+*.log
