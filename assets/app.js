@@ -89,7 +89,7 @@
     else if (name === 'settings') { html = V.settings(state); title = '设置'; }
     else { html = V.overview(state); title = '总览'; }
 
-    document.title = title + ' · 分数册';
+    document.title = title + ' · 成迹';
     currentView = name;
     resizeHandler = null;
     mainEl.innerHTML = html;
@@ -634,13 +634,13 @@
   /* ---------------- 导入导出 ---------------- */
 
   function exportJSON() {
-    download('分数册-备份-' + todayStamp() + '.json', JSON.stringify(state, null, 2), 'application/json');
+    download('成迹-备份-' + todayStamp() + '.json', JSON.stringify(state, null, 2), 'application/json');
     toast('备份已下载');
   }
 
   function exportCSV() {
     var csv = '\uFEFF' + S.toCSV(state);
-    download('分数册-成绩-' + todayStamp() + '.csv', csv, 'text/csv;charset=utf-8');
+    download('成迹-成绩-' + todayStamp() + '.csv', csv, 'text/csv;charset=utf-8');
     toast('表格已下载');
   }
 
@@ -652,7 +652,7 @@
       ['4', '88']
     );
     var csv = '\uFEFF' + [head, sample].map(function (row) { return row.join(','); }).join('\r\n');
-    download('分数册-导入模板.csv', csv, 'text/csv;charset=utf-8');
+    download('成迹-导入模板.csv', csv, 'text/csv;charset=utf-8');
     toast('模板已下载');
   }
 

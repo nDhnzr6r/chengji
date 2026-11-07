@@ -151,7 +151,7 @@
       '      <path d="M2.4 15.2 L7 8.6 L11.2 11.4 L17.6 3.4"/>' +
       '      <circle cx="17.6" cy="3.4" r="1.9" fill="currentColor" stroke="none"/>' +
       '    </svg>' +
-      '    <div class="brand-text"><span class="brand-name">分数册</span><span class="brand-scope">' + esc(state.config.className) + '</span></div>' +
+      '    <div class="brand-text"><span class="brand-name">成迹</span><span class="brand-scope">' + esc(state.config.className) + '</span></div>' +
       '  </div>' +
       '  <nav class="nav" aria-label="主导航">' +
       nav.map(function (item) {
@@ -173,7 +173,7 @@
       '  </button>' +
       '</aside>' +
       '<div class="mobile-bar">' +
-      '  <div class="mobile-brand">分数册</div>' +
+      '  <div class="mobile-brand">成迹</div>' +
       '  <button class="icon-btn" id="navToggle" aria-label="打开导航" aria-expanded="false">' +
       '    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 4.5h12M2 8h12M2 11.5h12"/></svg>' +
       '  </button>' +
