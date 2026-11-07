@@ -188,7 +188,7 @@
       var opts = {
         target: data.target[metric] || null,
         targetLabel: m.label,
-        height: host.clientWidth < 520 ? 240 : 302,
+        height: host.clientWidth < 520 ? 200 : 232,
         unit: m.unit,
         digits: m.digits,
         invert: m.invert,
@@ -296,7 +296,7 @@
       var opts = {
         target: parts.target,
         targetLabel: '目标',
-        height: host.clientWidth < 520 ? 240 : 302,
+        height: host.clientWidth < 520 ? 200 : 232,
         xMode: 'time',
         bands: parts.bands,
         label: '单科走势',

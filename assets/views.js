@@ -211,12 +211,18 @@
     var goalGrade = Number(state.config.targetRankGrade) || null;
     var goalClass = Number(state.config.targetRankClass) || null;
 
-    /* KPI：没填名次的那几格整块不出 */
+    /* KPI：没填名次的那几格整块不出，每格右上角给一句判断 */
+    var ins = S.insight(state);
     var kpiCells = [];
+
+    function stateTag(s) {
+      return s ? '<span class="kpi-state is-' + s.tone + '">' + esc(s.text) + '</span>' : '';
+    }
 
     kpiCells.push(
       '<div class="kpi">' +
       '  <span class="kpi-label">总分</span>' +
+      stateTag(ins && ins.totalState) +
       '  <span class="kpi-value num" id="kpiTotal">' + total + '</span><span class="kpi-unit">/ ' + full + '</span>' +
       '  <span class="kpi-foot">' + (diff ? '<em class="delta ' + (diff.total > 0 ? 'good' : diff.total < 0 ? 'bad' : 'flat') + ' num">' + signed(diff.total) + '</em> 较 ' + shortMd(prev.date) : '首次记录') +
       ' · 得分率 ' + ((total / full) * 100).toFixed(1) + '%</span>' +
@@ -233,6 +239,7 @@
       kpiCells.push(
         '<div class="kpi">' +
         '  <span class="kpi-label">年级排名</span>' +
+        stateTag(ins && ins.gradeState) +
         '  <span class="kpi-value num" id="kpiGrade">' + rankGrade + '</span><span class="kpi-unit">/ ' + gradeSize + '</span>' +
         '  <span class="kpi-foot">' + (diff && prev.ranks.grade ? '<em class="delta ' + (diff.gradeRank < 0 ? 'good' : diff.gradeRank > 0 ? 'bad' : 'flat') + '">' + rankWord(diff.gradeRank).text + '</em> 较 ' + shortMd(prev.date) : '首次记录') +
         (goalGrade ? ' · 目标 ' + goalGrade + '</span>' : '</span>') +
@@ -250,6 +257,7 @@
       kpiCells.push(
         '<div class="kpi">' +
         '  <span class="kpi-label">班级排名</span>' +
+        stateTag(ins && ins.classState) +
         '  <span class="kpi-value num" id="kpiClass">' + rankClass + '</span><span class="kpi-unit">/ ' + classSize + '</span>' +
         '  <span class="kpi-foot">' + (diff && prev.ranks.class ? '<em class="delta ' + (diff.classRank < 0 ? 'good' : diff.classRank > 0 ? 'bad' : 'flat') + '">' + rankWord(diff.classRank).text + '</em> 较 ' + shortMd(prev.date) : '首次记录') +
         (goalClass ? ' · 目标 ' + goalClass + '</span>' : '</span>') +
@@ -264,6 +272,7 @@
     kpiCells.push(
       '<div class="kpi">' +
       '  <span class="kpi-label">距目标</span>' +
+      stateTag(ins && ins.gapState) +
       '  <span class="kpi-value num ' + (gap <= 0 ? 'is-hit' : '') + '" id="kpiGap">' + (gap > 0 ? gap : Math.abs(gap)) + '</span><span class="kpi-unit">' + (gap > 0 ? '分' : '分超出') + '</span>' +
       '  <span class="kpi-foot">目标 ' + goal + ' 分' + (gap <= 0 ? ' · 已跨过' : ' · 已完成 ' + Math.min(100, Math.round((total / goal) * 100)) + '%') + '</span>' +
       (goal > 0 ? '<span class="kpi-progress is-goal"><span style="width:' + Math.min(100, (total / goal) * 100).toFixed(1) + '%"></span></span>' : '') +
@@ -298,7 +307,7 @@
       '</section>';
 
     /* 右栏：考试记录 */
-    var recent = list.slice(-6).reverse();
+    var recent = list.slice(-4).reverse();
     function recordRow(exam, i) {
       var t = S.examTotal(state, exam);
       var idx = list.findIndex(function (e) { return e.id === exam.id; });
@@ -378,6 +387,7 @@
       '    <button class="btn btn-primary" data-action="new-exam">记录一次考试</button>' +
       '  </div>' +
       '</header>' +
+      (ins && ins.headlines.length ? '<p class="verdict">' + ins.headlines.map(esc).join('，') + '</p>' : '') +
       kpi +
       '<div class="grid-main">' +
       '  <div class="col-main">' + trendCard + '</div>' +

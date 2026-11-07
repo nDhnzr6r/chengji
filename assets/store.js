@@ -265,6 +265,118 @@
   }
 
   /* 进步最大 / 最需补的科目：看与上一场相比的得分率变化 */
+  /* ---------- 结论 ---------- */
+
+  function signed(n) {
+    var v = Number(n) || 0;
+    if (Math.abs(v) < 0.005) return '0';
+    return (v > 0 ? '+' : '−') + Math.abs(v).toFixed(0);
+  }
+
+  /* 把最近的走势翻成一句话和几个状态词，省得每次自己看数字 */
+  function insight(state) {
+    var list = sorted(state);
+    if (!list.length) return null;
+
+    var last = list[list.length - 1];
+    var prev = list.length > 1 ? list[list.length - 2] : null;
+    var total = examTotal(state, last);
+    var prevTotal = prev ? examTotal(state, prev) : null;
+    var goal = targetTotal(state);
+    var gap = goal - total;
+    var rankGrade = Number(last.ranks.grade) || null;
+    var goalGrade = Number(state.config.targetRankGrade) || null;
+    var rankClass = Number(last.ranks.class) || null;
+    var goalClass = Number(state.config.targetRankClass) || null;
+    var full = fullTotal(state);
+
+    /* 连续上涨和连续下跌的次数 */
+    var up = 0;
+    for (var i = list.length - 1; i > 0; i--) {
+      if (examTotal(state, list[i]) > examTotal(state, list[i - 1])) up++;
+      else break;
+    }
+    var down = 0;
+    for (var j = list.length - 1; j > 0; j--) {
+      if (examTotal(state, list[j]) < examTotal(state, list[j - 1])) down++;
+      else break;
+    }
+
+    var gradeDelta = (prevTotal !== null && rankGrade && Number(prev.ranks.grade))
+      ? Number(prev.ranks.grade) - rankGrade : null;
+    var classDelta = (prevTotal !== null && rankClass && Number(prev.ranks.class))
+      ? Number(prev.ranks.class) - rankClass : null;
+
+    /* 每个数字配一句判断 */
+    var totalState;
+    if (up >= 3) totalState = { text: '连涨 ' + up + ' 次', tone: 'good' };
+    else if (up === 2) totalState = { text: '连涨 2 次', tone: 'good' };
+    else if (up === 1) totalState = { text: '较上次 ' + signed(prevTotal === null ? 0 : total - prevTotal), tone: 'good' };
+    else if (down >= 2) totalState = { text: '连跌 ' + down + ' 次', tone: 'bad' };
+    else if (down === 1) totalState = { text: '较上次 ' + signed(total - prevTotal), tone: 'bad' };
+    else totalState = { text: '与上次持平', tone: 'flat' };
+
+    var gradeState = null;
+    if (rankGrade && goalGrade) {
+      gradeState = rankGrade <= goalGrade
+        ? { text: '已进前 ' + goalGrade, tone: 'good' }
+        : { text: '距前 ' + goalGrade + ' 还差 ' + (rankGrade - goalGrade) + ' 名', tone: 'warn' };
+    } else if (rankGrade) {
+      gradeState = { text: '第 ' + rankGrade + ' 名', tone: 'flat' };
+    }
+
+    var classState = null;
+    if (rankClass && goalClass) {
+      classState = rankClass <= goalClass
+        ? { text: '已进前 ' + goalClass, tone: 'good' }
+        : { text: '距前 ' + goalClass + ' 还差 ' + (rankClass - goalClass) + ' 名', tone: 'warn' };
+    }
+
+    var gapState = gap > 0
+      ? { text: '还差 ' + gap + ' 分', tone: 'warn' }
+      : { text: '已超 ' + Math.abs(gap) + ' 分', tone: 'good' };
+
+    /* 各科达标情况 */
+    var hit = 0, miss = 0;
+    state.config.subjects.forEach(function (s) {
+      var v = Number(last.scores[s.id]);
+      var t = Number(s.target) || 0;
+      if (isNaN(v) || !t) return;
+      if (v >= t) hit++; else miss++;
+    });
+
+    var subjectState = miss === 0 && hit > 0
+      ? { text: hit + ' 科全部达标', tone: 'good' }
+      : { text: hit + ' 科达标 · ' + miss + ' 科没到', tone: miss >= 3 ? 'bad' : 'warn' };
+
+    /* 一句话结论：先说往哪走，再说差多远 */
+    var parts = [];
+    if (up >= 2) parts.push('总分连涨 ' + up + ' 次');
+    else if (down >= 2) parts.push('总分连跌 ' + down + ' 次');
+    else if (prevTotal !== null) parts.push('总分较上次' + (total > prevTotal ? '涨' : total < prevTotal ? '跌' : '持平') + ' ' + Math.abs(total - prevTotal) + ' 分');
+
+    if (gradeDelta !== null && gradeDelta > 0) parts.push('年级前进 ' + gradeDelta + ' 名');
+    else if (gradeDelta !== null && gradeDelta < 0) parts.push('年级后退 ' + Math.abs(gradeDelta) + ' 名');
+    else if (classDelta !== null && classDelta > 0) parts.push('班级前进 ' + classDelta + ' 名');
+
+    parts.push(gap > 0 ? '离目标还差 ' + gap + ' 分' : '已超目标 ' + Math.abs(gap) + ' 分');
+
+    return {
+      total: total,
+      full: full,
+      gap: gap,
+      goal: goal,
+      headlines: parts,
+      totalState: totalState,
+      gradeState: gradeState,
+      classState: classState,
+      gapState: gapState,
+      subjectState: subjectState,
+      up: up,
+      down: down
+    };
+  }
+
   function movers(state) {
     var list = sorted(state);
     if (list.length < 2) return { up: [], down: [] };
@@ -517,6 +629,7 @@
     subjectStats: subjectStats,
     changeSince: changeSince,
     movers: movers,
+    insight: insight,
     schoolYearStart: schoolYearStart,
     enrollYear: enrollYear,
     semesterOf: semesterOf,
