@@ -1007,6 +1007,63 @@ button, input, select { font: inherit; color: inherit; }
 
 .chip.is-on em { color: inherit; opacity: 0.6; }
 
+/* ---------------- 分布与投入 ---------------- */
+
+.card-dist { grid-column: 1; grid-row: 3; }
+.card-priority { grid-column: 2; grid-row: 3; }
+
+.hist {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 128px;
+  margin: 8px 0 2px;
+}
+
+.hist-col {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.hist-count {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1;
+  height: 12px;
+}
+
+.hist-bar {
+  display: block;
+  width: 100%;
+  height: var(--h, 0%);
+  min-height: 2px;
+  background: var(--chart-2);
+  border-radius: 2px 2px 0 0;
+}
+
+.hist-range {
+  font-size: 10.5px;
+  color: var(--faint);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.prio-sub { color: var(--muted); font-weight: 400; }
+
+.table-head-sem { grid-template-columns: minmax(0, 1fr) 64px 88px 96px; }
+.row-sem { grid-template-columns: minmax(0, 1fr) 64px 88px 96px; }
+.card-semesters { margin-top: 12px; }
+
+@media (max-width: 1080px) {
+  .card-dist, .card-priority { grid-column: 1; grid-row: auto; }
+}
+
 .form-more {
   margin-top: 16px;
 }

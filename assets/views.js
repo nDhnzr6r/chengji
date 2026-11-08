@@ -368,6 +368,20 @@
 
     var peers = S.examVsPeers(state, last);
     var spread = S.subjectSpread(state, last);
+    var smooth = S.smoothMovers(state);
+
+    /* 偏科这两年在收敛还是在扩大 */
+    var spreadTrend = (function () {
+      var hist = S.spreadHistory(state);
+      if (hist.length < 3) return '';
+      var first = hist[0].sd;
+      var lastSd = hist[hist.length - 1].sd;
+      var d = lastSd - first;
+      if (Math.abs(d) < 0.5) return '一直在 ' + lastSd.toFixed(1) + ' 附近';
+      return d < 0
+        ? '从 ' + first.toFixed(1) + ' 收到 ' + lastSd.toFixed(1)
+        : '从 ' + first.toFixed(1) + ' 扩到 ' + lastSd.toFixed(1);
+    })();
 
     /* 和平均分、最高分的距离 */
     var peerRows = '';
@@ -413,13 +427,81 @@
       '      <span class="analysis-label">科间差距</span>' +
       '      <span class="analysis-value">' + (spread ? '<em class="num">' + spread.spread.toFixed(1) + '</em> 个百分点' : '—') + '</span>' +
       '    </div>' +
+      (smooth.up.length
+        ? '    <div class="analysis-row">' +
+          '      <span class="analysis-label">三场进步</span>' +
+          '      <span class="analysis-value">' + esc(smooth.up[0].subject.name) + ' <em class="num good">' + signed(smooth.up[0].delta) + '</em></span>' +
+          '    </div>'
+        : '') +
+      (smooth.down.length
+        ? '    <div class="analysis-row">' +
+          '      <span class="analysis-label">三场回落</span>' +
+          '      <span class="analysis-value">' + esc(smooth.down[0].subject.name) + ' <em class="num ' + (smooth.down[0].delta < 0 ? 'bad' : '') + '">' + signed(smooth.down[0].delta) + '</em></span>' +
+          '    </div>'
+        : '') +
       '    <div class="analysis-row">' +
       '      <span class="analysis-label">及格 / 优秀</span>' +
       '      <span class="analysis-value num">' + (spread ? spread.pass + ' / ' + spread.good + ' 科' : '—') + '</span>' +
       '    </div>' +
+      (spreadTrend
+        ? '    <div class="analysis-row">' +
+          '      <span class="analysis-label">偏科趋势</span>' +
+          '      <span class="analysis-value">' + spreadTrend + '</span>' +
+          '    </div>'
+        : '') +
       '  </div>' +
       '  <p class="analysis-note">' + buildNote(state, rows, gap) + '</p>' +
       '</section>';
+
+    /* 总分分布 */
+    var dist = S.distribution(state, 6);
+    var distCard = '';
+    if (dist) {
+      var maxCount = Math.max.apply(null, dist.bins.map(function (b) { return b.count; })) || 1;
+      distCard = '<section class="card card-dist">' +
+        '  <div class="card-head"><h2 class="card-title">总分落在哪</h2>' +
+        '    <span class="card-meta num">' + dist.list.length + ' 次</span></div>' +
+        '  <div class="hist">' +
+        dist.bins.map(function (b) {
+          var h = Math.round((b.count / maxCount) * 100);
+          return '<div class="hist-col">' +
+            '<span class="hist-count num">' + (b.count || '') + '</span>' +
+            '<span class="hist-bar" style="--h:' + h + '%"></span>' +
+            '<span class="hist-range num">' + Math.round(b.from) + '</span>' +
+            '</div>';
+        }).join('') +
+        '  </div>' +
+        '  <p class="analysis-note">横轴是分数段，从 ' + Math.round(dist.lo) + ' 到 ' + Math.round(dist.hi) + '，柱子越高表示落在这一段里的考试越多。</p>' +
+        '</section>';
+    }
+
+    /* 先补哪一科，以及补一科能换来什么 */
+    var prio = S.priority(state, last);
+    var leverSubject = prio.length ? prio[0].subject : null;
+    var lever = leverSubject ? S.sensitivity(state, leverSubject.id, 10) : null;
+    var prioCard = prio.length
+      ? '<section class="card card-priority">' +
+        '  <div class="card-head"><h2 class="card-title">先补哪一科</h2></div>' +
+        '  <div class="analysis">' +
+        prio.slice(0, 3).map(function (x) {
+          return '<div class="analysis-row">' +
+            '<span class="analysis-label">' + esc(x.subject.name) + '</span>' +
+            '<span class="analysis-value">缺 <em class="num">' + x.gap + '</em> 分<span class="prio-sub num"> · ' + (x.gapRate * 100).toFixed(0) + '%</span></span>' +
+            '</div>';
+        }).join('') +
+        '  </div>' +
+        (lever
+          ? '  <p class="analysis-note">' + esc(lever.subject.name) + ' 再多考 10 分，总分到 ' + lever.after +
+            (lever.rankAfter ? '，年级大约进 ' + Math.max(0, lever.rankDelta) + ' 名' : '') + '。</p>'
+          : '') +
+        '</section>'
+      : '';
+
+    /* 本学期还会走到哪 */
+    var term = S.termForecast(state);
+    var termLine = term
+      ? '按' + term.term + '这几场的速度，下次大约 ' + Math.round(term.next) + ' 分，学期末大约 ' + Math.round(term.end) + ' 分'
+      : '';
 
     return '' +
       '<header class="page-head">' +
@@ -430,7 +512,7 @@
       '</header>' +
       (ins && ins.headlines.length ? '<p class="verdict">' + ins.headlines.map(esc).join('，') + '</p>' : '') +
       (road && road.predict !== null
-        ? '<p class="verdict-sub">按最近六次的速度，下次大约 ' + Math.round(road.predict) + ' 分' +
+        ? '<p class="verdict-sub">' + (termLine ? termLine + '；按最近六次算，' : '按最近六次的速度，') + '下次大约 ' + Math.round(road.predict) + ' 分' +
           (road.needPerExam !== null
             ? '；剩 ' + road.remaining + ' 场，每场要涨 ' + (road.needPerExam > 0 ? road.needPerExam.toFixed(1) : '0') + ' 分才够' +
               (road.onTrack ? '，现在的速度跟得上' : '，现在的速度还不够')
@@ -442,6 +524,8 @@
       '  <div class="col-rail">' + records + '</div>' +
       '  <div class="col-main">' + subjectsCard + '</div>' +
       '  <div class="col-rail">' + analyseCard + '</div>' +
+      '  <div class="col-main">' + distCard + '</div>' +
+      '  <div class="col-rail">' + prioCard + '</div>' +
       '</div>' +
       '<script type="application/json" id="chartData">' + JSON.stringify(chartSeries(state, list)) + '</script>' +
       '<script type="application/json" id="bulletData">' + JSON.stringify(bullets) + '</script>';
@@ -856,6 +940,30 @@
       '  <div class="cmp-rows">' + cmpRows + '</div>' +
       '</section>';
 
+    /* 各学期之间横向比一次，比只看两场更能看出趋势 */
+    var semesterRows = S.groupBySemester(state).map(function (g) {
+      return { label: g.label, count: g.count, avg: g.avgTotal, best: g.best, worst: g.worst };
+    });
+    var semesterCard = semesterRows.length > 1
+      ? '<section class="card card-semesters">' +
+        '  <div class="card-head"><h2 class="card-title">各学期平均</h2>' +
+        '    <span class="card-meta num">' + semesterRows.length + ' 个学期</span></div>' +
+        '  <div class="table-head table-head-sem"><span>学期</span><span class="cell-num">次数</span><span class="cell-num">平均</span><span class="cell-num">较上学期</span></div>' +
+        '  <div class="list-rows">' +
+        semesterRows.map(function (g, i) {
+          var prev = i > 0 ? semesterRows[i - 1].avg : null;
+          var d = prev === null ? null : g.avg - prev;
+          return '<div class="row-link row-sem">' +
+            '<span class="cell-main"><span class="cell-title">' + esc(g.label) + '</span></span>' +
+            '<span class="cell-num num">' + g.count + '</span>' +
+            '<span class="cell-num num">' + g.avg.toFixed(1) + '</span>' +
+            '<span class="cell-num num ' + (d === null ? 'muted' : d > 0 ? 'good' : d < 0 ? 'bad' : 'muted') + '">' + (d === null ? '—' : signed(d)) + '</span>' +
+            '</div>';
+        }).join('') +
+        '  </div>' +
+        '</section>'
+      : '';
+
     return '' +
       '<header class="page-head"><div><h1>两次考试对比</h1><p class="page-sub">挑两次考试，看每一科进退多少</p></div></header>' +
       '<section class="card cmp-bar">' +
@@ -868,6 +976,7 @@
       '  <div class="col-main">' + listCard + '</div>' +
       '  <div class="col-rail">' + radarCard + '</div>' +
       '</div>' +
+      semesterCard +
       '<script type="application/json" id="compareData">' + JSON.stringify({
         labels: rows.map(function (r) { return r.name; }),
         a: { values: rows.map(function (r) { return r.aRate === null ? 0 : r.aRate; }) },
@@ -983,6 +1092,7 @@
 
   function settings(state) {
     var issues = S.audit(state);
+    var goalMate = S.goalCheck(state);
     var c = state.config;
     var subjectRows = c.subjects.map(function (s) {
       return '<tr data-subject="' + s.id + '">' +
@@ -1002,7 +1112,9 @@
       '  <div class="field-grid">' +
       '    <label class="field"><span class="field-label">目标总分</span>' +
       '      <input class="input" id="cfgTargetTotal" type="number" min="0" max="1200" value="' + c.targetTotal + '">' +
-      '      <span class="field-hint">填 0 时按各科目标分数相加</span></label>' +
+      '      <span class="field-hint">' + (goalMate.mismatch
+        ? '各科目标加起来是 ' + goalMate.subjectSum + ' 分，和目标总分差 ' + Math.abs(goalMate.mismatch) + ' 分'
+        : '填 0 时按各科目标分数相加') + '</span></label>' +
       '    <label class="field"><span class="field-label">目标班级排名</span>' +
       '      <input class="input" id="cfgTargetClass" type="number" min="1" value="' + c.targetRankClass + '"></label>' +
       '    <label class="field"><span class="field-label">目标年级排名</span>' +
@@ -1053,6 +1165,7 @@
       '    <button class="btn" data-action="export-json">导出备份（JSON）</button>' +
       '    <button class="btn" data-action="import-json">导入备份（JSON）</button>' +
       '    <button class="btn" data-action="export-xlsx">导出表格（Excel）</button>' +
+      '    <button class="btn" data-action="export-report">导出分析报告</button>' +
       '    <button class="btn" data-action="export-csv">导出表格（CSV）</button>' +
       '    <button class="btn" data-action="import-csv">导入 CSV</button>' +
       '    <button class="btn" data-action="import-xlsx">导入 Excel</button>' +
@@ -1172,6 +1285,10 @@
     settings: settings,
     examForm: examForm,
     icon: icon,
-    esc: esc
+    esc: esc,
+    cnDate: cnDate,
+    weekday: weekday,
+    shortMd: shortMd,
+    signed: signed
   };
 })(window);

@@ -740,6 +740,103 @@
     toast('表格已下载');
   }
 
+  /* 导出一份能直接看的分析报告 */
+  function exportReport() {
+    var esc = V.esc;
+    var cnDate = V.cnDate;
+    var signed = V.signed;
+    var list = S.sorted(state);
+    if (!list.length) { toast('还没有成绩记录', 'bad'); return; }
+    var last = list[list.length - 1];
+    var ins = S.insight(state);
+    var peers = S.examVsPeers(state, last);
+    var spread = S.subjectSpread(state, last);
+    var road = S.pace(state);
+    var term = S.termForecast(state);
+    var prio = S.priority(state, last);
+    var smooth = S.smoothMovers(state);
+    var sub = state.config.subjects;
+
+    function row(k, v) {
+      return '<tr><th>' + k + '</th><td>' + v + '</td></tr>';
+    }
+
+    var subjectRows = sub.map(function (s) {
+      var v = Number(last.scores[s.id]);
+      var t = Number(s.target) || 0;
+      var avg = Number((last.subjectAverages || {})[s.id]) || null;
+      var rk = Number((last.subjectRanks || {})[s.id]) || null;
+      return '<tr>' +
+        '<td>' + esc(s.name) + '</td>' +
+        '<td class="num">' + (isNaN(v) ? '—' : v + ' / ' + s.full) + '</td>' +
+        '<td class="num">' + (isNaN(v) ? '—' : ((v / s.full) * 100).toFixed(1) + '%') + '</td>' +
+        '<td class="num">' + (avg === null ? '—' : avg) + '</td>' +
+        '<td class="num">' + (rk === null ? '—' : '第 ' + rk + ' 名') + '</td>' +
+        '<td class="num">' + (isNaN(v) || !t ? '—' : (v >= t ? '达标' : '差 ' + (t - v))) + '</td>' +
+        '</tr>';
+    }).join('');
+
+    var html = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">' +
+      '<title>成绩分析报告</title><style>' +
+      'body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;max-width:820px;margin:40px auto;padding:0 24px;color:#111;line-height:1.7}' +
+      'h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:26px 0 8px;padding-bottom:6px;border-bottom:1px solid #ddd}' +
+      '.meta{color:#666;font-size:13px;margin-bottom:22px}' +
+      'p{margin:6px 0}.lead{font-size:15px;font-weight:600}' +
+      'table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}' +
+      'th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #eee}' +
+      'th{font-weight:400;color:#666;width:38%}' +
+      'td.num{text-align:right;font-variant-numeric:tabular-nums}' +
+      'ul{margin:6px 0;padding-left:18px}li{margin:3px 0;font-size:13px}' +
+      'footer{margin-top:34px;color:#999;font-size:12px}' +
+      '</style></head><body>' +
+      '<h1>成绩分析报告</h1>' +
+      '<p class="meta">' + esc(last.name) + ' · ' + cnDate(last.date) + ' · 共 ' + list.length + ' 次记录</p>' +
+
+      '<h2>这次的结论</h2>' +
+      '<p class="lead">' + (ins ? ins.headlines.map(esc).join('，') : '') + '</p>' +
+      (road && road.predict !== null
+        ? '<p>' + (term ? '按' + term.term + '这几场的速度，下次大约 ' + Math.round(term.next) + ' 分，学期末大约 ' + Math.round(term.end) + ' 分。' : '') +
+          '按最近六次算，下次大约 ' + Math.round(road.predict) + ' 分' +
+          (road.needPerExam !== null ? '；剩 ' + road.remaining + ' 场，每场要涨 ' + road.needPerExam.toFixed(1) + ' 分才够。' : '。') + '</p>'
+        : '') +
+
+      '<h2>和同学比</h2>' +
+      (peers.vsClass !== null || peers.vsGrade !== null
+        ? '<table>' +
+          (peers.vsClass !== null ? row('班级平均', peers.classAvg + '（' + (peers.vsClass >= 0 ? '高 ' : '低 ') + Math.abs(peers.vsClass) + ' 分）') : '') +
+          (peers.vsGrade !== null ? row('年级平均', peers.gradeAvg + '（' + (peers.vsGrade >= 0 ? '高 ' : '低 ') + Math.abs(peers.vsGrade) + ' 分）') : '') +
+          (peers.toTop !== null ? row('年级最高', peers.top + '（差 ' + peers.toTop + ' 分）') : '') +
+          '</table>' + (peers.diagnosis ? '<p>' + esc(peers.diagnosis.text) + '。</p>' : '')
+        : '<p>这次没有填班级平均或年级平均，判断不了是题难还是状态问题。</p>') +
+
+      '<h2>六科明细</h2>' +
+      '<table><tr><th>科目</th><th class="num">得分</th><th class="num">得分率</th><th class="num">班平</th><th class="num">班内名次</th><th class="num">距目标</th></tr>' +
+      subjectRows + '</table>' +
+
+      '<h2>偏科</h2>' +
+      (spread
+        ? '<p>最强 ' + esc(spread.strongest.name) + ' ' + spread.strongest.rate.toFixed(1) + '%，最弱 ' +
+          esc(spread.weakest.name) + ' ' + spread.weakest.rate.toFixed(1) + '%，相差 ' + spread.spread.toFixed(1) +
+          ' 个百分点，整体' + spread.level.text + '。及格 ' + spread.pass + ' 科，优秀 ' + spread.good + ' 科。</p>'
+        : '') +
+
+      '<h2>下一步</h2>' +
+      '<ul>' +
+      (prio.length ? '<li>先补 ' + esc(prio[0].subject.name) + '，还差 ' + prio[0].gap + ' 分（占满分 ' + (prio[0].gapRate * 100).toFixed(0) + '%）。</li>' : '') +
+      (smooth.up.length ? '<li>最近三场进步最多的是 ' + esc(smooth.up[0].subject.name) + '，' + signed(smooth.up[0].delta) + ' 分，保持。</li>' : '') +
+      (smooth.down.length ? '<li>最近三场回落最多的是 ' + esc(smooth.down[0].subject.name) + '，' + signed(smooth.down[0].delta) + ' 分。</li>' : '') +
+      (road && road.needPerExam !== null && road.needPerExam > 0
+        ? '<li>离目标还差 ' + road.gap + ' 分，剩 ' + road.remaining + ' 场，每场至少涨 ' + road.needPerExam.toFixed(1) + ' 分。</li>'
+        : '') +
+      '</ul>' +
+
+      '<footer>由成迹生成 · ' + new Date().toLocaleString('zh-CN') + '</footer>' +
+      '</body></html>';
+
+    download('成迹-报告-' + todayStamp() + '.html', html, 'text/html;charset=utf-8');
+    toast('报告已下载');
+  }
+
   function exportCSV() {
     var csv = '\uFEFF' + S.toCSV(state);
     download('成迹-成绩-' + todayStamp() + '.csv', csv, 'text/csv;charset=utf-8');
@@ -908,6 +1005,7 @@
     }
     else if (action === 'export-csv') { exportCSV(); }
     else if (action === 'export-xlsx') { exportXLSX(); }
+    else if (action === 'export-report') { exportReport(); }
     else if (action === 'download-template') { downloadTemplate(); }
     else if (action === 'replay-tour') {
       if (global.Tour) {

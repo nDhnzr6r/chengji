@@ -614,6 +614,212 @@
     return issues;
   }
 
+
+  /* ---------- 平滑进退、分布、贡献、投入排序 ---------- */
+
+  /* 最近三次的平均变化，避免一次波动就上榜 */
+  function smoothMovers(state, span) {
+    span = span || 3;
+    var list = sorted(state);
+    if (list.length < 2) return { up: [], down: [] };
+    var out = [];
+    state.config.subjects.forEach(function (sub) {
+      var series = list
+        .map(function (e) { return Number(e.scores[sub.id]); })
+        .filter(function (v) { return !isNaN(v); });
+      if (series.length < 2) return;
+      var tail = series.slice(-span - 1);
+      var first = tail[0];
+      var last = tail[tail.length - 1];
+      var per = (last - first) / Math.max(1, tail.length - 1);
+      out.push({ subject: sub, first: first, last: last, delta: last - first, per: per });
+    });
+    out.sort(function (a, b) { return b.per - a.per; });
+    return {
+      up: out.filter(function (x) { return x.per > 0.4; }).slice(0, 3),
+      down: out.filter(function (x) { return x.per < -0.4; }).slice(-3).reverse()
+    };
+  }
+
+  /* 各科在总分里的份量，以及这份量是在变大还是变小 */
+  function contribution(state, exam) {
+    var rows = [];
+    var total = examTotal(state, exam);
+    if (!total) return rows;
+    state.config.subjects.forEach(function (sub) {
+      var v = Number(exam.scores[sub.id]);
+      if (isNaN(v)) return;
+      rows.push({ subject: sub, value: v, share: v / total });
+    });
+    return rows.sort(function (a, b) { return b.share - a.share; });
+  }
+
+  /* 总分的分布：分成若干段，看每次落在哪 */
+  function distribution(state, buckets) {
+    buckets = buckets || 6;
+    var list = sorted(state);
+    if (!list.length) return null;
+    var totals = list.map(function (e) { return examTotal(state, e); });
+    var lo = Math.min.apply(null, totals);
+    var hi = Math.max.apply(null, totals);
+    if (hi - lo < 1) hi = lo + 1;
+    var step = (hi - lo) / buckets;
+    var bins = [];
+    for (var i = 0; i < buckets; i++) {
+      bins.push({ from: lo + step * i, to: lo + step * (i + 1), count: 0, exams: [] });
+    }
+    totals.forEach(function (v, idx) {
+      var k = Math.min(buckets - 1, Math.floor((v - lo) / step));
+      bins[k].count++;
+      bins[k].exams.push(list[idx]);
+    });
+    return { bins: bins, list: list, totals: totals, lo: lo, hi: hi };
+  }
+
+  /* 最值得投入的科目：缺口大、又不算太稳的排前面 */
+  function priority(state, exam) {
+    var rows = [];
+    var full = fullTotal(state);
+    state.config.subjects.forEach(function (sub) {
+      var v = Number(exam.scores[sub.id]);
+      var f = Number(sub.full) || 0;
+      if (isNaN(v) || !f) return;
+      var gap = f - v;
+      var gapRate = gap / f;
+      var stats = subjectStats(state, sub.id);
+      var swing = stats.sd || 0;
+      /* 缺得多、分又重、波动小的更容易靠补这一科拿到分 */
+      var weight = (f / full) * 100;
+      var score = gapRate * 60 + (swing / f) * 100 * 20 + weight * 0.4;
+      rows.push({
+        subject: sub,
+        value: v,
+        full: f,
+        gap: gap,
+        gapRate: gapRate,
+        swing: swing,
+        score: score
+      });
+    });
+    /* 先看缺口占满分的比例，比例一样再看绝对缺口 */
+    return rows.sort(function (a, b) { return (b.gapRate - a.gapRate) || (b.gap - a.gap); });
+  }
+
+  /* 一科多考几分，总分和名次会怎么动 */
+  function sensitivity(state, subjectId, delta) {
+    delta = delta === undefined ? 10 : delta;
+    var list = sorted(state);
+    if (!list.length) return null;
+    var last = list[list.length - 1];
+    var subject = state.config.subjects.find(function (s) { return s.id === subjectId; });
+    if (!subject) return null;
+
+    var base = examTotal(state, last);
+    var after = base + delta;
+    var result = {
+      subject: subject,
+      delta: delta,
+      before: base,
+      after: after,
+      rankBefore: Number(last.ranks.grade) || null,
+      rankAfter: null
+    };
+
+    /* 有名次也有均分时，按历史拟合一条「分差 → 名次」的线 */
+    var pts = [];
+    list.forEach(function (e) {
+      var t = examTotal(state, e);
+      var avg = Number(e.averages && e.averages.class) || null;
+      var r = Number(e.ranks.grade) || null;
+      if (avg && r) pts.push({ d: t - avg, r: r });
+    });
+    /* 只取最近四次，早期的关系放到现在已经不准了 */
+    pts = pts.slice(-4);
+    if (pts.length >= 2) {
+      var md = mean(pts.map(function (x) { return x.d; }));
+      var mr = mean(pts.map(function (x) { return x.r; }));
+      var num = 0, den = 0;
+      pts.forEach(function (x) {
+        num += (x.d - md) * (x.r - mr);
+        den += (x.d - md) * (x.d - md);
+      });
+      var slope = den ? num / den : 0;
+      var curAvg = Number(last.averages && last.averages.class) || md;
+      var curD = base - curAvg;
+      if (slope !== 0 && result.rankBefore) {
+        var est = mr + slope * (curD + delta);
+        /* 外推太远就不靠谱，限制在这几次名次的上下界附近 */
+        var bounds = pts.map(function (x) { return x.r; });
+        var loR = Math.min.apply(null, bounds);
+        var hiR = Math.max.apply(null, bounds);
+        est = Math.min(hiR + (hiR - loR) * 0.2, Math.max(loR - (hiR - loR) * 0.2, est));
+        result.rankAfter = Math.max(1, Math.round(est));
+        result.rankDelta = result.rankBefore - result.rankAfter;
+      }
+    }
+    return result;
+  }
+
+  /* 按本学期已有的速度，估下一次和学期末 */
+  function termForecast(state) {
+    var list = sorted(state);
+    if (list.length < 3) return null;
+    var p = pace(state);
+    if (!p || !p.slope) return null;
+
+    var bands = semesterBands(state);
+    var lastBand = bands.length ? bands[bands.length - 1] : null;
+    var inTerm = lastBand
+      ? list.filter(function (e) { return new Date(e.date + 'T00:00:00').getTime() >= lastBand.startTs; })
+      : list;
+    if (inTerm.length < 2) return null;
+
+    var totals = inTerm.map(function (e) { return examTotal(state, e); });
+    var n = totals.length;
+    var mx = (n - 1) / 2;
+    var my = mean(totals);
+    var num = 0, den = 0;
+    totals.forEach(function (y, i) {
+      num += (i - mx) * (y - my);
+      den += (i - mx) * (i - mx);
+    });
+    var slope = den ? num / den : 0;
+    var now = totals[n - 1];
+
+    return {
+      term: lastBand ? lastBand.label : '本学期',
+      count: n,
+      slope: slope,
+      next: now + slope,
+      end: now + slope * Math.max(1, 6 - n),
+      now: now
+    };
+  }
+
+  /* 偏科程度的历史，用来判断在收敛还是扩大 */
+  function spreadHistory(state) {
+    var list = sorted(state);
+    var out = [];
+    list.forEach(function (e) {
+      var sp = subjectSpread(state, e);
+      if (sp) out.push({ date: e.date, name: e.name, sd: sp.sd, spread: sp.spread });
+    });
+    return out;
+  }
+
+  /* 各科目标加起来和目标总分对不对得上 */
+  function goalCheck(state) {
+    var sum = state.config.subjects.reduce(function (acc, s) { return acc + (Number(s.target) || 0); }, 0);
+    var goal = targetTotal(state);
+    var explicit = Number(state.config.targetTotal) || 0;
+    return {
+      subjectSum: sum,
+      goal: goal,
+      explicit: explicit,
+      mismatch: explicit > 0 && Math.abs(sum - explicit) > 1 ? sum - explicit : 0
+    };
+  }
+
   function movers(state) {
     var list = sorted(state);
     if (list.length < 2) return { up: [], down: [] };
@@ -926,6 +1132,14 @@
     subjectStats: subjectStats,
     changeSince: changeSince,
     movers: movers,
+    smoothMovers: smoothMovers,
+    contribution: contribution,
+    distribution: distribution,
+    priority: priority,
+    sensitivity: sensitivity,
+    termForecast: termForecast,
+    spreadHistory: spreadHistory,
+    goalCheck: goalCheck,
     audit: audit,
     typeFacets: typeFacets,
     filterByType: filterByType,
