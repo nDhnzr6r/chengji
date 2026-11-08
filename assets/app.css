@@ -1007,50 +1007,55 @@ button, input, select { font: inherit; color: inherit; }
 
 .chip.is-on em { color: inherit; opacity: 0.6; }
 
-/* ---------------- 分布与投入 ---------------- */
+/* ---------------- 类型对比与投入 ---------------- */
 
-.card-dist { grid-column: 1; grid-row: 3; }
+.card-types { grid-column: 1; grid-row: 3; }
 .card-priority { grid-column: 2; grid-row: 3; }
 
-.hist {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  height: 128px;
-  margin: 8px 0 2px;
-}
-
-.hist-col {
-  flex: 1;
-  height: 100%;
+.type-bars {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  gap: 13px;
+  margin: 10px 0 2px;
+}
+
+.type-bar-row {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 48px 44px;
   align-items: center;
-  gap: 4px;
-  min-width: 0;
+  gap: 10px;
 }
 
-.hist-count {
-  font-size: 11px;
-  color: var(--muted);
-  line-height: 1;
-  height: 12px;
+.type-bar-name { font-size: 13px; }
+
+.type-bar-track {
+  height: 8px;
+  background: var(--track);
+  border-radius: 999px;
+  overflow: hidden;
 }
 
-.hist-bar {
+.type-bar-fill {
   display: block;
-  width: 100%;
-  height: var(--h, 0%);
-  min-height: 2px;
+  height: 100%;
+  width: var(--w, 0%);
   background: var(--chart-2);
-  border-radius: 2px 2px 0 0;
+  border-radius: 999px;
+  animation: typeBar 720ms var(--ease-out) both;
 }
 
-.hist-range {
-  font-size: 10.5px;
-  color: var(--faint);
-  line-height: 1;
+.type-bar-row:first-child .type-bar-fill { background: var(--chart-3); }
+
+@keyframes typeBar {
+  from { width: 0; }
+}
+
+.type-bar-val { font-size: 13px; text-align: right; }
+
+.type-bar-count {
+  font-size: 11.5px;
+  color: var(--muted);
+  text-align: right;
   white-space: nowrap;
 }
 
@@ -1088,7 +1093,7 @@ button, input, select { font: inherit; color: inherit; }
 .filter-clear:hover { color: var(--chart-3); }
 
 @media (max-width: 1080px) {
-  .card-dist, .card-priority { grid-column: 1; grid-row: auto; }
+  .card-types, .card-priority { grid-column: 1; grid-row: auto; }
 }
 
 .form-more {

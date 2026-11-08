@@ -453,25 +453,33 @@
       '  <p class="analysis-note">' + buildNote(state, rows, gap) + '</p>' +
       '</section>';
 
-    /* 总分分布 */
-    var dist = S.distribution(state, 6);
-    var distCard = '';
-    if (dist) {
-      var maxCount = Math.max.apply(null, dist.bins.map(function (b) { return b.count; })) || 1;
-      distCard = '<section class="card card-dist">' +
-        '  <div class="card-head"><h2 class="card-title">总分落在哪</h2>' +
-        '    <span class="card-meta num">' + dist.list.length + ' 次</span></div>' +
-        '  <div class="hist">' +
-        dist.bins.map(function (b) {
-          var h = Math.round((b.count / maxCount) * 100);
-          return '<div class="hist-col">' +
-            '<span class="hist-count num">' + (b.count || '') + '</span>' +
-            '<span class="hist-bar" style="--h:' + h + '%"></span>' +
-            '<span class="hist-range num">' + Math.round(b.from) + '</span>' +
+    /* 各类型的表现放在一起比，能看出大考和小考到底谁更稳 */
+    var byType = S.typeStats(state);
+    var typeCard = '';
+    if (byType.length > 1) {
+      var topAvg = byType[0].avg;
+      var lowAvg = byType[byType.length - 1].avg;
+      typeCard = '<section class="card card-types">' +
+        '  <div class="card-head"><h2 class="card-title">各类型考得怎么样</h2>' +
+        '    <span class="card-meta num">' + byType.length + ' 种</span></div>' +
+        '  <div class="type-bars">' +
+        byType.map(function (g) {
+          /* 把差距拉开，不然四条几乎一样长看不清 */
+          var span = topAvg - lowAvg || 1;
+          var w = 34 + ((g.avg - lowAvg) / span) * 66;
+          return '<div class="type-bar-row">' +
+            '<span class="type-bar-name">' + esc(g.type) + '</span>' +
+            '<span class="type-bar-track"><span class="type-bar-fill" style="--w:' + w.toFixed(1) + '%"></span></span>' +
+            '<span class="type-bar-val num">' + g.avg.toFixed(0) + '</span>' +
+            '<span class="type-bar-count num">' + g.count + ' 次</span>' +
             '</div>';
         }).join('') +
         '  </div>' +
-        '  <p class="analysis-note">横轴是分数段，从 ' + Math.round(dist.lo) + ' 到 ' + Math.round(dist.hi) + '，柱子越高表示落在这一段里的考试越多。</p>' +
+        (byType.length > 1
+          ? '<p class="analysis-note">最高的是' + esc(byType[0].type) + '，平均 ' + topAvg.toFixed(0) +
+            ' 分；最低的是' + esc(byType[byType.length - 1].type) + '，平均 ' + lowAvg.toFixed(0) +
+            ' 分，相差 ' + (topAvg - lowAvg).toFixed(0) + ' 分。</p>'
+          : '') +
         '</section>';
     }
 
@@ -524,7 +532,7 @@
       '  <div class="col-rail">' + records + '</div>' +
       '  <div class="col-main">' + subjectsCard + '</div>' +
       '  <div class="col-rail">' + analyseCard + '</div>' +
-      '  <div class="col-main">' + distCard + '</div>' +
+      '  <div class="col-main">' + typeCard + '</div>' +
       '  <div class="col-rail">' + prioCard + '</div>' +
       '</div>' +
       '<script type="application/json" id="chartData">' + JSON.stringify(chartSeries(state, list)) + '</script>' +

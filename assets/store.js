@@ -826,6 +826,24 @@
     };
   }
 
+  /* 按考试类型看平均分，能分清自己在大考和小考上的差别 */
+  function typeStats(state) {
+    var map = {};
+    allSorted(state).forEach(function (e) {
+      var t = e.type || '月考';
+      if (!map[t]) map[t] = { type: t, count: 0, sum: 0, best: -1, worst: Infinity };
+      var v = examTotal(state, e);
+      map[t].count++;
+      map[t].sum += v;
+      map[t].best = Math.max(map[t].best, v);
+      map[t].worst = Math.min(map[t].worst, v);
+    });
+    return Object.keys(map).map(function (t) {
+      var g = map[t];
+      return { type: t, count: g.count, avg: g.sum / g.count, best: g.best, worst: g.worst };
+    }).sort(function (a, b) { return b.avg - a.avg; });
+  }
+
   function movers(state) {
     var list = sorted(state);
     if (list.length < 2) return { up: [], down: [] };
@@ -1138,6 +1156,7 @@
     subjectStats: subjectStats,
     changeSince: changeSince,
     movers: movers,
+    typeStats: typeStats,
     smoothMovers: smoothMovers,
     contribution: contribution,
     distribution: distribution,
