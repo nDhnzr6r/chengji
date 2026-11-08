@@ -113,8 +113,8 @@
     currentView = name;
     resizeHandler = null;
 
-    /* 还在用示例数据的时候说清楚，免得当成自己的 */
-    if (state.sample) {
+    /* 还在用示例数据的时候在总览说一句，免得当成自己的 */
+    if (state.sample && name === 'overview') {
       var sampleCount = S.allSorted(state).length;
       html = '<div class="sample-note">' +
         '<span class="sample-tag">示例数据</span>' +
