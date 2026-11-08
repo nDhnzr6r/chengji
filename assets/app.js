@@ -118,8 +118,8 @@
       var sampleCount = S.allSorted(state).length;
       html = '<div class="sample-note">' +
         '<span class="sample-tag">示例数据</span>' +
-        '<span class="sample-text">这 ' + sampleCount + ' 场是虚构的，用来演示各个功能。录自己的成绩之前先把它们清掉。</span>' +
-        '<button type="button" class="sample-clear" data-action="clear-exams">清空示例数据</button>' +
+        '<span class="sample-text">这 ' + sampleCount + ' 场考试、班级名和目标是虚构的。清掉之后从白纸开始录。</span>' +
+        '<button type="button" class="sample-clear" data-action="reset-all">清空并开始记录</button>' +
         '</div>' + html;
     }
 
@@ -1092,8 +1092,8 @@
     }
     else if (action === 'reset-all') {
       openDialog('<dialog class="dialog dialog-confirm">' +
-        '<div class="form-head"><h2>恢复出厂设置？</h2></div>' +
-        '<div class="form-body"><p class="confirm-text">目标、科目、人数、类型和全部 ' + state.exams.length + ' 次记录都会被清掉，回到刚装好时的样子。这个操作不能撤销。</p></div>' +
+        '<div class="form-head"><h2>清空示例，从白纸开始？</h2></div>' +
+        '<div class="form-body"><p class="confirm-text">示例的 ' + state.exams.length + ' 场考试会被删掉，班级名、目标、人数、科目和类型也会回到默认值，之后你自己改。这个操作不能撤销。</p></div>' +
         '<div class="form-foot"><button class="btn btn-ghost" data-action="close-dialog">取消</button>' +
         '<button class="btn btn-danger" data-action="confirm-reset">全部清掉</button></div>' +
         '</dialog>', function (dlg) {
