@@ -2190,6 +2190,10 @@ button, input, select { font: inherit; color: inherit; }
 }
 
 .tour.is-in { opacity: 1; }
+
+/* 滚动时高亮直接跟手，不要拖影 */
+.tour.is-scrolling .tour-hole,
+.tour.is-scrolling .tour-tip { transition: none; }
 .tour.is-out { opacity: 0; }
 
 .tour-hole {

@@ -60,6 +60,8 @@
   var tip = null;
   var index = 0;
   var active = false;
+  var currentTarget = null;
+  var currentStep = null;
 
   function shouldRun() {
     try {
@@ -116,6 +118,7 @@
     });
 
     document.addEventListener('keydown', onKey);
+    global.addEventListener('scroll', onScroll, true);
   }
 
   function onKey(evt) {
@@ -128,6 +131,9 @@
   function clearTour() {
     active = false;
     document.removeEventListener('keydown', onKey);
+    global.removeEventListener('scroll', onScroll, true);
+    currentTarget = null;
+    currentStep = null;
     if (root) {
       root.classList.add('is-out');
       var el = root;
@@ -161,6 +167,9 @@
 
     if (!target) { next(); return; }
 
+    currentTarget = target;
+    currentStep = step;
+
     var rect = target.getBoundingClientRect();
     var inView = rect.top >= 0 && rect.bottom <= global.innerHeight;
     if (!inView) {
@@ -168,11 +177,7 @@
       rect = target.getBoundingClientRect();
     }
 
-    var pad = 8;
-    hole.style.left = (rect.left - pad) + 'px';
-    hole.style.top = (rect.top - pad) + 'px';
-    hole.style.width = (rect.width + pad * 2) + 'px';
-    hole.style.height = (rect.height + pad * 2) + 'px';
+    paint(rect, step);
 
     tip.querySelector('.tour-count').textContent = (index + 1) + ' / ' + STEPS.length;
     tip.querySelector('.tour-title').textContent = step.title;
@@ -184,6 +189,35 @@
     nextBtn.textContent = index === STEPS.length - 1 ? '知道了' : '下一步';
 
     positionTip(rect, step.place);
+  }
+
+  /* 把高亮框和气泡摆到目标身上 */
+  function paint(rect, step) {
+    var pad = 8;
+    hole.style.left = (rect.left - pad) + 'px';
+    hole.style.top = (rect.top - pad) + 'px';
+    hole.style.width = (rect.width + pad * 2) + 'px';
+    hole.style.height = (rect.height + pad * 2) + 'px';
+    positionTip(rect, step.place);
+  }
+
+  /* 页面滚了就重新贴一次，不然框会留在原地 */
+  var scrollRaf = null;
+  var stopTimer = null;
+
+  function onScroll() {
+    if (!active || !currentTarget) return;
+    root.classList.add('is-scrolling');
+    clearTimeout(stopTimer);
+    stopTimer = setTimeout(function () {
+      if (root) root.classList.remove('is-scrolling');
+    }, 140);
+    if (scrollRaf) return;
+    scrollRaf = requestAnimationFrame(function () {
+      scrollRaf = null;
+      if (!active || !currentTarget) return;
+      paint(currentTarget.getBoundingClientRect(), currentStep);
+    });
   }
 
   function positionTip(rect, prefer) {
