@@ -213,6 +213,7 @@
 
     /* KPI：没填名次的那几格整块不出，每格右上角给一句判断 */
     var ins = S.insight(state);
+    var road = S.pace(state);
     var kpiCells = [];
 
     function stateTag(s) {
@@ -350,31 +351,56 @@
       '</section>';
 
     /* 强弱 */
-    var moved = S.movers(state);
-    var downRow = moved.down.length ? moved.down[0] : null;
-    var downLabel = downRow && downRow.delta < 0 ? '回落最多' : '进步最少';
     var bestRow = rows.slice().filter(function (r) { return r.rate !== null; }).sort(function (a, b) { return b.rate - a.rate; })[0];
     var worstRow = rows.slice().filter(function (r) { return r.rate !== null; }).sort(function (a, b) { return a.rate - b.rate; })[0];
 
+    var peers = S.examVsPeers(state, last);
+    var spread = S.subjectSpread(state, last);
+
+    /* 和平均分、最高分的距离 */
+    var peerRows = '';
+    if (peers.vsClass !== null) {
+      peerRows += '<div class="analysis-row">' +
+        '<span class="analysis-label">班级平均</span>' +
+        '<span class="analysis-value num">' + peers.classAvg + '<em class="' + (peers.vsClass >= 0 ? 'good' : 'bad') + '"> ' + signed(peers.vsClass) + '</em></span></div>';
+    }
+    if (peers.vsGrade !== null) {
+      peerRows += '<div class="analysis-row">' +
+        '<span class="analysis-label">年级平均</span>' +
+        '<span class="analysis-value num">' + peers.gradeAvg + '<em class="' + (peers.vsGrade >= 0 ? 'good' : 'bad') + '"> ' + signed(peers.vsGrade) + '</em></span></div>';
+    }
+    if (peers.toTop !== null) {
+      peerRows += '<div class="analysis-row">' +
+        '<span class="analysis-label">年级最高</span>' +
+        '<span class="analysis-value num">' + peers.top + '<em class="muted"> 距 ' + peers.toTop + '</em></span></div>';
+    }
+
     var analyseCard = '' +
       '<section class="card card-analysis">' +
-      '  <div class="card-head"><h2 class="card-title">强弱分析</h2></div>' +
+      '  <div class="card-head"><h2 class="card-title">这次的位置</h2></div>' +
+      (peerRows
+        ? '  <div class="analysis">' + peerRows + '</div>' +
+          (peers.diagnosis ? '  <p class="diagnosis is-' + peers.diagnosis.tone + '">' + esc(peers.diagnosis.text) + '</p>' : '')
+        : '  <p class="analysis-note">还没有填班级平均或年级平均，填上就能判断这次是题难还是状态。</p>') +
+      '  <div class="analysis-gap"></div>' +
+      '  <div class="card-head card-head-tight"><h2 class="card-title">强弱与偏科</h2>' +
+      (spread ? '<span class="card-meta">' + spread.level.text + '</span>' : '') + '</div>' +
       '  <div class="analysis">' +
       '    <div class="analysis-row">' +
-      '      <span class="analysis-label">得分率最高</span>' +
+      '      <span class="analysis-label">最强一科</span>' +
       '      <span class="analysis-value">' + (bestRow ? esc(bestRow.subject.name) + ' <em class="num">' + (bestRow.rate * 100).toFixed(1) + '%</em>' : '—') + '</span>' +
       '    </div>' +
       '    <div class="analysis-row">' +
-      '      <span class="analysis-label">最需要补</span>' +
+      '      <span class="analysis-label">最弱一科</span>' +
       '      <span class="analysis-value">' + (worstRow ? esc(worstRow.subject.name) + ' <em class="num">' + (worstRow.rate * 100).toFixed(1) + '%</em>' : '—') + '</span>' +
       '    </div>' +
       '    <div class="analysis-row">' +
-      '      <span class="analysis-label">进步最多</span>' +
-      '      <span class="analysis-value">' + (moved.up.length ? esc(moved.up[0].subject.name) + ' <em class="num good">' + signed(moved.up[0].delta) + '</em>' : '—') + '</span>' +
+      '      <span class="analysis-label">科间差距</span>' +
+      '      <span class="analysis-value">' + (spread ? '<em class="num">' + spread.spread.toFixed(1) + '</em> 个百分点' : '—') + '</span>' +
       '    </div>' +
       '    <div class="analysis-row">' +
-      '      <span class="analysis-label">' + downLabel + '</span>' +
-      '      <span class="analysis-value">' + (downRow ? esc(downRow.subject.name) + ' <em class="num ' + (downRow.delta < 0 ? 'bad' : '') + '">' + signed(downRow.delta) + '</em>' : '—') + '</span>' +
+      '      <span class="analysis-label">及格 / 优秀</span>' +
+      '      <span class="analysis-value num">' + (spread ? spread.pass + ' / ' + spread.good + ' 科' : '—') + '</span>' +
       '    </div>' +
       '  </div>' +
       '  <p class="analysis-note">' + buildNote(state, rows, gap) + '</p>' +
@@ -388,6 +414,13 @@
       '  </div>' +
       '</header>' +
       (ins && ins.headlines.length ? '<p class="verdict">' + ins.headlines.map(esc).join('，') + '</p>' : '') +
+      (road && road.predict !== null
+        ? '<p class="verdict-sub">按最近六次的速度，下次大约 ' + Math.round(road.predict) + ' 分' +
+          (road.needPerExam !== null
+            ? '；剩 ' + road.remaining + ' 场，每场要涨 ' + (road.needPerExam > 0 ? road.needPerExam.toFixed(1) : '0') + ' 分才够' +
+              (road.onTrack ? '，现在的速度跟得上' : '，现在的速度还不够')
+            : '') + '</p>'
+        : '') +
       kpi +
       '<div class="grid-main">' +
       '  <div class="col-main">' + trendCard + '</div>' +
@@ -470,8 +503,11 @@
       };
     });
 
+    var rankNow = S.subjectRankOf(state, lastExam, active.id);
+
     var kpiItems = '' +
       '  <div class="kpi"><span class="kpi-label">本次得分</span>' +
+      (rankNow ? '<span class="kpi-state is-flat">' + esc(rankNow.label) + '</span>' : '') +
       '    <span class="kpi-value num">' + (isNaN(lastScore) ? '—' : lastScore) + '</span><span class="kpi-unit">/ ' + active.full + '</span>' +
       '    <span class="kpi-foot">得分率 ' + (rateNow === null ? '—' : (rateNow * 100).toFixed(1) + '%') + '</span></div>' +
       '  <div class="kpi"><span class="kpi-label">历次平均</span>' +
@@ -510,7 +546,7 @@
       '  <div class="card-body" data-block="side">' + sideBody + '</div>' +
       '</section>';
 
-    var withRank = list.some(function (e) { return Number(e.ranks.grade) || Number(e.ranks.class); });
+    var withRank = list.some(function (e) { return Number((e.subjectRanks || {})[active.id]); });
 
     var rowsHtml = list.slice().reverse().map(function (exam) {
       var idx = list.findIndex(function (e) { return e.id === exam.id; });
@@ -518,11 +554,11 @@
       var score = Number(exam.scores[active.id]);
       var d = before === null || isNaN(before) || isNaN(score) ? null : score - before;
       var r = isNaN(score) ? null : S.rate(score, active.full);
+      var sr = Number((exam.subjectRanks || {})[active.id]) || null;
       var rankCells = withRank
-        ? '<span class="cell-num num">' + (exam.ranks.class || '—') + '</span>' +
-        '<span class="cell-num num">' + (exam.ranks.grade || '—') + '</span>'
+        ? '<span class="cell-num num">' + (sr || '—') + '</span>'
         : '';
-      return '<a class="row-link ' + (withRank ? 'row-subject' : 'row-subject-4') + '" href="#/exam/' + exam.id + '">' +
+      return '<a class="row-link ' + (withRank ? 'row-subject-5' : 'row-subject-4') + '" href="#/exam/' + exam.id + '">' +
         '<span class="cell-main"><span class="cell-title">' + esc(exam.name) + '</span><span class="cell-sub">' + esc(exam.date) + '</span></span>' +
         '<span class="cell-num num">' + (isNaN(score) ? '—' : score) + '</span>' +
         '<span class="cell-num num muted">' + (r === null ? '—' : (r * 100).toFixed(1) + '%') + '</span>' +
@@ -532,7 +568,7 @@
     }).join('');
 
     var tableHead = withRank
-      ? '<div class="table-head table-head-subject"><span>考试</span><span class="cell-num">得分</span><span class="cell-num">得分率</span><span class="cell-num">较上次</span><span class="cell-num">班级</span><span class="cell-num">年级</span></div>'
+      ? '<div class="table-head table-head-subject-5"><span>考试</span><span class="cell-num">得分</span><span class="cell-num">得分率</span><span class="cell-num">较上次</span><span class="cell-num">班内名次</span></div>'
       : '<div class="table-head table-head-subject-4"><span>考试</span><span class="cell-num">得分</span><span class="cell-num">得分率</span><span class="cell-num">较上次</span></div>';
 
     var tableCard = '' +
@@ -605,16 +641,35 @@
       '</a>';
   }
 
-  function exams(state) {
+  function exams(state, filter) {
     var sortedList = S.sorted(state);
     var list = sortedList.slice().reverse();
     if (!list.length) {
       return '<header class="page-head"><div><h1>考试记录</h1><p class="page-sub">每一次考试都在这里，点一行看当时的全部分数。</p></div><button class="btn btn-primary" data-action="new-exam">记录一次考试</button></header>' +
         '<div class="block-empty"><p>还没有成绩记录。</p></div>';
     }
+
+    filter = filter || 'all';
+    var facets = S.typeFacets(state);
+    var shown = S.filterByType(sortedList, filter);
+    var shownSet = {};
+    shown.forEach(function (e) { shownSet[e.id] = true; });
     var total = S.fullTotal(state);
-    var groups = S.groupBySemester(state).slice().reverse();
-    var withRank = sortedList.some(function (e) { return Number(e.ranks.grade) || Number(e.ranks.class); });
+    var groups = S.groupBySemester(state).map(function (g) {
+      var picked = g.exams.filter(function (e) { return shownSet[e.id]; });
+      if (!picked.length) return null;
+      var totalsIn = picked.map(function (e) { return S.examTotal(state, e); });
+      return {
+        label: g.label,
+        exams: picked,
+        count: picked.length,
+        avgTotal: totalsIn.reduce(function (a, b) { return a + b; }, 0) / picked.length,
+        best: Math.max.apply(null, totalsIn),
+        worst: Math.min.apply(null, totalsIn)
+      };
+    }).filter(Boolean).reverse();
+
+    var withRank = shown.some(function (e) { return Number(e.ranks.grade) || Number(e.ranks.class); });
 
     var head = withRank
       ? '<div class="table-head table-head-6"><span>考试</span><span class="cell-num">总分</span><span class="cell-num">年级</span><span class="cell-num">名次变化</span><span class="cell-num">班级</span><span class="cell-num">总分变化</span></div>'
@@ -625,7 +680,6 @@
         return examRow(state, exam, total, sortedList, withRank);
       }).join('');
       var meta = g.count + ' 次 · 平均 ' + g.avgTotal.toFixed(1) + ' 分' +
-        (g.avgRank ? ' · 平均年级 ' + Math.round(g.avgRank) + ' 名' : '') +
         ' · 最高 ' + g.best + ' · 最低 ' + g.worst;
       return '<section class="card card-semester">' +
         '  <div class="card-head">' +
@@ -636,18 +690,28 @@
         '</section>';
     }).join('');
 
-    var totals = sortedList.map(function (e) { return S.examTotal(state, e); });
-    var avgTotal = totals.reduce(function (a, b) { return a + b; }, 0) / totals.length;
+    var chips = '<div class="filter-chips" role="group" aria-label="按考试类型筛选">' +
+      '<button class="chip' + (filter === 'all' ? ' is-on' : '') + '" data-exam-filter="all">全部 <em class="num">' + sortedList.length + '</em></button>' +
+      facets.map(function (f) {
+        return '<button class="chip' + (filter === f.type ? ' is-on' : '') + '" data-exam-filter="' + esc(f.type) + '">' + esc(f.type) + ' <em class="num">' + f.count + '</em></button>';
+      }).join('') +
+      '</div>';
+
+    var totals = shown.map(function (e) { return S.examTotal(state, e); });
+    var avgTotal = totals.length ? totals.reduce(function (a, b) { return a + b; }, 0) / totals.length : 0;
 
     return '' +
-      '<header class="page-head"><div><h1>考试记录</h1><p class="page-sub num">共 ' + list.length + ' 次，跨 ' + groups.length + ' 个学期，从近到远排列</p></div><button class="btn btn-primary" data-action="new-exam">记录一次考试</button></header>' +
+      '<header class="page-head"><div><h1>考试记录</h1><p class="page-sub num">共 ' + shown.length + ' 次' + (filter === 'all' ? '' : '（只看' + esc(filter) + '）') + '，跨 ' + groups.length + ' 个学期，从近到远排列</p></div><button class="btn btn-primary" data-action="new-exam">记录一次考试</button></header>' +
+      chips +
       '<div class="semester-list">' + sections + '</div>' +
-      '<div class="table-foot">' +
-      '  <span>' + list.length + ' 次考试</span>' +
-      '  <span>平均 <em class="num">' + avgTotal.toFixed(1) + '</em></span>' +
-      '  <span>最高 <em class="num">' + Math.max.apply(null, totals) + '</em></span>' +
-      '  <span>最低 <em class="num">' + Math.min.apply(null, totals) + '</em></span>' +
-      '</div>';
+      (totals.length
+        ? '<div class="table-foot">' +
+          '  <span>' + shown.length + ' 次考试</span>' +
+          '  <span>平均 <em class="num">' + avgTotal.toFixed(1) + '</em></span>' +
+          '  <span>最高 <em class="num">' + Math.max.apply(null, totals) + '</em></span>' +
+          '  <span>最低 <em class="num">' + Math.min.apply(null, totals) + '</em></span>' +
+          '</div>'
+        : '');
   }
 
   /* ================= 两次考试对比 ================= */
@@ -849,6 +913,7 @@
       '<button class="btn btn-ghost" data-action="delete-exam" data-id="' + exam.id + '">删除这次</button></div>' +
       '</header>' +
       detailKpi(state, exam, total, full, goal, diff) +
+      detailPeers(state, exam) +
       '<p class="statement">' + goalLine + '</p>' +
       '<div class="sub-grid">' + cards + '</div>' +
       positionCard +
@@ -856,6 +921,19 @@
   }
 
   /* 详情页 KPI：没填的名次不占位 */
+  /* 这一场和班平、年平、最高分的距离，以及一句判断 */
+  function detailPeers(state, exam) {
+    var p = S.examVsPeers(state, exam);
+    var bits = [];
+    if (p.vsClass !== null) bits.push('班级平均 <em class="num">' + p.classAvg + '</em><em class="num ' + (p.vsClass >= 0 ? 'good' : 'bad') + '"> ' + signed(p.vsClass) + '</em>');
+    if (p.vsGrade !== null) bits.push('年级平均 <em class="num">' + p.gradeAvg + '</em><em class="num ' + (p.vsGrade >= 0 ? 'good' : 'bad') + '"> ' + signed(p.vsGrade) + '</em>');
+    if (p.toTop !== null) bits.push('年级最高 <em class="num">' + p.top + '</em><em class="num muted"> 距 ' + p.toTop + '</em>');
+    if (!bits.length) return '';
+
+    return '<p class="detail-peers">' + bits.join('<span class="peer-dot">·</span>') + '</p>' +
+      (p.diagnosis ? '<p class="diagnosis is-' + p.diagnosis.tone + '">' + esc(p.diagnosis.text) + '</p>' : '');
+  }
+
   function detailKpi(state, exam, total, full, goal, diff) {
     var cells = [];
     cells.push('<div class="kpi"><span class="kpi-label">总分</span><span class="kpi-value num">' + total + '</span><span class="kpi-unit">/ ' + full + '</span>' +
@@ -912,6 +990,13 @@
       '    <label class="field"><span class="field-label">入学年份</span>' +
       '      <input class="input" id="cfgEnrollYear" type="number" min="2000" max="2100" value="' + (c.enrollYear || '') + '">' +
       '      <span class="field-hint">用来把考试分到高一上、高一下这样的学期里</span></label>' +
+      '    <label class="field"><span class="field-label">离目标还剩几场</span>' +
+      '      <input class="input" id="cfgRemaining" type="number" min="0" value="' + (c.remainingExams || 0) + '">' +
+      '      <span class="field-hint">用来算每场需要涨多少分</span></label>' +
+      '    <label class="field"><span class="field-label">及格线</span>' +
+      '      <span class="input-suffix"><input class="input num" id="cfgPassRate" type="number" min="0" max="100" value="' + (c.passRate || 60) + '"><span class="suffix num">%</span></span></label>' +
+      '    <label class="field"><span class="field-label">优秀线</span>' +
+      '      <span class="input-suffix"><input class="input num" id="cfgGoodRate" type="number" min="0" max="100" value="' + (c.goodRate || 85) + '"><span class="suffix num">%</span></span></label>' +
       '  </div>' +
       '</section>' +
 
@@ -943,6 +1028,30 @@
 
   /* ================= 录入对话框 ================= */
 
+  /* 参照数据和单科名次，默认收起，不占主表单的地方 */
+  function moreFields(c, exam, averages, subjectRanks) {
+    var rows = c.subjects.map(function (s) {
+      var v = subjectRanks[s.id];
+      return '<label class="field"><span class="field-label">' + esc(s.name) + '</span>' +
+        '<input class="input num" type="number" min="1" data-subrank="' + s.id + '" value="' + (v || '') + '" placeholder="—"></label>';
+    }).join('');
+
+    return '<details class="form-more">' +
+      '<summary>参照数据和单科名次（可选）</summary>' +
+      '<p class="field-hint">填了班级平均和年级平均，才能判断某次下跌是题目难还是自己状态差。</p>' +
+      '<div class="field-row">' +
+      '  <label class="field"><span class="field-label">班级平均</span>' +
+      '    <input class="input num" id="fAvgClass" type="number" min="0" value="' + (averages.class || '') + '" placeholder="—"></label>' +
+      '  <label class="field"><span class="field-label">年级平均</span>' +
+      '    <input class="input num" id="fAvgGrade" type="number" min="0" value="' + (averages.grade || '') + '" placeholder="—"></label>' +
+      '  <label class="field"><span class="field-label">年级最高</span>' +
+      '    <input class="input num" id="fAvgTop" type="number" min="0" value="' + (averages.top || '') + '" placeholder="—"></label>' +
+      '</div>' +
+      '<div class="field-label form-more-label">各科在班级的名次</div>' +
+      '<div class="score-grid">' + rows + '</div>' +
+      '</details>';
+  }
+
   function examForm(state, exam) {
     var c = state.config;
     var isEdit = !!exam;
@@ -950,6 +1059,8 @@
     var todayIso = today.getFullYear() + '-' + pad2(today.getMonth() + 1) + '-' + pad2(today.getDate());
     var scores = exam ? exam.scores : {};
     var ranks = exam ? exam.ranks : {};
+    var averages = (exam && exam.averages) || {};
+    var subjectRanks = (exam && exam.subjectRanks) || {};
 
     var fields = c.subjects.map(function (s) {
       var v = scores[s.id];
@@ -982,6 +1093,7 @@
       '      <div class="field field-total"><span class="field-label">合计</span>' +
       '        <span class="total-preview"><span class="num" id="formTotal">0</span><span class="muted num"> / ' + S.fullTotal(state) + '</span></span></div>' +
       '    </div>' +
+      (moreFields(c, exam, averages, subjectRanks)) +
       '    <p class="form-error" id="formError" role="alert"></p>' +
       '  </div>' +
       '  <div class="form-foot">' +

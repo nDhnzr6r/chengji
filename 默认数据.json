@@ -8,6 +8,9 @@
     "targetTotal": 640,
     "targetRankClass": 5,
     "targetRankGrade": 100,
+    "remainingExams": 3,
+    "passRate": 60,
+    "goodRate": 85,
     "subjects": [
       {
         "id": "chinese",
@@ -64,6 +67,19 @@
       "ranks": {
         "class": 18,
         "grade": 262
+      },
+      "averages": {
+        "class": 452,
+        "grade": 448,
+        "top": 682
+      },
+      "subjectRanks": {
+        "chinese": 15,
+        "math": 24,
+        "english": 12,
+        "physics": 20,
+        "chemistry": 16,
+        "biology": 14
       }
     },
     {
@@ -82,6 +98,19 @@
       "ranks": {
         "class": 16,
         "grade": 243
+      },
+      "averages": {
+        "class": 461,
+        "grade": 455,
+        "top": 690
+      },
+      "subjectRanks": {
+        "chinese": 13,
+        "math": 22,
+        "english": 10,
+        "physics": 18,
+        "chemistry": 14,
+        "biology": 12
       }
     },
     {
@@ -100,6 +129,19 @@
       "ranks": {
         "class": 15,
         "grade": 231
+      },
+      "averages": {
+        "class": 448,
+        "grade": 442,
+        "top": 676
+      },
+      "subjectRanks": {
+        "chinese": 12,
+        "math": 20,
+        "english": 9,
+        "physics": 16,
+        "chemistry": 13,
+        "biology": 12
       }
     },
     {
@@ -118,6 +160,19 @@
       "ranks": {
         "class": 13,
         "grade": 205
+      },
+      "averages": {
+        "class": 470,
+        "grade": 466,
+        "top": 694
+      },
+      "subjectRanks": {
+        "chinese": 14,
+        "math": 14,
+        "english": 10,
+        "physics": 14,
+        "chemistry": 11,
+        "biology": 10
       }
     },
     {
@@ -136,6 +191,19 @@
       "ranks": {
         "class": 11,
         "grade": 178
+      },
+      "averages": {
+        "class": 455,
+        "grade": 450,
+        "top": 688
+      },
+      "subjectRanks": {
+        "chinese": 10,
+        "math": 18,
+        "english": 7,
+        "physics": 12,
+        "chemistry": 9,
+        "biology": 8
       }
     },
     {
@@ -154,6 +222,19 @@
       "ranks": {
         "class": 14,
         "grade": 226
+      },
+      "averages": {
+        "class": 440,
+        "grade": 436,
+        "top": 672
+      },
+      "subjectRanks": {
+        "chinese": 12,
+        "math": 26,
+        "english": 8,
+        "physics": 18,
+        "chemistry": 12,
+        "biology": 10
       }
     },
     {
@@ -172,6 +253,19 @@
       "ranks": {
         "class": 9,
         "grade": 148
+      },
+      "averages": {
+        "class": 462,
+        "grade": 458,
+        "top": 692
+      },
+      "subjectRanks": {
+        "chinese": 8,
+        "math": 11,
+        "english": 5,
+        "physics": 10,
+        "chemistry": 7,
+        "biology": 9
       }
     },
     {
@@ -190,6 +284,19 @@
       "ranks": {
         "class": 8,
         "grade": 133
+      },
+      "averages": {
+        "class": 468,
+        "grade": 462,
+        "top": 696
+      },
+      "subjectRanks": {
+        "chinese": 10,
+        "math": 8,
+        "english": 6,
+        "physics": 8,
+        "chemistry": 6,
+        "biology": 7
       }
     },
     {
@@ -208,6 +315,19 @@
       "ranks": {
         "class": 6,
         "grade": 112
+      },
+      "averages": {
+        "class": 458,
+        "grade": 454,
+        "top": 690
+      },
+      "subjectRanks": {
+        "chinese": 7,
+        "math": 10,
+        "english": 4,
+        "physics": 7,
+        "chemistry": 5,
+        "biology": 6
       }
     },
     {
@@ -226,6 +346,19 @@
       "ranks": {
         "class": 10,
         "grade": 156
+      },
+      "averages": {
+        "class": 436,
+        "grade": 432,
+        "top": 668
+      },
+      "subjectRanks": {
+        "chinese": 11,
+        "math": 13,
+        "english": 5,
+        "physics": 15,
+        "chemistry": 9,
+        "biology": 7
       }
     },
     {
@@ -244,6 +377,19 @@
       "ranks": {
         "class": 7,
         "grade": 118
+      },
+      "averages": {
+        "class": 451,
+        "grade": 447,
+        "top": 684
+      },
+      "subjectRanks": {
+        "chinese": 8,
+        "math": 6,
+        "english": 4,
+        "physics": 11,
+        "chemistry": 6,
+        "biology": 5
       }
     },
     {
@@ -262,6 +408,19 @@
       "ranks": {
         "class": 5,
         "grade": 96
+      },
+      "averages": {
+        "class": 447,
+        "grade": 443,
+        "top": 680
+      },
+      "subjectRanks": {
+        "chinese": 6,
+        "math": 3,
+        "english": 3,
+        "physics": 9,
+        "chemistry": 5,
+        "biology": 4
       }
     }
   ]

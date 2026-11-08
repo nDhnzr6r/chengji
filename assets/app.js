@@ -19,6 +19,7 @@
   var pendingImport = null;
   var lastShownTotal = null;
   var comparePair = [null, null];
+  var examFilter = 'all';
 
   /* ---------------- 工具 ---------------- */
 
@@ -84,7 +85,7 @@
       title = '单科分析';
     }
     else if (name === 'compare') { html = V.compare(state, comparePair[0], comparePair[1]); title = '两次考试对比'; }
-    else if (name === 'exams') { html = V.exams(state); title = '考试记录'; }
+    else if (name === 'exams') { html = V.exams(state, examFilter); title = '考试记录'; }
     else if (name === 'exam') { html = V.detail(state, route.param); title = '考试详情'; }
     else if (name === 'settings') { html = V.settings(state); title = '设置'; }
     else { html = V.overview(state); title = '总览'; }
@@ -419,6 +420,9 @@
     bind('cfgClassSize', 'classSize', Number);
     bind('cfgGradeSize', 'gradeSize', Number);
     bind('cfgEnrollYear', 'enrollYear', Number);
+    bind('cfgRemaining', 'remainingExams', Number);
+    bind('cfgPassRate', 'passRate', Number);
+    bind('cfgGoodRate', 'goodRate', Number);
 
     mainEl.querySelectorAll('.table-form tbody tr').forEach(function (tr) {
       var id = tr.getAttribute('data-subject');
@@ -612,15 +616,32 @@
           grade: Number(dlg.querySelector('#fGrade').value) || null
         };
 
+        var averages = {
+          class: Number(dlg.querySelector('#fAvgClass').value) || null,
+          grade: Number(dlg.querySelector('#fAvgGrade').value) || null,
+          top: Number(dlg.querySelector('#fAvgTop').value) || null
+        };
+
+        var subjectRanks = {};
+        dlg.querySelectorAll('[data-subrank]').forEach(function (input) {
+          var n = Number(input.value);
+          if (n > 0) subjectRanks[input.getAttribute('data-subrank')] = n;
+        });
+
         if (exam) {
           exam.name = name;
           exam.date = date;
           exam.type = type;
           exam.scores = scores;
           exam.ranks = ranks;
+          exam.averages = averages;
+          exam.subjectRanks = subjectRanks;
           toast('已保存这次考试');
         } else {
-          state.exams.push({ id: S.uid(), name: name, date: date, type: type, scores: scores, ranks: ranks });
+          state.exams.push({
+            id: S.uid(), name: name, date: date, type: type,
+            scores: scores, ranks: ranks, averages: averages, subjectRanks: subjectRanks
+          });
           toast('已记录「' + name + '」');
         }
         S.save(state);
@@ -718,6 +739,13 @@
   /* ---------------- 事件委托 ---------------- */
 
   document.addEventListener('click', function (evt) {
+    var chip = evt.target.closest('[data-exam-filter]');
+    if (chip) {
+      examFilter = chip.getAttribute('data-exam-filter');
+      render();
+      return;
+    }
+
     var themeBtn = evt.target.closest('#themeToggle');
     if (themeBtn) { toggleTheme(); return; }
 
@@ -950,6 +978,7 @@
     if (!global.Tour || !global.Tour.shouldRun()) return;
     if (currentView !== 'overview' || !state.exams.length) return;
     setTimeout(function () {
+      if (!global.Tour.shouldRun()) return;
       if (currentView !== 'overview') return;
       if (dialogRoot.children.length) return;
       global.Tour.start();
