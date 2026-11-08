@@ -310,6 +310,25 @@
       else openDate(root);
     });
 
+    /* 也可以直接把日期敲进来 */
+    var typeBox = pop.querySelector('.cal-type');
+    if (typeBox) {
+      typeBox.addEventListener('keydown', function (evt) {
+        if (evt.key === 'Escape') { typeBox.value = ''; return; }
+        if (evt.key !== 'Enter') return;
+        evt.preventDefault();
+        var iso = global.Store && global.Store.normalizeDate ? global.Store.normalizeDate(typeBox.value) : null;
+        if (!iso) { typeBox.classList.add('is-bad'); setTimeout(function () { typeBox.classList.remove('is-bad'); }, 700); return; }
+        var st0 = calState(root);
+        st0.date = parseISO(iso) || st0.date;
+        st0.view = 'day';
+        typeBox.value = '';
+        setDate(root, iso);
+        renderCal(root, false);
+        closeDate(root);
+      });
+    }
+
     /* 标题：日 → 月 → 年 → 日 */
     var titleBtn = pop.querySelector('.cal-title-btn');
     if (titleBtn) {

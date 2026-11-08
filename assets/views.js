@@ -123,6 +123,7 @@
       '</button>' +
       '<button type="button" class="cal-nav" data-step="1" aria-label="下一页">' + arrowR + '</button>' +
       '</div>' +
+      '<div class="cal-type-row"><input class="cal-type num" type="text" inputmode="numeric" placeholder="2026-11-05" aria-label="直接输入日期"></div>' +
       '<div class="cal-panel" data-panel="day">' +
       '<div class="cal-week"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>' +
       '<div class="cal-grid"></div>' +
@@ -312,6 +313,7 @@
       '    <span class="chart-note num" id="chartNote">' + list.length + ' 次记录</span>' +
       '    <div class="seg seg-sm" role="group" aria-label="显示范围">' +
       '      <button class="seg-btn is-on" data-range="all">全部</button>' +
+      '      <button class="seg-btn" data-range="term">本学期</button>' +
       '      <button class="seg-btn" data-range="recent">最近 6 次</button>' +
       '    </div>' +
       '  </div>' +
@@ -470,6 +472,11 @@
         grade: Number(state.config.targetRankGrade) || null,
         classRank: Number(state.config.targetRankClass) || null
       },
+      forecast: (function () {
+        var p = S.pace(state);
+        if (!p || p.predict === null || p.slope === null) return null;
+        return { value: Math.round(p.predict), label: '下次约 ' + Math.round(p.predict) };
+      })(),
       bands: S.semesterBands(state)
     };
   }
@@ -533,7 +540,7 @@
       '    <span class="kpi-foot">共 ' + stats.count + ' 次记录</span></div>' +
       '  <div class="kpi"><span class="kpi-label">波动</span>' +
       '    <span class="kpi-value num">±' + stats.sd.toFixed(1) + '</span><span class="kpi-unit">分</span>' +
-      '    <span class="kpi-foot">' + (stats.sd < 4 ? '很稳' : stats.sd < 8 ? '正常起伏' : '起伏偏大') + '</span></div>' +
+      '    <span class="kpi-foot">' + (stats.flips >= 3 ? '来回跳 ' + stats.flips + ' 次' : stats.sd < 4 ? '很稳' : stats.sd < 8 ? '正常起伏' : '起伏偏大') + '</span></div>' +
       '  <div class="kpi"><span class="kpi-label">距目标</span>' +
       '    <span class="kpi-value num ' + (isNaN(lastScore) ? '' : lastScore >= target ? 'is-hit' : '') + '">' + (isNaN(lastScore) ? '—' : Math.abs(lastScore - target)) + '</span><span class="kpi-unit">' + (isNaN(lastScore) ? '' : lastScore >= target ? '分超出' : '分') + '</span>' +
       '    <span class="kpi-foot">目标 ' + target + ' 分</span></div>';
@@ -975,6 +982,7 @@
   /* ================= 设置 ================= */
 
   function settings(state) {
+    var issues = S.audit(state);
     var c = state.config;
     var subjectRows = c.subjects.map(function (s) {
       return '<tr data-subject="' + s.id + '">' +
@@ -1044,6 +1052,7 @@
       '  <div class="data-actions">' +
       '    <button class="btn" data-action="export-json">导出备份（JSON）</button>' +
       '    <button class="btn" data-action="import-json">导入备份（JSON）</button>' +
+      '    <button class="btn" data-action="export-xlsx">导出表格（Excel）</button>' +
       '    <button class="btn" data-action="export-csv">导出表格（CSV）</button>' +
       '    <button class="btn" data-action="import-csv">导入 CSV</button>' +
       '    <button class="btn" data-action="import-xlsx">导入 Excel</button>' +
@@ -1054,6 +1063,14 @@
       '    <div><strong>清空全部记录</strong><p>只删考试，保留目标与科目设置。</p></div>' +
       '    <button class="btn btn-danger" data-action="clear-exams">清空记录</button>' +
       '  </div>' +
+      '</section>' +
+
+      '<section class="card card-form">' +
+      '  <div class="card-head"><div class="card-title-wrap"><h2 class="card-title">数据检查</h2>' +
+      '    <p class="card-sub">' + (issues.length ? '发现 ' + issues.length + ' 处对不上的地方，改掉之后判断才准' : '分数、名次、平均分和目标都在合理范围内') + '</p></div></div>' +
+      (issues.length
+        ? '  <ul class="issue-list">' + issues.map(function (i) { return '<li>' + esc(i.text) + '</li>'; }).join('') + '</ul>'
+        : '  <p class="analysis-note issue-ok">没有发现问题。</p>') +
       '</section>';
   }
 

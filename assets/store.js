@@ -427,6 +427,15 @@
       xs.forEach(function (x, i) { num += (x - mx) * (rates[i] - my); den += (x - mx) * (x - mx); });
       slope = den ? (num / den) * 100 : 0;
     }
+    /* 方向翻转了几次：标准差一样的两种曲线，来回跳的那种翻转更多 */
+    var flips = 0;
+    for (var k = 2; k < scores.length; k++) {
+      var a = scores[k - 1] - scores[k - 2];
+      var b = scores[k] - scores[k - 1];
+      if (a === 0 || b === 0) continue;
+      if ((a > 0) !== (b > 0)) flips++;
+    }
+
     return {
       series: series,
       count: series.length,
@@ -437,7 +446,8 @@
       best: best,
       worst: worst,
       last: series[series.length - 1] || null,
-      slope: slope
+      slope: slope,
+      flips: flips
     };
   }
 
@@ -467,15 +477,19 @@
     var goalClass = Number(state.config.targetRankClass) || null;
     var full = fullTotal(state);
 
-    /* 连续上涨和连续下跌的次数 */
+    /* 连续上涨和连续下跌的次数，用得分率比，满分变了也不会误判 */
+    var rateOf = function (e) {
+      var f = fullTotal(state);
+      return f ? examTotal(state, e) / f : 0;
+    };
     var up = 0;
     for (var i = list.length - 1; i > 0; i--) {
-      if (examTotal(state, list[i]) > examTotal(state, list[i - 1])) up++;
+      if (rateOf(list[i]) > rateOf(list[i - 1]) + 0.0005) up++;
       else break;
     }
     var down = 0;
     for (var j = list.length - 1; j > 0; j--) {
-      if (examTotal(state, list[j]) < examTotal(state, list[j - 1])) down++;
+      if (rateOf(list[j]) < rateOf(list[j - 1]) - 0.0005) down++;
       else break;
     }
 
@@ -552,6 +566,52 @@
       up: up,
       down: down
     };
+  }
+
+  /* 把明显不对的数据挑出来，让人能去改 */
+  function audit(state) {
+    var issues = [];
+    var full = fullTotal(state);
+    var classSize = Number(state.config.classSize) || 0;
+    var gradeSize = Number(state.config.gradeSize) || 0;
+    var seen = {};
+
+    sorted(state).forEach(function (e) {
+      var key = e.date + '|' + e.name;
+      if (seen[key]) issues.push({ text: e.date + ' 有两场都叫「' + e.name + '」，走势上会重复算一次' });
+      seen[key] = true;
+
+      state.config.subjects.forEach(function (sub) {
+        var v = Number(e.scores[sub.id]);
+        if (isNaN(v)) return;
+        if (v < 0) issues.push({ text: e.date + ' 的' + sub.name + '是负分' });
+        else if (v > Number(sub.full)) issues.push({ text: e.date + ' 的' + sub.name + ' ' + v + ' 分超过满分 ' + sub.full });
+      });
+
+      var t = examTotal(state, e);
+      if (t > full) issues.push({ text: e.date + ' 的总分 ' + t + ' 超过满分合计 ' + full });
+
+      var rc = Number(e.ranks.class) || 0;
+      var rg = Number(e.ranks.grade) || 0;
+      if (rc && classSize && rc > classSize) issues.push({ text: e.date + ' 的班级排名 ' + rc + ' 超过班级人数 ' + classSize });
+      if (rg && gradeSize && rg > gradeSize) issues.push({ text: e.date + ' 的年级排名 ' + rg + ' 超过年级人数 ' + gradeSize });
+
+      var avg = e.averages || {};
+      if (Number(avg.class) > full) issues.push({ text: e.date + ' 的班级平均 ' + avg.class + ' 超过满分 ' + full });
+      if (Number(avg.grade) > full) issues.push({ text: e.date + ' 的年级平均 ' + avg.grade + ' 超过满分 ' + full });
+      if (Number(avg.top) > full) issues.push({ text: e.date + ' 的年级最高 ' + avg.top + ' 超过满分 ' + full });
+    });
+
+    state.config.subjects.forEach(function (sub) {
+      if (Number(sub.target) > Number(sub.full)) {
+        issues.push({ text: sub.name + ' 的目标分 ' + sub.target + ' 高于满分 ' + sub.full });
+      }
+    });
+
+    var goal = targetTotal(state);
+    if (goal > full) issues.push({ text: '目标总分 ' + goal + ' 高于满分合计 ' + full });
+
+    return issues;
   }
 
   function movers(state) {
@@ -866,6 +926,7 @@
     subjectStats: subjectStats,
     changeSince: changeSince,
     movers: movers,
+    audit: audit,
     typeFacets: typeFacets,
     filterByType: filterByType,
     examVsPeers: examVsPeers,

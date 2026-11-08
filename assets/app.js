@@ -190,7 +190,13 @@
     };
 
     function pointsFor(key) {
-      var exams = range === 'recent' ? data.exams.slice(-6) : data.exams;
+      var exams = data.exams;
+      if (range === 'recent') exams = exams.slice(-6);
+      else if (range === 'term') {
+        /* 本学期 = 和最近一次考试同一个学期 */
+        var lastBand = data.bands && data.bands.length ? data.bands[data.bands.length - 1] : null;
+        if (lastBand) exams = exams.filter(function (e) { return e.ts >= lastBand.startTs; });
+      }
       return exams.map(function (e) {
         return {
           label: e.label,
@@ -216,7 +222,9 @@
         xMode: 'time',
         bands: data.bands,
         label: m.title,
-        animate: animate !== false
+        animate: animate !== false,
+        /* 预测只在总分这一档画，别的指标没有可比的速度 */
+        forecast: metric === 'total' && data.forecast ? data.forecast : null
       };
       if (!chart) {
         opts.points = pointsFor(metric);
@@ -229,7 +237,7 @@
       var noteEl = document.getElementById('chartNote');
       if (titleEl) titleEl.textContent = m.title;
       if (subEl) subEl.textContent = '共 ' + data.exams.length + ' 次考试，' + m.note;
-      if (noteEl) noteEl.textContent = (range === 'recent' ? Math.min(6, data.exams.length) : data.exams.length) + ' 次记录';
+      if (noteEl) noteEl.textContent = pointsFor('total').length + ' 次记录';
     }
 
     draw(true);
@@ -703,6 +711,35 @@
     toast('备份已下载');
   }
 
+  function exportXLSX() {
+    if (!global.XLSX) { toast('Excel 组件没有加载成功，改用 CSV 导出', 'bad'); return; }
+    var subjects = state.config.subjects;
+    var head = ['考试名称', '日期', '类型']
+      .concat(subjects.map(function (x) { return x.name; }))
+      .concat(subjects.map(function (x) { return x.name + '名次'; }))
+      .concat(subjects.map(function (x) { return x.name + '平均'; }))
+      .concat(['班级排名', '年级排名', '班级平均', '年级平均', '年级最高']);
+
+    var rows = [head];
+    S.sorted(state).forEach(function (e) {
+      var avg = e.averages || {};
+      var sr = e.subjectRanks || {};
+      var sa = e.subjectAverages || {};
+      rows.push([e.name, e.date, e.type || '']
+        .concat(subjects.map(function (x) { return e.scores[x.id] === undefined ? '' : e.scores[x.id]; }))
+        .concat(subjects.map(function (x) { return sr[x.id] || ''; }))
+        .concat(subjects.map(function (x) { return sa[x.id] || ''; }))
+        .concat([e.ranks.class || '', e.ranks.grade || '', avg.class || '', avg.grade || '', avg.top || '']));
+    });
+
+    var sheet = global.XLSX.utils.aoa_to_sheet(rows);
+    sheet['!cols'] = head.map(function (h) { return { wch: Math.max(8, Math.min(18, h.length * 2 + 4)) }; });
+    var book = global.XLSX.utils.book_new();
+    global.XLSX.utils.book_append_sheet(book, sheet, '成绩');
+    global.XLSX.writeFile(book, '成迹-成绩-' + todayStamp() + '.xlsx');
+    toast('表格已下载');
+  }
+
   function exportCSV() {
     var csv = '\uFEFF' + S.toCSV(state);
     download('成迹-成绩-' + todayStamp() + '.csv', csv, 'text/csv;charset=utf-8');
@@ -870,6 +907,7 @@
         });
     }
     else if (action === 'export-csv') { exportCSV(); }
+    else if (action === 'export-xlsx') { exportXLSX(); }
     else if (action === 'download-template') { downloadTemplate(); }
     else if (action === 'replay-tour') {
       if (global.Tour) {

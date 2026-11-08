@@ -142,6 +142,12 @@
         lo0 = Math.min(lo0, o.target - tPad);
         hi0 = Math.max(hi0, o.target + tPad);
       }
+      /* 预测值也要落在刻度里，不然点会飘出去 */
+      if (o.forecast && typeof o.forecast.value === 'number') {
+        var fPad = rawSpan * 0.06;
+        lo0 = Math.min(lo0, o.forecast.value - fPad);
+        hi0 = Math.max(hi0, o.forecast.value + fPad);
+      }
       /* 分数、得分率、名次都不是负数，底端不低于 0 */
       if (o.floor !== false) {
         lo0 = Math.max(o.floor === undefined ? 0 : o.floor, lo0);
@@ -153,9 +159,14 @@
       var tsMin = useTime ? Math.min.apply(null, points.map(function (p) { return p.ts; })) : 0;
       var tsMax = useTime ? Math.max.apply(null, points.map(function (p) { return p.ts; })) : 0;
 
+      /* 给预测点留出右侧一段空位 */
+      var hasForecast = !!(o.forecast && typeof o.forecast.value === 'number');
+      var xSpan = useTime ? (tsMax - tsMin) : Math.max(points.length - 1, 1);
+      var lead = hasForecast ? xSpan * 0.16 : 0;
+
       var x = function (i) {
         if (useTime && tsMax > tsMin) {
-          return pad.l + ((points[i].ts - tsMin) / (tsMax - tsMin)) * plotW;
+          return pad.l + ((points[i].ts - tsMin) / (xSpan + lead)) * plotW;
         }
         return pad.l + (points.length === 1 ? plotW / 2 : (plotW * i) / (points.length - 1));
       };
@@ -166,7 +177,7 @@
 
       var tsToX = function (ts) {
         if (!useTime || tsMax <= tsMin) return pad.l;
-        return pad.l + ((ts - tsMin) / (tsMax - tsMin)) * plotW;
+        return pad.l + ((ts - tsMin) / (xSpan + lead)) * plotW;
       };
 
       var svg = el('svg', {
@@ -254,6 +265,32 @@
       var lastIndex = coords.length - 1;
       var lastDot = el('circle', { cx: coords[lastIndex][0], cy: coords[lastIndex][1], r: 4.6, class: 'chart-dot-last' });
       gMarks.appendChild(lastDot);
+
+      /* 往右延伸一段虚线，落一个空心点，标出下次大概多少 */
+      var forecastMark = null;
+      if (hasForecast) {
+        var fx0 = coords[lastIndex][0];
+        var fy0 = coords[lastIndex][1];
+        var fx1 = pad.l + plotW - 6;
+        var fy1 = y(o.forecast.value);
+        var gForecast = el('g', { class: 'chart-forecast' });
+        gForecast.appendChild(el('line', {
+          x1: fx0, y1: fy0, x2: fx1, y2: fy1,
+          class: 'forecast-line'
+        }));
+        forecastMark = el('circle', { cx: fx1, cy: fy1, r: 4, class: 'forecast-dot' });
+        gForecast.appendChild(forecastMark);
+        if (o.forecast.label) {
+          var lb = el('text', {
+            x: fx1, y: fy1 + 17,
+            'text-anchor': 'end',
+            class: 'forecast-label'
+          });
+          lb.textContent = o.forecast.label;
+          gForecast.appendChild(lb);
+        }
+        gMarks.appendChild(gForecast);
+      }
 
       var gAxis = el('g', { class: 'chart-axis' });
       var minGap = W < 520 ? 56 : 68;
@@ -407,6 +444,7 @@
         areaBaseY: baseY,
         dots: dots,
         lastDot: lastDot,
+        forecastDot: forecastMark,
         targetLine: gTarget,
         yFunc: y,
         pad: pad
