@@ -756,8 +756,33 @@
     toast('备份已下载');
   }
 
+  /* Excel 组件有九百多 KB，平时不加载，用到再取 */
+  var xlsxLoading = null;
+
+  function loadXLSX() {
+    if (global.XLSX) return Promise.resolve(global.XLSX);
+    if (xlsxLoading) return xlsxLoading;
+    xlsxLoading = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = 'vendor/xlsx.full.min.js';
+      s.async = true;
+      s.onload = function () { resolve(global.XLSX); };
+      s.onerror = function () { xlsxLoading = null; reject(new Error('load failed')); };
+      document.head.appendChild(s);
+    });
+    return xlsxLoading;
+  }
+
   function exportXLSX() {
-    if (!global.XLSX) { toast('Excel 组件没有加载成功，改用 CSV 导出', 'bad'); return; }
+    toast('正在准备 Excel 组件');
+    loadXLSX().then(function () {
+      buildXLSX();
+    }).catch(function () {
+      toast('Excel 组件加载失败，改用 CSV 导出', 'bad');
+    });
+  }
+
+  function buildXLSX() {
     var subjects = state.config.subjects;
     var head = ['考试名称', '日期', '类型']
       .concat(subjects.map(function (x) { return x.name; }))
@@ -928,19 +953,23 @@
       };
       reader.readAsText(file, 'utf-8');
     } else if (kind === 'xlsx') {
-      reader.onload = function (evt) {
-        try {
-          if (!global.XLSX) { toast('Excel 解析没有加载成功，请改用 CSV', 'bad'); return; }
-          var data = new Uint8Array(evt.target.result);
-          var wb = global.XLSX.read(data, { type: 'array' });
-          var sheet = wb.Sheets[wb.SheetNames[0]];
-          var rows = global.XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
-          ingest(rows);
-        } catch (err) {
-          toast('这个 Excel 文件读不出来', 'bad');
-        }
-      };
-      reader.readAsArrayBuffer(file);
+      toast('正在准备 Excel 组件');
+      loadXLSX().then(function () {
+        reader.onload = function (evt) {
+          try {
+            var data = new Uint8Array(evt.target.result);
+            var wb = global.XLSX.read(data, { type: 'array' });
+            var sheet = wb.Sheets[wb.SheetNames[0]];
+            var rows = global.XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
+            ingest(rows);
+          } catch (err) {
+            toast('这个 Excel 文件读不出来', 'bad');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      }).catch(function () {
+        toast('Excel 组件加载失败，请改用 CSV', 'bad');
+      });
     } else {
       reader.onload = function (evt) {
         var rows = S.parseCSV(String(evt.target.result));
