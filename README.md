@@ -1,10 +1,34 @@
-# 成迹
+<h1 align="center">成迹</h1>
 
-记录每次考试的分数和名次，看清走势、偏科和离目标还差多少。
+<p align="center">
+  <b>记下每次考试的分数和名次，看清走势、偏科，和离目标还差多少。</b><br>
+  不用安装，不用注册，不用联网，成绩只存在你自己的浏览器里
+</p>
 
-**[在线试用 →](https://ndhnzr6r.github.io/chengji/)** 不用下载，打开就能用。也可以下载到本地，双击 `index.html`。两者都不需要安装、不需要联网（首次打开除外）、不需要注册，成绩只存在你自己浏览器里。
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/LICENSE-GPL--3.0-1d5fbf?style=flat-square&logo=gnu&logoColor=white" alt="许可证：GPL-3.0"></a>
+  <a href="https://ndhnzr6r.github.io/chengji/"><img src="https://img.shields.io/github/deployments/nDhnzr6r/chengji/github-pages?style=flat-square&label=PAGES&color=2f7d4f&logo=githubpages&logoColor=white" alt="GitHub Pages 部署状态"></a>
+  <a href="https://github.com/nDhnzr6r/chengji/stargazers"><img src="https://img.shields.io/github/stars/nDhnzr6r/chengji?style=flat-square&label=STARS&color=4a5160&logo=github&logoColor=white" alt="星标数"></a>
+  <img src="https://img.shields.io/badge/OFFLINE-READY-2f7d4f?style=flat-square&logo=serverless&logoColor=white" alt="断网可用">
+  <img src="https://img.shields.io/badge/DATA-LOCAL-1d5fbf?style=flat-square&logo=googlechrome&logoColor=white" alt="数据只存在本地">
+  <img src="https://img.shields.io/badge/EXPORT-CSV%20JSON%20XLSX-6b5b95?style=flat-square&logo=libreoffice&logoColor=white" alt="可导出 CSV、JSON、Excel">
+</p>
 
-![成迹的总览页：一句话结论、四格指标、走势图和预测延伸点](docs/overview-light.png)
+<p align="center">
+  <a href="https://ndhnzr6r.github.io/chengji/">在线试用</a> ·
+  <a href="#快速开始">快速开始</a> ·
+  <a href="#能做什么">能做什么</a> ·
+  <a href="#从表格导入">从表格导入</a> ·
+  <a href="#数据存在哪">数据存在哪</a> ·
+  <a href="#文件结构">文件结构</a>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/overview-dark.png">
+    <img src="docs/overview-light.png" alt="成迹的总览页：一句话结论、四格指标、走势图和预测延伸点">
+  </picture>
+</p>
 
 ## 能做什么
 
@@ -13,11 +37,7 @@
 - **分得清题难还是状态差**：填了班级平均之后，页面会算出你比班平高多少、离年级最高差多少，并用分差的变化判断这次是卷子难还是自己掉了。
 - **知道先补哪一科**：六科按缺口占满分的比例排序，还给出「这一科再多考十分，总分能到多少、年级大约进几名」。
 - **按学期和类型看**：记录页可以只看月考、期中、期末或联考；每次考试自动归到高一上、高一下这样的学期里。
-- **能带走**：导出 Excel、CSV、完整 JSON 备份，或者一份含结论和建议的 HTML 报告。深浅色切换、打印样式都做了。
-
-侧栏最底下切换深浅色，选择会记住。深色模式下长这样：
-
-![成迹的深色模式](docs/overview-dark.png)
+- **能带走**：导出 Excel、CSV、完整 JSON 备份，或者一份含结论和建议的 HTML 报告。侧栏最底下切换深浅色，选择会记住；打印样式也做了。
 
 ## 快速开始
 
