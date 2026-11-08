@@ -1205,6 +1205,14 @@
       '    <div><strong>清空全部记录</strong><p>只删考试，保留目标与科目设置。</p></div>' +
       '    <button class="btn btn-danger" data-action="clear-exams">清空记录</button>' +
       '  </div>' +
+      '  <div class="danger-zone">' +
+      '    <div><strong>恢复出厂</strong><p>连同目标、科目、人数和类型一起重置，全部记录也会删掉。</p></div>' +
+      '    <button class="btn btn-danger" data-action="reset-all">清空全部数据</button>' +
+      '  </div>' +
+      '  <div class="danger-zone">' +
+      '    <div><strong>填入示例数据</strong><p>把 15 场虚构的考试和默认设置装回来，用来试用功能。会覆盖当前全部内容。</p></div>' +
+      '    <button class="btn" data-action="load-sample">填入示例数据</button>' +
+      '  </div>' +
       '</section>' +
 
       '<section class="card card-form">' +

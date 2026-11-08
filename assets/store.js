@@ -55,6 +55,7 @@
   function defaultState() {
     return {
       version: 1,
+      sample: true,
       config: clone(DEFAULT_CONFIG),
       exams: clone(SEED_EXAMS)
     };
@@ -885,6 +886,7 @@
   function normalize(input) {
     var state = defaultState();
     if (!input || typeof input !== 'object') return state;
+    if (input.sample === false) state.sample = false;
     if (input.config && typeof input.config === 'object') {
       state.config = Object.assign(state.config, input.config);
       if (!Array.isArray(state.config.subjects) || !state.config.subjects.length) {
@@ -931,9 +933,25 @@
     return fresh;
   }
 
+  /* 连目标、科目、人数一起恢复出厂 */
+  function resetAll() {
+    var fresh = defaultState();
+    fresh.exams = [];
+    fresh.sample = false;
+    save(fresh);
+    return fresh;
+  }
+
+  function loadSample() {
+    var fresh = defaultState();
+    save(fresh);
+    return fresh;
+  }
+
   function clearExams() {
     var state = load();
     state.exams = [];
+    state.sample = false;
     save(state);
     return state;
   }
@@ -1145,6 +1163,8 @@
     save: save,
     reset: reset,
     clearExams: clearExams,
+    resetAll: resetAll,
+    loadSample: loadSample,
     sorted: sorted,
     allSorted: allSorted,
     examTotal: examTotal,

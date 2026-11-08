@@ -113,6 +113,16 @@
     currentView = name;
     resizeHandler = null;
 
+    /* 还在用示例数据的时候说清楚，免得当成自己的 */
+    if (state.sample) {
+      var sampleCount = S.allSorted(state).length;
+      html = '<div class="sample-note">' +
+        '<span class="sample-tag">示例数据</span>' +
+        '<span class="sample-text">这 ' + sampleCount + ' 场是虚构的，用来演示各个功能。录自己的成绩之前先把它们清掉。</span>' +
+        '<button type="button" class="sample-clear" data-action="clear-exams">清空示例数据</button>' +
+        '</div>' + html;
+    }
+
     /* 筛选开着就在每页顶上挂一条，免得看着像全部数据 */
     if (picked !== 'all') {
       var shownCount = S.sorted(state).length;
@@ -435,6 +445,7 @@
     var c = state.config;
 
     function commit() {
+      state.sample = false;
       S.save(state);
       refreshSidebar();
     }
@@ -480,6 +491,7 @@
           if ((e.type || '月考') === oldName) e.type = next;
         });
         if (state.filter === oldName) state.filter = next;
+        state.sample = false;
         S.save(state);
         render();
         toast('「' + oldName + '」改成了「' + next + '」');
@@ -513,6 +525,7 @@
               input.value = subject[field];
             }
           }
+          state.sample = false;
           S.save(state);
           var rateCell = tr.querySelector('td:last-child');
           if (rateCell) {
@@ -717,6 +730,7 @@
           exam.averages = averages;
           exam.subjectRanks = subjectRanks;
           exam.subjectAverages = subjectAverages;
+          state.sample = false;
           toast('已保存这次考试');
         } else {
           state.exams.push({
@@ -726,6 +740,7 @@
           });
           toast('已记录「' + name + '」');
         }
+        state.sample = false;
         S.save(state);
         closeDialog();
         refreshSidebar();
@@ -900,6 +915,7 @@
         try {
           var parsed = JSON.parse(String(evt.target.result));
           var next = S.normalize(parsed);
+          next.sample = false;
           state = next;
           S.save(state);
           lastShownTotal = null;
@@ -941,6 +957,7 @@
       return;
     }
     var merged = S.mergeExams(state, result.exams);
+    state.sample = false;
     S.save(state);
     refreshSidebar();
     render();
@@ -976,6 +993,7 @@
       if (!typeName) return;
       state.config.types = state.config.types || [];
       if (state.config.types.indexOf(typeName) < 0) state.config.types.push(typeName);
+      state.sample = false;
       S.save(state);
       render();
       toast('已加上「' + typeName + '」');
@@ -988,6 +1006,7 @@
       var inUse = state.exams.some(function (e) { return (e.type || '月考') === dropType; });
       if (inUse) { toast('还有考试用着这个类型，改掉之后才能删', 'bad'); return; }
       state.config.types = (state.config.types || []).filter(function (t) { return t !== dropType; });
+      state.sample = false;
       S.save(state);
       render();
       return;
@@ -1068,6 +1087,38 @@
             refreshSidebar();
             render();
             toast('记录已清空');
+          });
+        });
+    }
+    else if (action === 'reset-all') {
+      openDialog('<dialog class="dialog dialog-confirm">' +
+        '<div class="form-head"><h2>恢复出厂设置？</h2></div>' +
+        '<div class="form-body"><p class="confirm-text">目标、科目、人数、类型和全部 ' + state.exams.length + ' 次记录都会被清掉，回到刚装好时的样子。这个操作不能撤销。</p></div>' +
+        '<div class="form-foot"><button class="btn btn-ghost" data-action="close-dialog">取消</button>' +
+        '<button class="btn btn-danger" data-action="confirm-reset">全部清掉</button></div>' +
+        '</dialog>', function (dlg) {
+          dlg.querySelector('[data-action="confirm-reset"]').addEventListener('click', function () {
+            state = S.resetAll();
+            closeDialog();
+            refreshSidebar();
+            render();
+            toast('已经恢复出厂');
+          });
+        });
+    }
+    else if (action === 'load-sample') {
+      openDialog('<dialog class="dialog dialog-confirm">' +
+        '<div class="form-head"><h2>填入示例数据？</h2></div>' +
+        '<div class="form-body"><p class="confirm-text">当前的 ' + state.exams.length + ' 次记录和全部设置会被 15 场示例考试和默认设置替换。想留住现在的内容，先导出备份。</p></div>' +
+        '<div class="form-foot"><button class="btn btn-ghost" data-action="close-dialog">取消</button>' +
+        '<button class="btn btn-primary" data-action="confirm-sample">填入</button></div>' +
+        '</dialog>', function (dlg) {
+          dlg.querySelector('[data-action="confirm-sample"]').addEventListener('click', function () {
+            state = S.loadSample();
+            closeDialog();
+            refreshSidebar();
+            render();
+            toast('示例数据已经装回来了');
           });
         });
     }
