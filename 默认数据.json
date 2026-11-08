@@ -11,6 +11,13 @@
     "remainingExams": 3,
     "passRate": 60,
     "goodRate": 85,
+    "types": [
+      "月考",
+      "期中",
+      "期末",
+      "联考",
+      "模拟"
+    ],
     "subjects": [
       {
         "id": "chinese",
@@ -80,6 +87,14 @@
         "physics": 20,
         "chemistry": 16,
         "biology": 14
+      },
+      "subjectAverages": {
+        "chinese": 86,
+        "math": 81,
+        "english": 91,
+        "physics": 49,
+        "chemistry": 51,
+        "biology": 55
       }
     },
     {
@@ -111,6 +126,14 @@
         "physics": 18,
         "chemistry": 14,
         "biology": 12
+      },
+      "subjectAverages": {
+        "chinese": 88,
+        "math": 85,
+        "english": 92,
+        "physics": 50,
+        "chemistry": 54,
+        "biology": 57
       }
     },
     {
@@ -142,6 +165,14 @@
         "physics": 16,
         "chemistry": 13,
         "biology": 12
+      },
+      "subjectAverages": {
+        "chinese": 91,
+        "math": 87,
+        "english": 94,
+        "physics": 53,
+        "chemistry": 55,
+        "biology": 57
       }
     },
     {
@@ -173,6 +204,14 @@
         "physics": 14,
         "chemistry": 11,
         "biology": 10
+      },
+      "subjectAverages": {
+        "chinese": 88,
+        "math": 94,
+        "english": 92,
+        "physics": 55,
+        "chemistry": 59,
+        "biology": 60
       }
     },
     {
@@ -204,6 +243,14 @@
         "physics": 12,
         "chemistry": 9,
         "biology": 8
+      },
+      "subjectAverages": {
+        "chinese": 94,
+        "math": 91,
+        "english": 97,
+        "physics": 58,
+        "chemistry": 60,
+        "biology": 62
       }
     },
     {
@@ -235,6 +282,14 @@
         "physics": 18,
         "chemistry": 12,
         "biology": 10
+      },
+      "subjectAverages": {
+        "chinese": 92,
+        "math": 83,
+        "english": 96,
+        "physics": 51,
+        "chemistry": 57,
+        "biology": 59
       }
     },
     {
@@ -266,6 +321,14 @@
         "physics": 10,
         "chemistry": 7,
         "biology": 9
+      },
+      "subjectAverages": {
+        "chinese": 96,
+        "math": 98,
+        "english": 100,
+        "physics": 60,
+        "chemistry": 62,
+        "biology": 61
       }
     },
     {
@@ -297,6 +360,14 @@
         "physics": 8,
         "chemistry": 6,
         "biology": 7
+      },
+      "subjectAverages": {
+        "chinese": 94,
+        "math": 102,
+        "english": 99,
+        "physics": 62,
+        "chemistry": 64,
+        "biology": 63
       }
     },
     {
@@ -328,6 +399,14 @@
         "physics": 7,
         "chemistry": 5,
         "biology": 6
+      },
+      "subjectAverages": {
+        "chinese": 97,
+        "math": 99,
+        "english": 102,
+        "physics": 64,
+        "chemistry": 66,
+        "biology": 66
       }
     },
     {
@@ -359,6 +438,14 @@
         "physics": 15,
         "chemistry": 9,
         "biology": 7
+      },
+      "subjectAverages": {
+        "chinese": 93,
+        "math": 95,
+        "english": 101,
+        "physics": 57,
+        "chemistry": 61,
+        "biology": 64
       }
     },
     {
@@ -390,6 +477,14 @@
         "physics": 11,
         "chemistry": 6,
         "biology": 5
+      },
+      "subjectAverages": {
+        "chinese": 97,
+        "math": 104,
+        "english": 103,
+        "physics": 60,
+        "chemistry": 65,
+        "biology": 66
       }
     },
     {
@@ -421,6 +516,14 @@
         "physics": 9,
         "chemistry": 5,
         "biology": 4
+      },
+      "subjectAverages": {
+        "chinese": 99,
+        "math": 107,
+        "english": 105,
+        "physics": 63,
+        "chemistry": 67,
+        "biology": 68
       }
     }
   ]

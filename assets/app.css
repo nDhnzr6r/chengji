@@ -1008,32 +1008,58 @@ button, input, select { font: inherit; color: inherit; }
 .chip.is-on em { color: inherit; opacity: 0.6; }
 
 .form-more {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--rule);
+  margin-top: 16px;
 }
 
 .form-more > summary {
-  font-size: 12.5px;
-  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  font-size: 13px;
+  color: var(--text);
   cursor: pointer;
   list-style: none;
-  padding: 2px 0;
-  transition: color 140ms linear;
+  user-select: none;
+  transition: background 160ms var(--ease-soft), border-color 160ms linear;
 }
 
 .form-more > summary::-webkit-details-marker { display: none; }
 
-.form-more > summary:hover { color: var(--text); }
-
-.form-more > summary::before {
-  content: "＋";
-  display: inline-block;
-  width: 14px;
-  color: var(--faint);
+.form-more > summary:hover {
+  background: var(--hover);
+  border-color: var(--control-hover);
 }
 
-.form-more[open] > summary::before { content: "－"; }
+.form-more > summary::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(-45deg);
+  margin-left: 2px;
+  transition: transform 180ms var(--ease-soft);
+}
+
+.form-more[open] > summary::before {
+  transform: rotate(45deg);
+  margin-top: -4px;
+}
+
+.form-more > summary::after {
+  content: "可选";
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--faint);
+  letter-spacing: 0.02em;
+}
+
+.form-more[open] > summary { margin-bottom: 4px; }
 
 .form-more > *:not(summary) { margin-top: 12px; }
 
@@ -2223,3 +2249,83 @@ button, input, select { font: inherit; color: inherit; }
   #main.is-enter > * { animation: none; }
   .sub-fill { animation: none; }
 }
+
+/* ---------------- 打印 ---------------- */
+
+@media print {
+  :root, [data-theme="dark"] {
+    --ground: #ffffff;
+    --surface: #ffffff;
+    --raised: #ffffff;
+    --border: #d4dae2;
+    --rule: #e4e8ee;
+    --text: #111418;
+    --muted: #4a5260;
+    --faint: #6a7280;
+  }
+
+  @page { margin: 14mm; }
+
+  #boot, .side, .theme-toggle, .head-actions, .seg, .toast,
+  #dialogRoot, .tour, .filter-chips, .tabs, .chart-foot, .text-link,
+  .record-delta, .card-meta { display: none !important; }
+
+  html, body { background: #ffffff !important; }
+
+  #app { display: block; }
+
+  #main { padding: 0; max-width: none; }
+
+  .grid-main { display: block; }
+
+  .card {
+    border: 1px solid var(--border);
+    box-shadow: none;
+    margin-bottom: 10px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .kpi-strip { break-inside: avoid; }
+
+  .verdict, .verdict-sub { break-after: avoid; }
+
+  a { color: inherit; text-decoration: none; }
+}
+
+/* ---------------- 考试类型管理 ---------------- */
+
+.type-manage { display: flex; flex-direction: column; gap: 12px; }
+
+.type-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+
+.type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 6px 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.type-del {
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: var(--faint);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 140ms linear, color 140ms linear;
+}
+
+.type-del:hover { background: var(--hover); color: var(--negative); }
+
+.type-add { display: flex; gap: 8px; }
+
+.type-add .input { width: 180px; }

@@ -67,6 +67,14 @@
 
   /* ---- 自建下拉与日期控件 ---- */
 
+  /* 表单里能选到的类型：配置里的，加上这场自己带的 */
+  function typesOf(config, exam) {
+    var list = (config.types || []).slice();
+    if (exam && exam.type && list.indexOf(exam.type) < 0) list.push(exam.type);
+    if (!list.length) list = ['月考'];
+    return list;
+  }
+
   function selectHTML(options, value, attrs) {
     var opts = options.map(function (o) {
       return '<button type="button" class="sel-opt' + (o === value ? ' is-on' : '') + '" role="option" aria-selected="' + (o === value) + '" data-value="' + esc(o) + '">' + esc(o) + '</button>';
@@ -243,6 +251,7 @@
         stateTag(ins && ins.gradeState) +
         '  <span class="kpi-value num" id="kpiGrade">' + rankGrade + '</span><span class="kpi-unit">/ ' + gradeSize + '</span>' +
         '  <span class="kpi-foot">' + (diff && prev.ranks.grade ? '<em class="delta ' + (diff.gradeRank < 0 ? 'good' : diff.gradeRank > 0 ? 'bad' : 'flat') + '">' + rankWord(diff.gradeRank).text + '</em> 较 ' + shortMd(prev.date) : '首次记录') +
+        (gradeSize ? ' · 前 ' + Math.round((rankGrade / gradeSize) * 100) + '%' : '') +
         (goalGrade ? ' · 目标 ' + goalGrade + '</span>' : '</span>') +
         '<span class="kpi-progress">' +
         (gradeSize ? '<span style="width:' + gradePct.toFixed(1) + '%"></span>' : '') +
@@ -261,6 +270,7 @@
         stateTag(ins && ins.classState) +
         '  <span class="kpi-value num" id="kpiClass">' + rankClass + '</span><span class="kpi-unit">/ ' + classSize + '</span>' +
         '  <span class="kpi-foot">' + (diff && prev.ranks.class ? '<em class="delta ' + (diff.classRank < 0 ? 'good' : diff.classRank > 0 ? 'bad' : 'flat') + '">' + rankWord(diff.classRank).text + '</em> 较 ' + shortMd(prev.date) : '首次记录') +
+        (classSize ? ' · 前 ' + Math.round((rankClass / classSize) * 100) + '%' : '') +
         (goalClass ? ' · 目标 ' + goalClass + '</span>' : '</span>') +
         '<span class="kpi-progress">' +
         (classSize ? '<span style="width:' + classPct.toFixed(1) + '%"></span>' : '') +
@@ -375,16 +385,19 @@
         '<span class="analysis-value num">' + peers.top + '<em class="muted"> 距 ' + peers.toTop + '</em></span></div>';
     }
 
+    var hasPeers = peers.vsClass !== null || peers.vsGrade !== null || peers.toTop !== null;
+
     var analyseCard = '' +
       '<section class="card card-analysis">' +
-      '  <div class="card-head"><h2 class="card-title">这次的位置</h2></div>' +
-      (peerRows
-        ? '  <div class="analysis">' + peerRows + '</div>' +
-          (peers.diagnosis ? '  <p class="diagnosis is-' + peers.diagnosis.tone + '">' + esc(peers.diagnosis.text) + '</p>' : '')
-        : '  <p class="analysis-note">还没有填班级平均或年级平均，填上就能判断这次是题难还是状态。</p>') +
-      '  <div class="analysis-gap"></div>' +
-      '  <div class="card-head card-head-tight"><h2 class="card-title">强弱与偏科</h2>' +
-      (spread ? '<span class="card-meta">' + spread.level.text + '</span>' : '') + '</div>' +
+      (hasPeers
+        ? '  <div class="card-head"><h2 class="card-title">这次的位置</h2></div>' +
+          '  <div class="analysis">' + peerRows + '</div>' +
+          (peers.diagnosis ? '  <p class="diagnosis is-' + peers.diagnosis.tone + '">' + esc(peers.diagnosis.text) + '</p>' : '') +
+          '  <div class="analysis-gap"></div>' +
+          '  <div class="card-head card-head-tight"><h2 class="card-title">强弱与偏科</h2>' +
+          (spread ? '<span class="card-meta">' + spread.level.text + '</span>' : '') + '</div>'
+        : '  <div class="card-head"><h2 class="card-title">强弱与偏科</h2>' +
+          (spread ? '<span class="card-meta">' + spread.level.text + '</span>' : '') + '</div>') +
       '  <div class="analysis">' +
       '    <div class="analysis-row">' +
       '      <span class="analysis-label">最强一科</span>' +
@@ -504,12 +517,17 @@
     });
 
     var rankNow = S.subjectRankOf(state, lastExam, active.id);
+    var classAvg = Number((lastExam.subjectAverages || {})[active.id]) || null;
+    var vsAvg = classAvg === null || isNaN(lastScore) ? null : lastScore - classAvg;
+    var avgText = classAvg === null
+      ? '得分率 ' + (rateNow === null ? '—' : (rateNow * 100).toFixed(1) + '%')
+      : '班平 ' + classAvg + ' <em class="' + (vsAvg >= 0 ? 'good' : 'bad') + '">' + signed(vsAvg) + '</em>';
 
     var kpiItems = '' +
       '  <div class="kpi"><span class="kpi-label">本次得分</span>' +
       (rankNow ? '<span class="kpi-state is-flat">' + esc(rankNow.label) + '</span>' : '') +
       '    <span class="kpi-value num">' + (isNaN(lastScore) ? '—' : lastScore) + '</span><span class="kpi-unit">/ ' + active.full + '</span>' +
-      '    <span class="kpi-foot">得分率 ' + (rateNow === null ? '—' : (rateNow * 100).toFixed(1) + '%') + '</span></div>' +
+      '    <span class="kpi-foot">' + avgText + '</span></div>' +
       '  <div class="kpi"><span class="kpi-label">历次平均</span>' +
       '    <span class="kpi-value num">' + stats.mean.toFixed(1) + '</span><span class="kpi-unit">分</span>' +
       '    <span class="kpi-foot">共 ' + stats.count + ' 次记录</span></div>' +
@@ -649,9 +667,9 @@
         '<div class="block-empty"><p>还没有成绩记录。</p></div>';
     }
 
-    filter = filter || 'all';
+    var filter = state.filter || 'all';
     var facets = S.typeFacets(state);
-    var shown = S.filterByType(sortedList, filter);
+    var shown = sortedList;
     var shownSet = {};
     shown.forEach(function (e) { shownSet[e.id] = true; });
     var total = S.fullTotal(state);
@@ -962,7 +980,7 @@
       return '<tr data-subject="' + s.id + '">' +
         '<td><input class="input input-plain" data-field="name" value="' + esc(s.name) + '" aria-label="科目名称"></td>' +
         '<td class="num"><input class="input input-plain num" data-field="full" type="number" min="1" max="300" value="' + s.full + '" aria-label="' + esc(s.name) + '满分"></td>' +
-        '<td class="num"><input class="input input-plain num" data-field="target" type="number" min="0" max="300" value="' + (s.target || 0) + '" aria-label="' + esc(s.name) + '目标分"></td>' +
+        '<td class="num"><input class="input input-plain num" data-field="target" type="number" min="0" max="' + s.full + '" value="' + (s.target || 0) + '" aria-label="' + esc(s.name) + '目标分"></td>' +
         '<td class="num muted">' + (s.full ? ((Number(s.target || 0) / Number(s.full)) * 100).toFixed(1) + '%' : '—') + '</td>' +
         '</tr>';
     }).join('');
@@ -1001,6 +1019,19 @@
       '</section>' +
 
       '<section class="card card-form">' +
+      '  <div class="card-head"><div class="card-title-wrap"><h2 class="card-title">考试类型</h2><p class="card-sub">记录考试时可以从这里选到的类型</p></div></div>' +
+      '  <div class="type-manage">' +
+      '    <div class="type-chips">' + (c.types || []).map(function (t) {
+        return '<span class="type-chip">' + esc(t) + '<button type="button" class="type-del" data-type-del="' + esc(t) + '" aria-label="删除 ' + esc(t) + '">×</button></span>';
+      }).join('') + '</div>' +
+      '    <div class="type-add">' +
+      '      <input class="input" id="typeNew" type="text" placeholder="周测、摸底、联考…" maxlength="8">' +
+      '      <button type="button" class="btn" data-type-add>添加</button>' +
+      '    </div>' +
+      '  </div>' +
+      '</section>' +
+
+      '<section class="card card-form">' +
       '  <div class="card-head"><div class="card-title-wrap"><h2 class="card-title">科目与满分</h2><p class="card-sub">改名字、满分或目标分之后，所有走势和对照会跟着重算</p></div></div>' +
       '  <table class="table-form">' +
       '    <thead><tr><th>科目</th><th class="num">满分</th><th class="num">目标分</th><th class="num">目标得分率</th></tr></thead>' +
@@ -1029,11 +1060,16 @@
   /* ================= 录入对话框 ================= */
 
   /* 参照数据和单科名次，默认收起，不占主表单的地方 */
-  function moreFields(c, exam, averages, subjectRanks) {
+  function moreFields(c, exam, averages, subjectRanks, subjectAverages) {
     var rows = c.subjects.map(function (s) {
       var v = subjectRanks[s.id];
       return '<label class="field"><span class="field-label">' + esc(s.name) + '</span>' +
         '<input class="input num" type="number" min="1" data-subrank="' + s.id + '" value="' + (v || '') + '" placeholder="—"></label>';
+    }).join('');
+    var avgRows = c.subjects.map(function (s) {
+      var v = subjectAverages[s.id];
+      return '<label class="field"><span class="field-label">' + esc(s.name) + '</span>' +
+        '<input class="input num" type="number" min="0" max="' + s.full + '" data-subavg="' + s.id + '" value="' + (v || '') + '" placeholder="—"></label>';
     }).join('');
 
     return '<details class="form-more">' +
@@ -1049,6 +1085,8 @@
       '</div>' +
       '<div class="field-label form-more-label">各科在班级的名次</div>' +
       '<div class="score-grid">' + rows + '</div>' +
+      '<div class="field-label form-more-label">各科的班级平均分</div>' +
+      '<div class="score-grid">' + avgRows + '</div>' +
       '</details>';
   }
 
@@ -1061,6 +1099,7 @@
     var ranks = exam ? exam.ranks : {};
     var averages = (exam && exam.averages) || {};
     var subjectRanks = (exam && exam.subjectRanks) || {};
+    var subjectAverages = (exam && exam.subjectAverages) || {};
 
     var fields = c.subjects.map(function (s) {
       var v = scores[s.id];
@@ -1082,7 +1121,7 @@
       '      <div class="field"><label class="field-label" for="fName">考试名称</label>' +
       '        <input class="input" id="fName" type="text" value="' + esc(exam ? exam.name : '') + '" placeholder="高二上 · 第三次月考"></div>' +
       '      <div class="field field-date"><span class="field-label">日期</span>' + dateHTML(exam ? exam.date : todayIso, 'fDate') + '</div>' +
-      '      <div class="field field-type"><span class="field-label">类型</span>' + selectHTML(['月考', '期中', '期末', '联考', '模拟'], exam ? exam.type : '月考', ' data-field="type"') + '</div>' +
+      '      <div class="field field-type"><span class="field-label">类型</span>' + selectHTML(typesOf(c, exam), exam ? exam.type : (c.types && c.types[0]) || '月考', ' data-field="type"') + '</div>' +
       '    </div>' +
       '    <div class="score-grid">' + fields + '</div>' +
       '    <div class="field-row">' +
@@ -1093,7 +1132,7 @@
       '      <div class="field field-total"><span class="field-label">合计</span>' +
       '        <span class="total-preview"><span class="num" id="formTotal">0</span><span class="muted num"> / ' + S.fullTotal(state) + '</span></span></div>' +
       '    </div>' +
-      (moreFields(c, exam, averages, subjectRanks)) +
+      (moreFields(c, exam, averages, subjectRanks, subjectAverages)) +
       '    <p class="form-error" id="formError" role="alert"></p>' +
       '  </div>' +
       '  <div class="form-foot">' +

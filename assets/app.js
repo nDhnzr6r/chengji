@@ -19,14 +19,27 @@
   var pendingImport = null;
   var lastShownTotal = null;
   var comparePair = [null, null];
-  var examFilter = 'all';
+  var pendingFilter = null;
 
   /* ---------------- 工具 ---------------- */
 
   function parseHash() {
     var raw = (global.location.hash || '').replace(/^#\/?/, '');
+    var query = {};
+    var qIdx = raw.indexOf('?');
+    if (qIdx >= 0) {
+      var qs = raw.slice(qIdx + 1);
+      raw = raw.slice(0, qIdx);
+      qs.split('&').forEach(function (pair) {
+        if (!pair) return;
+        var eq = pair.indexOf('=');
+        var k = eq >= 0 ? pair.slice(0, eq) : pair;
+        var v = eq >= 0 ? pair.slice(eq + 1) : '';
+        try { query[decodeURIComponent(k)] = decodeURIComponent(v); } catch (err) { /* 保留原样 */ }
+      });
+    }
     var parts = raw.split('/').filter(Boolean);
-    return { name: parts[0] || 'overview', param: parts[1] || null };
+    return { name: parts[0] || 'overview', param: parts[1] || null, query: query };
   }
 
   function toast(message, tone) {
@@ -74,6 +87,12 @@
   function render() {
     var route = parseHash();
     var name = route.name;
+    var picked = route.query.type || 'all';
+    /* 地址栏里的类型如果已经不存在，就当没筛 */
+    if (picked !== 'all' && !state.exams.some(function (e) { return (e.type || '月考') === picked; })) {
+      picked = 'all';
+    }
+    state.filter = picked;
     var html = '';
     var title = '总览';
 
@@ -85,7 +104,7 @@
       title = '单科分析';
     }
     else if (name === 'compare') { html = V.compare(state, comparePair[0], comparePair[1]); title = '两次考试对比'; }
-    else if (name === 'exams') { html = V.exams(state, examFilter); title = '考试记录'; }
+    else if (name === 'exams') { html = V.exams(state); title = '考试记录'; }
     else if (name === 'exam') { html = V.detail(state, route.param); title = '考试详情'; }
     else if (name === 'settings') { html = V.settings(state); title = '设置'; }
     else { html = V.overview(state); title = '总览'; }
@@ -400,12 +419,17 @@
       refreshSidebar();
     }
 
-    function bind(id, key, transform) {
+    function bind(id, key, transform, min, max) {
       var el = document.getElementById(id);
       if (!el) return;
       el.addEventListener('change', function () {
         var value = transform ? transform(el.value) : el.value;
-        if (typeof value === 'number' && (isNaN(value) || value < 0)) return;
+        if (typeof value === 'number') {
+          if (isNaN(value)) return;
+          if (min !== undefined && value < min) value = min;
+          if (max !== undefined && value > max) value = max;
+          if (value !== Number(el.value)) el.value = value;
+        }
         c[key] = value;
         commit();
         el.classList.add('is-saved');
@@ -413,16 +437,16 @@
       });
     }
 
-    bind('cfgTargetTotal', 'targetTotal', Number);
-    bind('cfgTargetClass', 'targetRankClass', Number);
-    bind('cfgTargetGrade', 'targetRankGrade', Number);
+    bind('cfgTargetTotal', 'targetTotal', Number, 0, S.fullTotal(state));
+    bind('cfgTargetClass', 'targetRankClass', Number, 1, Number(c.classSize) || 1000);
+    bind('cfgTargetGrade', 'targetRankGrade', Number, 1, Number(c.gradeSize) || 5000);
     bind('cfgClassName', 'className', String);
-    bind('cfgClassSize', 'classSize', Number);
-    bind('cfgGradeSize', 'gradeSize', Number);
-    bind('cfgEnrollYear', 'enrollYear', Number);
-    bind('cfgRemaining', 'remainingExams', Number);
-    bind('cfgPassRate', 'passRate', Number);
-    bind('cfgGoodRate', 'goodRate', Number);
+    bind('cfgClassSize', 'classSize', Number, 1, 200);
+    bind('cfgGradeSize', 'gradeSize', Number, 1, 20000);
+    bind('cfgEnrollYear', 'enrollYear', Number, 2000, 2100);
+    bind('cfgRemaining', 'remainingExams', Number, 0, 60);
+    bind('cfgPassRate', 'passRate', Number, 10, 100);
+    bind('cfgGoodRate', 'goodRate', Number, 10, 100);
 
     mainEl.querySelectorAll('.table-form tbody tr').forEach(function (tr) {
       var id = tr.getAttribute('data-subject');
@@ -437,7 +461,19 @@
           } else {
             var num = Number(input.value);
             if (isNaN(num) || num < 0) { input.value = subject[field]; return; }
-            subject[field] = num;
+            if (field === 'full') {
+              if (num < 1) { input.value = subject.full; return; }
+              subject.full = Math.min(num, 300);
+              input.value = subject.full;
+              if (Number(subject.target) > subject.full) {
+                subject.target = subject.full;
+                var tEl = tr.querySelector('[data-field="target"]');
+                if (tEl) { tEl.value = subject.target; tEl.max = subject.full; }
+              }
+            } else {
+              subject[field] = Math.min(num, Number(subject.full) || num);
+              input.value = subject[field];
+            }
           }
           S.save(state);
           var rateCell = tr.querySelector('td:last-child');
@@ -628,6 +664,12 @@
           if (n > 0) subjectRanks[input.getAttribute('data-subrank')] = n;
         });
 
+        var subjectAverages = {};
+        dlg.querySelectorAll('[data-subavg]').forEach(function (input) {
+          var n = Number(input.value);
+          if (n > 0) subjectAverages[input.getAttribute('data-subavg')] = n;
+        });
+
         if (exam) {
           exam.name = name;
           exam.date = date;
@@ -636,11 +678,13 @@
           exam.ranks = ranks;
           exam.averages = averages;
           exam.subjectRanks = subjectRanks;
+          exam.subjectAverages = subjectAverages;
           toast('已保存这次考试');
         } else {
           state.exams.push({
             id: S.uid(), name: name, date: date, type: type,
-            scores: scores, ranks: ranks, averages: averages, subjectRanks: subjectRanks
+            scores: scores, ranks: ranks, averages: averages,
+            subjectRanks: subjectRanks, subjectAverages: subjectAverages
           });
           toast('已记录「' + name + '」');
         }
@@ -741,13 +785,40 @@
   document.addEventListener('click', function (evt) {
     var chip = evt.target.closest('[data-exam-filter]');
     if (chip) {
-      examFilter = chip.getAttribute('data-exam-filter');
-      render();
+      var picked = chip.getAttribute('data-exam-filter');
+      var cur = parseHash();
+      var base = '#/' + cur.name + (cur.param ? '/' + cur.param : '');
+      pendingFilter = picked;
+      global.location.hash = picked === 'all' ? base : base + '?type=' + encodeURIComponent(picked);
+      if (pendingFilter !== null) { render(); }
       return;
     }
 
     var themeBtn = evt.target.closest('#themeToggle');
     if (themeBtn) { toggleTheme(); return; }
+
+    if (evt.target.closest('[data-type-add]')) {
+      var typeInput = document.getElementById('typeNew');
+      var typeName = ((typeInput && typeInput.value) || '').trim().slice(0, 8);
+      if (!typeName) return;
+      state.config.types = state.config.types || [];
+      if (state.config.types.indexOf(typeName) < 0) state.config.types.push(typeName);
+      S.save(state);
+      render();
+      toast('已加上「' + typeName + '」');
+      return;
+    }
+
+    var delBtn = evt.target.closest('[data-type-del]');
+    if (delBtn) {
+      var dropType = delBtn.getAttribute('data-type-del');
+      var inUse = state.exams.some(function (e) { return (e.type || '月考') === dropType; });
+      if (inUse) { toast('还有考试用着这个类型，改掉之后才能删', 'bad'); return; }
+      state.config.types = (state.config.types || []).filter(function (t) { return t !== dropType; });
+      S.save(state);
+      render();
+      return;
+    }
 
     var actionEl = evt.target.closest('[data-action]');
     if (!actionEl) return;
@@ -986,6 +1057,22 @@
   }
 
   global.addEventListener('hashchange', function () {
+    var cur = parseHash();
+    var base = '#/' + cur.name + (cur.param ? '/' + cur.param : '');
+
+    /* 换页面时把当前的类型筛选带过去，只有点「全部」才清掉 */
+    if (pendingFilter !== null) {
+      state.filter = pendingFilter;
+      pendingFilter = null;
+      render();
+      global.scrollTo({ top: 0, behavior: 'auto' });
+      return;
+    }
+    if (!cur.query.type && state.filter && state.filter !== 'all') {
+      global.location.replace(base + '?type=' + encodeURIComponent(state.filter));
+      return;
+    }
+
     render();
     global.scrollTo({ top: 0, behavior: 'auto' });
   });

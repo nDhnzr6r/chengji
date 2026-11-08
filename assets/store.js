@@ -15,6 +15,7 @@
     remainingExams: 3,
     passRate: 60,
     goodRate: 85,
+    types: ['月考', '期中', '期末', '联考', '模拟'],
     subjects: [
       { id: 'chinese', name: '语文', full: 150, target: 122 },
       { id: 'math', name: '数学', full: 150, target: 132 },
@@ -26,18 +27,18 @@
   };
 
   var SEED_EXAMS = [
-    { id: 'e01', name: '高一上 · 第一次月考', date: '2025-09-26', type: '月考', scores: { chinese: 102, math: 96, english: 108, physics: 58, chemistry: 61, biology: 65 }, ranks: { class: 18, grade: 262 }, averages: { class: 452, grade: 448, top: 682 }, subjectRanks: { chinese: 15, math: 24, english: 12, physics: 20, chemistry: 16, biology: 14 } },
-    { id: 'e02', name: '高一上 · 第二次月考', date: '2025-10-30', type: '月考', scores: { chinese: 105, math: 101, english: 110, physics: 60, chemistry: 64, biology: 68 }, ranks: { class: 16, grade: 243 }, averages: { class: 461, grade: 455, top: 690 }, subjectRanks: { chinese: 13, math: 22, english: 10, physics: 18, chemistry: 14, biology: 12 } },
-    { id: 'e03', name: '高一上 · 期中考试', date: '2025-11-14', type: '期中', scores: { chinese: 108, math: 104, english: 112, physics: 63, chemistry: 66, biology: 68 }, ranks: { class: 15, grade: 231 }, averages: { class: 448, grade: 442, top: 676 }, subjectRanks: { chinese: 12, math: 20, english: 9, physics: 16, chemistry: 13, biology: 12 } },
-    { id: 'e04', name: '高一上 · 第三次月考', date: '2025-12-19', type: '月考', scores: { chinese: 105, math: 112, english: 110, physics: 66, chemistry: 70, biology: 71 }, ranks: { class: 13, grade: 205 }, averages: { class: 470, grade: 466, top: 694 }, subjectRanks: { chinese: 14, math: 14, english: 10, physics: 14, chemistry: 11, biology: 10 } },
-    { id: 'e05', name: '高一上 · 期末考试', date: '2026-01-22', type: '期末', scores: { chinese: 112, math: 108, english: 116, physics: 69, chemistry: 72, biology: 74 }, ranks: { class: 11, grade: 178 }, averages: { class: 455, grade: 450, top: 688 }, subjectRanks: { chinese: 10, math: 18, english: 7, physics: 12, chemistry: 9, biology: 8 } },
-    { id: 'e06', name: '高一下 · 第一次月考', date: '2026-03-13', type: '月考', scores: { chinese: 109, math: 99, english: 114, physics: 61, chemistry: 68, biology: 70 }, ranks: { class: 14, grade: 226 }, averages: { class: 440, grade: 436, top: 672 }, subjectRanks: { chinese: 12, math: 26, english: 8, physics: 18, chemistry: 12, biology: 10 } },
-    { id: 'e07', name: '高一下 · 期中考试', date: '2026-04-24', type: '期中', scores: { chinese: 114, math: 117, english: 119, physics: 72, chemistry: 74, biology: 73 }, ranks: { class: 9, grade: 148 }, averages: { class: 462, grade: 458, top: 692 }, subjectRanks: { chinese: 8, math: 11, english: 5, physics: 10, chemistry: 7, biology: 9 } },
-    { id: 'e08', name: '高一下 · 第二次月考', date: '2026-05-29', type: '月考', scores: { chinese: 112, math: 121, english: 118, physics: 74, chemistry: 76, biology: 75 }, ranks: { class: 8, grade: 133 }, averages: { class: 468, grade: 462, top: 696 }, subjectRanks: { chinese: 10, math: 8, english: 6, physics: 8, chemistry: 6, biology: 7 } },
-    { id: 'e09', name: '高一下 · 期末考试', date: '2026-07-08', type: '期末', scores: { chinese: 116, math: 118, english: 122, physics: 76, chemistry: 79, biology: 78 }, ranks: { class: 6, grade: 112 }, averages: { class: 458, grade: 454, top: 690 }, subjectRanks: { chinese: 7, math: 10, english: 4, physics: 7, chemistry: 5, biology: 6 } },
-    { id: 'e10', name: '高二上 · 第一次月考', date: '2026-09-25', type: '月考', scores: { chinese: 111, math: 113, english: 120, physics: 68, chemistry: 73, biology: 76 }, ranks: { class: 10, grade: 156 }, averages: { class: 436, grade: 432, top: 668 }, subjectRanks: { chinese: 11, math: 13, english: 5, physics: 15, chemistry: 9, biology: 7 } },
-    { id: 'e11', name: '高二上 · 期中考试', date: '2026-10-23', type: '期中', scores: { chinese: 115, math: 124, english: 123, physics: 72, chemistry: 77, biology: 79 }, ranks: { class: 7, grade: 118 }, averages: { class: 451, grade: 447, top: 684 }, subjectRanks: { chinese: 8, math: 6, english: 4, physics: 11, chemistry: 6, biology: 5 } },
-    { id: 'e12', name: '高二上 · 第二次月考', date: '2026-11-20', type: '月考', scores: { chinese: 118, math: 127, english: 125, physics: 75, chemistry: 80, biology: 81 }, ranks: { class: 5, grade: 96 }, averages: { class: 447, grade: 443, top: 680 }, subjectRanks: { chinese: 6, math: 3, english: 3, physics: 9, chemistry: 5, biology: 4 } }
+    { id: 'e01', name: '高一上 · 第一次月考', date: '2025-09-26', type: '月考', scores: { chinese: 102, math: 96, english: 108, physics: 58, chemistry: 61, biology: 65 }, ranks: { class: 18, grade: 262 }, averages: { class: 452, grade: 448, top: 682 }, subjectRanks: { chinese: 15, math: 24, english: 12, physics: 20, chemistry: 16, biology: 14 }, subjectAverages: { chinese: 86, math: 81, english: 91, physics: 49, chemistry: 51, biology: 55 } },
+    { id: 'e02', name: '高一上 · 第二次月考', date: '2025-10-30', type: '月考', scores: { chinese: 105, math: 101, english: 110, physics: 60, chemistry: 64, biology: 68 }, ranks: { class: 16, grade: 243 }, averages: { class: 461, grade: 455, top: 690 }, subjectRanks: { chinese: 13, math: 22, english: 10, physics: 18, chemistry: 14, biology: 12 }, subjectAverages: { chinese: 88, math: 85, english: 92, physics: 50, chemistry: 54, biology: 57 } },
+    { id: 'e03', name: '高一上 · 期中考试', date: '2025-11-14', type: '期中', scores: { chinese: 108, math: 104, english: 112, physics: 63, chemistry: 66, biology: 68 }, ranks: { class: 15, grade: 231 }, averages: { class: 448, grade: 442, top: 676 }, subjectRanks: { chinese: 12, math: 20, english: 9, physics: 16, chemistry: 13, biology: 12 }, subjectAverages: { chinese: 91, math: 87, english: 94, physics: 53, chemistry: 55, biology: 57 } },
+    { id: 'e04', name: '高一上 · 第三次月考', date: '2025-12-19', type: '月考', scores: { chinese: 105, math: 112, english: 110, physics: 66, chemistry: 70, biology: 71 }, ranks: { class: 13, grade: 205 }, averages: { class: 470, grade: 466, top: 694 }, subjectRanks: { chinese: 14, math: 14, english: 10, physics: 14, chemistry: 11, biology: 10 }, subjectAverages: { chinese: 88, math: 94, english: 92, physics: 55, chemistry: 59, biology: 60 } },
+    { id: 'e05', name: '高一上 · 期末考试', date: '2026-01-22', type: '期末', scores: { chinese: 112, math: 108, english: 116, physics: 69, chemistry: 72, biology: 74 }, ranks: { class: 11, grade: 178 }, averages: { class: 455, grade: 450, top: 688 }, subjectRanks: { chinese: 10, math: 18, english: 7, physics: 12, chemistry: 9, biology: 8 }, subjectAverages: { chinese: 94, math: 91, english: 97, physics: 58, chemistry: 60, biology: 62 } },
+    { id: 'e06', name: '高一下 · 第一次月考', date: '2026-03-13', type: '月考', scores: { chinese: 109, math: 99, english: 114, physics: 61, chemistry: 68, biology: 70 }, ranks: { class: 14, grade: 226 }, averages: { class: 440, grade: 436, top: 672 }, subjectRanks: { chinese: 12, math: 26, english: 8, physics: 18, chemistry: 12, biology: 10 }, subjectAverages: { chinese: 92, math: 83, english: 96, physics: 51, chemistry: 57, biology: 59 } },
+    { id: 'e07', name: '高一下 · 期中考试', date: '2026-04-24', type: '期中', scores: { chinese: 114, math: 117, english: 119, physics: 72, chemistry: 74, biology: 73 }, ranks: { class: 9, grade: 148 }, averages: { class: 462, grade: 458, top: 692 }, subjectRanks: { chinese: 8, math: 11, english: 5, physics: 10, chemistry: 7, biology: 9 }, subjectAverages: { chinese: 96, math: 98, english: 100, physics: 60, chemistry: 62, biology: 61 } },
+    { id: 'e08', name: '高一下 · 第二次月考', date: '2026-05-29', type: '月考', scores: { chinese: 112, math: 121, english: 118, physics: 74, chemistry: 76, biology: 75 }, ranks: { class: 8, grade: 133 }, averages: { class: 468, grade: 462, top: 696 }, subjectRanks: { chinese: 10, math: 8, english: 6, physics: 8, chemistry: 6, biology: 7 }, subjectAverages: { chinese: 94, math: 102, english: 99, physics: 62, chemistry: 64, biology: 63 } },
+    { id: 'e09', name: '高一下 · 期末考试', date: '2026-07-08', type: '期末', scores: { chinese: 116, math: 118, english: 122, physics: 76, chemistry: 79, biology: 78 }, ranks: { class: 6, grade: 112 }, averages: { class: 458, grade: 454, top: 690 }, subjectRanks: { chinese: 7, math: 10, english: 4, physics: 7, chemistry: 5, biology: 6 }, subjectAverages: { chinese: 97, math: 99, english: 102, physics: 64, chemistry: 66, biology: 66 } },
+    { id: 'e10', name: '高二上 · 第一次月考', date: '2026-09-25', type: '月考', scores: { chinese: 111, math: 113, english: 120, physics: 68, chemistry: 73, biology: 76 }, ranks: { class: 10, grade: 156 }, averages: { class: 436, grade: 432, top: 668 }, subjectRanks: { chinese: 11, math: 13, english: 5, physics: 15, chemistry: 9, biology: 7 }, subjectAverages: { chinese: 93, math: 95, english: 101, physics: 57, chemistry: 61, biology: 64 } },
+    { id: 'e11', name: '高二上 · 期中考试', date: '2026-10-23', type: '期中', scores: { chinese: 115, math: 124, english: 123, physics: 72, chemistry: 77, biology: 79 }, ranks: { class: 7, grade: 118 }, averages: { class: 451, grade: 447, top: 684 }, subjectRanks: { chinese: 8, math: 6, english: 4, physics: 11, chemistry: 6, biology: 5 }, subjectAverages: { chinese: 97, math: 104, english: 103, physics: 60, chemistry: 65, biology: 66 } },
+    { id: 'e12', name: '高二上 · 第二次月考', date: '2026-11-20', type: '月考', scores: { chinese: 118, math: 127, english: 125, physics: 75, chemistry: 80, biology: 81 }, ranks: { class: 5, grade: 96 }, averages: { class: 447, grade: 443, top: 680 }, subjectRanks: { chinese: 6, math: 3, english: 3, physics: 9, chemistry: 5, biology: 4 }, subjectAverages: { chinese: 99, math: 107, english: 105, physics: 63, chemistry: 67, biology: 68 } }
   ];
 
   function uid() {
@@ -62,8 +63,16 @@
     return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
   }
 
-  function sorted(state) {
+  function allSorted(state) {
     return state.exams.slice().sort(byDate);
+  }
+
+  /* 已经被类型筛选过一次的列表；没设筛选就是全部 */
+  function sorted(state) {
+    var list = allSorted(state);
+    var f = state.filter || 'all';
+    if (f === 'all') return list;
+    return list.filter(function (e) { return (e.type || '月考') === f; });
   }
 
   function examTotal(state, exam) {
@@ -105,7 +114,7 @@
 
   function typeFacets(state) {
     var map = {};
-    sorted(state).forEach(function (e) {
+    allSorted(state).forEach(function (e) {
       var t = e.type || '月考';
       map[t] = (map[t] || 0) + 1;
     });
@@ -154,6 +163,8 @@
         result.diagnosis = { tone: 'flat', text: '平均分也降了，题目偏难，位次其实在往前' };
       } else if (dSelf < 0 && dGap <= 0) {
         result.diagnosis = { tone: 'bad', text: '平均分没怎么动，是这次状态掉了' };
+      } else if (dSelf > 0 && dGap < 0) {
+        result.diagnosis = { tone: 'warn', text: '分数涨了，但别人涨得更多，位次在往后退' };
       } else if (dSelf > 0 && dAvg < 0) {
         result.diagnosis = { tone: 'good', text: '平均分在降，你还在涨，明显拉开了' };
       } else if (dSelf > 0 && dGap > 0) {
@@ -590,6 +601,9 @@
         state.config.subjects = clone(DEFAULT_CONFIG.subjects);
       }
     }
+    if (!Array.isArray(state.config.types) || !state.config.types.length) {
+      state.config.types = ['月考', '期中', '期末', '联考', '模拟'];
+    }
     if (Array.isArray(input.exams)) {
       state.exams = input.exams.filter(function (e) { return e && e.date; }).map(function (e) {
         return {
@@ -600,10 +614,15 @@
           scores: e.scores || {},
           ranks: e.ranks || {},
           averages: e.averages || {},
+          subjectAverages: e.subjectAverages || {},
           subjectRanks: e.subjectRanks || {}
         };
       });
     }
+    state.exams.forEach(function (e) {
+      var t = e.type || '月考';
+      if (state.config.types.indexOf(t) < 0) state.config.types.push(t);
+    });
     return state;
   }
 
@@ -638,11 +657,19 @@
 
   function toCSV(state) {
     var subjects = state.config.subjects;
-    var head = ['考试名称', '日期', '类型'].concat(subjects.map(function (s) { return s.name; }), ['班级排名', '年级排名', '班级平均', '年级平均', '年级最高']);
+    var head = ['考试名称', '日期', '类型']
+      .concat(subjects.map(function (s) { return s.name; }))
+      .concat(subjects.map(function (s) { return s.name + '名次'; }))
+      .concat(subjects.map(function (s) { return s.name + '平均'; }))
+      .concat(['班级排名', '年级排名', '班级平均', '年级平均', '年级最高']);
     var rows = sorted(state).map(function (e) {
       var avg = e.averages || {};
+      var sr = e.subjectRanks || {};
+      var sa = e.subjectAverages || {};
       return [e.name, e.date, e.type || '']
         .concat(subjects.map(function (s) { return e.scores[s.id] === undefined ? '' : e.scores[s.id]; }))
+        .concat(subjects.map(function (s) { return sr[s.id] || ''; }))
+        .concat(subjects.map(function (s) { return sa[s.id] || ''; }))
         .concat([e.ranks.class || '', e.ranks.grade || '', avg.class || '', avg.grade || '', avg.top || '']);
     });
     return [head].concat(rows).map(function (row) {
@@ -701,10 +728,16 @@
     if (iDate < 0) return { exams: [], errors: ['缺少「日期」列'] };
 
     var subjectCols = [];
+    var subjectRankCols = [];
+    var subjectAvgCols = [];
     state.config.subjects.forEach(function (s) {
       var idx = head.indexOf(s.name);
       if (idx < 0) idx = head.findIndex(function (h) { return h.replace(/\s/g, '') === s.name; });
       subjectCols.push({ id: s.id, idx: idx });
+      var rIdx = find([s.name + '名次', s.name + '排名', s.name + '班名次']);
+      subjectRankCols.push({ id: s.id, idx: rIdx });
+      var aIdx = find([s.name + '平均', s.name + '班平均']);
+      subjectAvgCols.push({ id: s.id, idx: aIdx });
     });
     if (subjectCols.every(function (c) { return c.idx < 0; })) {
       return { exams: [], errors: ['没有找到任何科目列（' + state.config.subjects.map(function (s) { return s.name; }).join('、') + '）'] };
@@ -724,6 +757,22 @@
         var num = Number(raw.replace(/[^\d.\-]/g, ''));
         if (!isNaN(num)) scores[c.id] = num;
       });
+      var saOut = {};
+      subjectAvgCols.forEach(function (c) {
+        if (c.idx < 0) return;
+        var raw = String(line[c.idx] === undefined ? '' : line[c.idx]).trim();
+        if (raw === '') return;
+        var n = Number(raw.replace(/[^\d.]/g, ''));
+        if (!isNaN(n) && n > 0) saOut[c.id] = n;
+      });
+      var srOut = {};
+      subjectRankCols.forEach(function (c) {
+        if (c.idx < 0) return;
+        var raw = String(line[c.idx] === undefined ? '' : line[c.idx]).trim();
+        if (raw === '') return;
+        var n = Number(raw.replace(/[^\d]/g, ''));
+        if (n > 0) srOut[c.id] = n;
+      });
       exams.push({
         id: uid() + r,
         name: iName >= 0 ? String(line[iName] || '').trim() || date + ' 考试' : date + ' 考试',
@@ -739,7 +788,8 @@
           grade: iAvgGrade >= 0 ? (Number(String(line[iAvgGrade]).replace(/[^\d.]/g, '')) || null) : null,
           top: iAvgTop >= 0 ? (Number(String(line[iAvgTop]).replace(/[^\d.]/g, '')) || null) : null
         },
-        subjectRanks: {}
+        subjectAverages: saOut,
+        subjectRanks: srOut
       });
     }
     return { exams: exams, errors: errors };
@@ -781,6 +831,14 @@
           class: e.ranks.class || target.ranks.class,
           grade: e.ranks.grade || target.ranks.grade
         });
+        target.averages = Object.assign({}, target.averages || {}, {
+          class: e.averages.class || (target.averages && target.averages.class),
+          grade: e.averages.grade || (target.averages && target.averages.grade),
+          top: e.averages.top || (target.averages && target.averages.top)
+        });
+        target.subjectRanks = Object.assign({}, target.subjectRanks || {}, e.subjectRanks || {});
+        target.subjectAverages = Object.assign({}, target.subjectAverages || {}, e.subjectAverages || {});
+        if (e.type) target.type = e.type;
         replaced++;
       } else {
         state.exams.push(e);
@@ -798,6 +856,7 @@
     reset: reset,
     clearExams: clearExams,
     sorted: sorted,
+    allSorted: allSorted,
     examTotal: examTotal,
     fullTotal: fullTotal,
     targetTotal: targetTotal,
