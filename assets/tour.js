@@ -113,8 +113,10 @@
     root.querySelector('[data-tour="prev"]').addEventListener('click', prev);
     root.querySelector('[data-tour="next"]').addEventListener('click', next);
 
+    /* 只有按钮能往下走；点别处既不前进，也不让页面跟着响应 */
     root.addEventListener('click', function (evt) {
-      if (evt.target === root || evt.target === hole) next();
+      evt.stopPropagation();
+      if (evt.target === root || evt.target === hole) evt.preventDefault();
     });
 
     document.addEventListener('keydown', onKey);
