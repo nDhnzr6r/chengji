@@ -59,177 +59,21 @@
   },
   "exams": [
     {
-      "id": "e01",
+      "id": "f01",
       "name": "高一上 · 第一次月考",
       "date": "2025-09-26",
       "type": "月考",
       "scores": {
-        "chinese": 102,
-        "math": 96,
-        "english": 108,
-        "physics": 58,
-        "chemistry": 61,
+        "chinese": 104,
+        "math": 98,
+        "english": 110,
+        "physics": 60,
+        "chemistry": 63,
         "biology": 65
       },
       "ranks": {
-        "class": 18,
-        "grade": 262
-      },
-      "averages": {
-        "class": 452,
-        "grade": 448,
-        "top": 682
-      },
-      "subjectRanks": {
-        "chinese": 15,
-        "math": 24,
-        "english": 12,
-        "physics": 20,
-        "chemistry": 16,
-        "biology": 14
-      },
-      "subjectAverages": {
-        "chinese": 86,
-        "math": 81,
-        "english": 91,
-        "physics": 49,
-        "chemistry": 51,
-        "biology": 55
-      }
-    },
-    {
-      "id": "e02",
-      "name": "高一上 · 第二次月考",
-      "date": "2025-10-30",
-      "type": "月考",
-      "scores": {
-        "chinese": 105,
-        "math": 101,
-        "english": 110,
-        "physics": 60,
-        "chemistry": 64,
-        "biology": 68
-      },
-      "ranks": {
-        "class": 16,
-        "grade": 243
-      },
-      "averages": {
-        "class": 461,
-        "grade": 455,
-        "top": 690
-      },
-      "subjectRanks": {
-        "chinese": 13,
-        "math": 22,
-        "english": 10,
-        "physics": 18,
-        "chemistry": 14,
-        "biology": 12
-      },
-      "subjectAverages": {
-        "chinese": 88,
-        "math": 85,
-        "english": 92,
-        "physics": 50,
-        "chemistry": 54,
-        "biology": 57
-      }
-    },
-    {
-      "id": "e03",
-      "name": "高一上 · 期中考试",
-      "date": "2025-11-14",
-      "type": "期中",
-      "scores": {
-        "chinese": 108,
-        "math": 104,
-        "english": 112,
-        "physics": 63,
-        "chemistry": 66,
-        "biology": 68
-      },
-      "ranks": {
-        "class": 15,
-        "grade": 231
-      },
-      "averages": {
-        "class": 448,
-        "grade": 442,
-        "top": 676
-      },
-      "subjectRanks": {
-        "chinese": 12,
-        "math": 20,
-        "english": 9,
-        "physics": 16,
-        "chemistry": 13,
-        "biology": 12
-      },
-      "subjectAverages": {
-        "chinese": 91,
-        "math": 87,
-        "english": 94,
-        "physics": 53,
-        "chemistry": 55,
-        "biology": 57
-      }
-    },
-    {
-      "id": "e04",
-      "name": "高一上 · 第三次月考",
-      "date": "2025-12-19",
-      "type": "月考",
-      "scores": {
-        "chinese": 105,
-        "math": 112,
-        "english": 110,
-        "physics": 66,
-        "chemistry": 70,
-        "biology": 71
-      },
-      "ranks": {
-        "class": 13,
-        "grade": 205
-      },
-      "averages": {
-        "class": 470,
-        "grade": 466,
-        "top": 694
-      },
-      "subjectRanks": {
-        "chinese": 14,
-        "math": 14,
-        "english": 10,
-        "physics": 14,
-        "chemistry": 11,
-        "biology": 10
-      },
-      "subjectAverages": {
-        "chinese": 88,
-        "math": 94,
-        "english": 92,
-        "physics": 55,
-        "chemistry": 59,
-        "biology": 60
-      }
-    },
-    {
-      "id": "e05",
-      "name": "高一上 · 期末考试",
-      "date": "2026-01-22",
-      "type": "期末",
-      "scores": {
-        "chinese": 112,
-        "math": 108,
-        "english": 116,
-        "physics": 69,
-        "chemistry": 72,
-        "biology": 74
-      },
-      "ranks": {
-        "class": 11,
-        "grade": 178
+        "class": 20,
+        "grade": 280
       },
       "averages": {
         "class": 455,
@@ -237,293 +81,566 @@
         "top": 688
       },
       "subjectRanks": {
-        "chinese": 10,
-        "math": 18,
-        "english": 7,
-        "physics": 12,
-        "chemistry": 9,
-        "biology": 8
+        "chinese": 17,
+        "math": 20,
+        "english": 15,
+        "physics": 23,
+        "chemistry": 21,
+        "biology": 20
       },
       "subjectAverages": {
         "chinese": 94,
-        "math": 91,
-        "english": 97,
-        "physics": 58,
-        "chemistry": 60,
+        "math": 93,
+        "english": 94,
+        "physics": 62,
+        "chemistry": 62,
         "biology": 62
       }
     },
     {
-      "id": "e06",
+      "id": "f02",
+      "name": "高一上 · 第二次月考",
+      "date": "2025-10-17",
+      "type": "月考",
+      "scores": {
+        "chinese": 106,
+        "math": 102,
+        "english": 112,
+        "physics": 61,
+        "chemistry": 65,
+        "biology": 66
+      },
+      "ranks": {
+        "class": 18,
+        "grade": 256
+      },
+      "averages": {
+        "class": 458,
+        "grade": 452,
+        "top": 690
+      },
+      "subjectRanks": {
+        "chinese": 17,
+        "math": 18,
+        "english": 14,
+        "physics": 22,
+        "chemistry": 20,
+        "biology": 19
+      },
+      "subjectAverages": {
+        "chinese": 95,
+        "math": 94,
+        "english": 95,
+        "physics": 62,
+        "chemistry": 63,
+        "biology": 63
+      }
+    },
+    {
+      "id": "f03",
+      "name": "高一上 · 期中考试",
+      "date": "2025-11-14",
+      "type": "期中",
+      "scores": {
+        "chinese": 110,
+        "math": 105,
+        "english": 114,
+        "physics": 64,
+        "chemistry": 67,
+        "biology": 68
+      },
+      "ranks": {
+        "class": 15,
+        "grade": 231
+      },
+      "averages": {
+        "class": 449,
+        "grade": 444,
+        "top": 678
+      },
+      "subjectRanks": {
+        "chinese": 15,
+        "math": 17,
+        "english": 13,
+        "physics": 20,
+        "chemistry": 19,
+        "biology": 18
+      },
+      "subjectAverages": {
+        "chinese": 93,
+        "math": 93,
+        "english": 94,
+        "physics": 61,
+        "chemistry": 61,
+        "biology": 62
+      }
+    },
+    {
+      "id": "f04",
+      "name": "高一上 · 第三次月考",
+      "date": "2025-12-12",
+      "type": "月考",
+      "scores": {
+        "chinese": 107,
+        "math": 100,
+        "english": 113,
+        "physics": 63,
+        "chemistry": 68,
+        "biology": 70
+      },
+      "ranks": {
+        "class": 17,
+        "grade": 248
+      },
+      "averages": {
+        "class": 463,
+        "grade": 458,
+        "top": 692
+      },
+      "subjectRanks": {
+        "chinese": 16,
+        "math": 19,
+        "english": 14,
+        "physics": 21,
+        "chemistry": 18,
+        "biology": 17
+      },
+      "subjectAverages": {
+        "chinese": 96,
+        "math": 95,
+        "english": 96,
+        "physics": 63,
+        "chemistry": 64,
+        "biology": 64
+      }
+    },
+    {
+      "id": "f05",
+      "name": "高一上 · 期末考试",
+      "date": "2026-01-21",
+      "type": "期末",
+      "scores": {
+        "chinese": 112,
+        "math": 110,
+        "english": 116,
+        "physics": 66,
+        "chemistry": 70,
+        "biology": 71
+      },
+      "ranks": {
+        "class": 12,
+        "grade": 198
+      },
+      "averages": {
+        "class": 456,
+        "grade": 451,
+        "top": 686
+      },
+      "subjectRanks": {
+        "chinese": 14,
+        "math": 15,
+        "english": 13,
+        "physics": 19,
+        "chemistry": 17,
+        "biology": 16
+      },
+      "subjectAverages": {
+        "chinese": 95,
+        "math": 95,
+        "english": 95,
+        "physics": 62,
+        "chemistry": 63,
+        "biology": 63
+      }
+    },
+    {
+      "id": "f06",
       "name": "高一下 · 第一次月考",
-      "date": "2026-03-13",
+      "date": "2026-03-06",
       "type": "月考",
       "scores": {
         "chinese": 109,
-        "math": 99,
-        "english": 114,
-        "physics": 61,
-        "chemistry": 68,
-        "biology": 70
+        "math": 104,
+        "english": 115,
+        "physics": 63,
+        "chemistry": 69,
+        "biology": 73
       },
       "ranks": {
         "class": 14,
         "grade": 226
       },
       "averages": {
-        "class": 440,
-        "grade": 436,
-        "top": 672
+        "class": 442,
+        "grade": 437,
+        "top": 671
       },
       "subjectRanks": {
-        "chinese": 12,
-        "math": 26,
-        "english": 8,
-        "physics": 18,
-        "chemistry": 12,
-        "biology": 10
+        "chinese": 15,
+        "math": 17,
+        "english": 13,
+        "physics": 21,
+        "chemistry": 17,
+        "biology": 15
       },
       "subjectAverages": {
         "chinese": 92,
-        "math": 83,
-        "english": 96,
-        "physics": 51,
-        "chemistry": 57,
-        "biology": 59
+        "math": 91,
+        "english": 92,
+        "physics": 60,
+        "chemistry": 61,
+        "biology": 61
       }
     },
     {
-      "id": "e07",
+      "id": "f07",
       "name": "高一下 · 期中考试",
       "date": "2026-04-24",
       "type": "期中",
       "scores": {
         "chinese": 114,
-        "math": 117,
-        "english": 119,
-        "physics": 72,
-        "chemistry": 74,
+        "math": 116,
+        "english": 118,
+        "physics": 68,
+        "chemistry": 72,
         "biology": 73
       },
       "ranks": {
         "class": 9,
-        "grade": 148
+        "grade": 156
       },
       "averages": {
-        "class": 462,
-        "grade": 458,
-        "top": 692
+        "class": 459,
+        "grade": 454,
+        "top": 691
       },
       "subjectRanks": {
-        "chinese": 8,
-        "math": 11,
-        "english": 5,
-        "physics": 10,
-        "chemistry": 7,
-        "biology": 9
+        "chinese": 13,
+        "math": 13,
+        "english": 12,
+        "physics": 18,
+        "chemistry": 16,
+        "biology": 15
       },
       "subjectAverages": {
         "chinese": 96,
-        "math": 98,
-        "english": 100,
-        "physics": 60,
-        "chemistry": 62,
-        "biology": 61
-      }
-    },
-    {
-      "id": "e08",
-      "name": "高一下 · 第二次月考",
-      "date": "2026-05-29",
-      "type": "月考",
-      "scores": {
-        "chinese": 112,
-        "math": 121,
-        "english": 118,
-        "physics": 74,
-        "chemistry": 76,
-        "biology": 75
-      },
-      "ranks": {
-        "class": 8,
-        "grade": 133
-      },
-      "averages": {
-        "class": 468,
-        "grade": 462,
-        "top": 696
-      },
-      "subjectRanks": {
-        "chinese": 10,
-        "math": 8,
-        "english": 6,
-        "physics": 8,
-        "chemistry": 6,
-        "biology": 7
-      },
-      "subjectAverages": {
-        "chinese": 94,
-        "math": 102,
-        "english": 99,
-        "physics": 62,
-        "chemistry": 64,
+        "math": 96,
+        "english": 96,
+        "physics": 63,
+        "chemistry": 63,
         "biology": 63
       }
     },
     {
-      "id": "e09",
+      "id": "f08",
+      "name": "高一下 · 第二次月考",
+      "date": "2026-05-22",
+      "type": "月考",
+      "scores": {
+        "chinese": 113,
+        "math": 121,
+        "english": 120,
+        "physics": 70,
+        "chemistry": 74,
+        "biology": 74
+      },
+      "ranks": {
+        "class": 8,
+        "grade": 140
+      },
+      "averages": {
+        "class": 466,
+        "grade": 460,
+        "top": 695
+      },
+      "subjectRanks": {
+        "chinese": 14,
+        "math": 11,
+        "english": 11,
+        "physics": 17,
+        "chemistry": 15,
+        "biology": 15
+      },
+      "subjectAverages": {
+        "chinese": 97,
+        "math": 98,
+        "english": 98,
+        "physics": 64,
+        "chemistry": 65,
+        "biology": 65
+      }
+    },
+    {
+      "id": "f09",
+      "name": "高一下 · 六校联考",
+      "date": "2026-06-19",
+      "type": "联考",
+      "scores": {
+        "chinese": 112,
+        "math": 114,
+        "english": 119,
+        "physics": 66,
+        "chemistry": 73,
+        "biology": 74
+      },
+      "ranks": {
+        "class": 11,
+        "grade": 172
+      },
+      "averages": {
+        "class": 448,
+        "grade": 443,
+        "top": 676
+      },
+      "subjectRanks": {
+        "chinese": 14,
+        "math": 13,
+        "english": 12,
+        "physics": 19,
+        "chemistry": 15,
+        "biology": 15
+      },
+      "subjectAverages": {
+        "chinese": 93,
+        "math": 93,
+        "english": 94,
+        "physics": 61,
+        "chemistry": 62,
+        "biology": 62
+      }
+    },
+    {
+      "id": "f10",
       "name": "高一下 · 期末考试",
       "date": "2026-07-08",
       "type": "期末",
       "scores": {
-        "chinese": 116,
-        "math": 118,
+        "chinese": 117,
+        "math": 122,
         "english": 122,
-        "physics": 76,
-        "chemistry": 79,
-        "biology": 78
+        "physics": 73,
+        "chemistry": 76,
+        "biology": 75
       },
       "ranks": {
         "class": 6,
-        "grade": 112
+        "grade": 121
       },
       "averages": {
-        "class": 458,
-        "grade": 454,
-        "top": 690
+        "class": 460,
+        "grade": 455,
+        "top": 692
       },
       "subjectRanks": {
-        "chinese": 7,
+        "chinese": 12,
         "math": 10,
-        "english": 4,
-        "physics": 7,
-        "chemistry": 5,
-        "biology": 6
-      },
-      "subjectAverages": {
-        "chinese": 97,
-        "math": 99,
-        "english": 102,
-        "physics": 64,
-        "chemistry": 66,
-        "biology": 66
-      }
-    },
-    {
-      "id": "e10",
-      "name": "高二上 · 第一次月考",
-      "date": "2026-09-25",
-      "type": "月考",
-      "scores": {
-        "chinese": 111,
-        "math": 113,
-        "english": 120,
-        "physics": 68,
-        "chemistry": 73,
-        "biology": 76
-      },
-      "ranks": {
-        "class": 10,
-        "grade": 156
-      },
-      "averages": {
-        "class": 436,
-        "grade": 432,
-        "top": 668
-      },
-      "subjectRanks": {
-        "chinese": 11,
-        "math": 13,
-        "english": 5,
+        "english": 10,
         "physics": 15,
-        "chemistry": 9,
-        "biology": 7
+        "chemistry": 13,
+        "biology": 14
       },
       "subjectAverages": {
-        "chinese": 93,
-        "math": 95,
-        "english": 101,
-        "physics": 57,
-        "chemistry": 61,
+        "chinese": 96,
+        "math": 97,
+        "english": 97,
+        "physics": 64,
+        "chemistry": 64,
         "biology": 64
       }
     },
     {
-      "id": "e11",
+      "id": "f11",
+      "name": "高二上 · 第一次月考",
+      "date": "2026-09-11",
+      "type": "月考",
+      "scores": {
+        "chinese": 114,
+        "math": 113,
+        "english": 121,
+        "physics": 66,
+        "chemistry": 72,
+        "biology": 80
+      },
+      "ranks": {
+        "class": 10,
+        "grade": 160
+      },
+      "averages": {
+        "class": 437,
+        "grade": 432,
+        "top": 668
+      },
+      "subjectRanks": {
+        "chinese": 13,
+        "math": 14,
+        "english": 11,
+        "physics": 19,
+        "chemistry": 16,
+        "biology": 11
+      },
+      "subjectAverages": {
+        "chinese": 91,
+        "math": 91,
+        "english": 92,
+        "physics": 60,
+        "chemistry": 60,
+        "biology": 61
+      }
+    },
+    {
+      "id": "f12",
       "name": "高二上 · 期中考试",
       "date": "2026-10-23",
       "type": "期中",
       "scores": {
-        "chinese": 115,
-        "math": 124,
-        "english": 123,
-        "physics": 72,
-        "chemistry": 77,
-        "biology": 79
+        "chinese": 118,
+        "math": 125,
+        "english": 124,
+        "physics": 70,
+        "chemistry": 76,
+        "biology": 81
       },
       "ranks": {
         "class": 7,
         "grade": 118
       },
       "averages": {
-        "class": 451,
+        "class": 452,
         "grade": 447,
         "top": 684
       },
       "subjectRanks": {
-        "chinese": 8,
-        "math": 6,
-        "english": 4,
-        "physics": 11,
-        "chemistry": 6,
-        "biology": 5
+        "chinese": 12,
+        "math": 9,
+        "english": 10,
+        "physics": 17,
+        "chemistry": 13,
+        "biology": 11
       },
       "subjectAverages": {
-        "chinese": 97,
-        "math": 104,
-        "english": 103,
-        "physics": 60,
-        "chemistry": 65,
-        "biology": 66
+        "chinese": 95,
+        "math": 95,
+        "english": 95,
+        "physics": 62,
+        "chemistry": 63,
+        "biology": 63
       }
     },
     {
-      "id": "e12",
+      "id": "f13",
+      "name": "高二上 · 六校联考",
+      "date": "2026-11-07",
+      "type": "联考",
+      "scores": {
+        "chinese": 119,
+        "math": 127,
+        "english": 125,
+        "physics": 71,
+        "chemistry": 78,
+        "biology": 81
+      },
+      "ranks": {
+        "class": 6,
+        "grade": 108
+      },
+      "averages": {
+        "class": 458,
+        "grade": 453,
+        "top": 688
+      },
+      "subjectRanks": {
+        "chinese": 12,
+        "math": 9,
+        "english": 9,
+        "physics": 16,
+        "chemistry": 12,
+        "biology": 11
+      },
+      "subjectAverages": {
+        "chinese": 96,
+        "math": 97,
+        "english": 96,
+        "physics": 63,
+        "chemistry": 64,
+        "biology": 64
+      }
+    },
+    {
+      "id": "f14",
       "name": "高二上 · 第二次月考",
       "date": "2026-11-20",
       "type": "月考",
       "scores": {
-        "chinese": 118,
-        "math": 127,
-        "english": 125,
-        "physics": 75,
+        "chinese": 120,
+        "math": 130,
+        "english": 126,
+        "physics": 73,
         "chemistry": 80,
-        "biology": 81
+        "biology": 83
       },
       "ranks": {
         "class": 5,
         "grade": 96
       },
       "averages": {
-        "class": 447,
-        "grade": 443,
+        "class": 449,
+        "grade": 444,
         "top": 680
       },
       "subjectRanks": {
-        "chinese": 6,
-        "math": 3,
-        "english": 3,
-        "physics": 9,
-        "chemistry": 5,
-        "biology": 4
+        "chinese": 11,
+        "math": 7,
+        "english": 9,
+        "physics": 15,
+        "chemistry": 11,
+        "biology": 10
       },
       "subjectAverages": {
-        "chinese": 99,
-        "math": 107,
-        "english": 105,
+        "chinese": 94,
+        "math": 95,
+        "english": 95,
+        "physics": 62,
+        "chemistry": 63,
+        "biology": 63
+      }
+    },
+    {
+      "id": "f15",
+      "name": "高二上 · 期末考试",
+      "date": "2026-12-18",
+      "type": "期末",
+      "scores": {
+        "chinese": 122,
+        "math": 132,
+        "english": 128,
+        "physics": 75,
+        "chemistry": 82,
+        "biology": 84
+      },
+      "ranks": {
+        "class": 4,
+        "grade": 88
+      },
+      "averages": {
+        "class": 451,
+        "grade": 446,
+        "top": 683
+      },
+      "subjectRanks": {
+        "chinese": 10,
+        "math": 7,
+        "english": 8,
+        "physics": 14,
+        "chemistry": 10,
+        "biology": 9
+      },
+      "subjectAverages": {
+        "chinese": 95,
+        "math": 96,
+        "english": 95,
         "physics": 63,
-        "chemistry": 67,
-        "biology": 68
+        "chemistry": 63,
+        "biology": 63
       }
     }
   ]

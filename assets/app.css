@@ -1060,6 +1060,33 @@ button, input, select { font: inherit; color: inherit; }
 .row-sem { grid-template-columns: minmax(0, 1fr) 64px 88px 96px; }
 .card-semesters { margin-top: 12px; }
 
+.filter-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -4px 0 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--raised);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.filter-clear {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 12.5px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0;
+}
+
+.filter-clear:hover { color: var(--chart-3); }
+
 @media (max-width: 1080px) {
   .card-dist, .card-priority { grid-column: 1; grid-row: auto; }
 }
@@ -2359,13 +2386,28 @@ button, input, select { font: inherit; color: inherit; }
 .type-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   height: 28px;
-  padding: 0 6px 0 11px;
+  padding: 0 4px 0 9px;
   border: 1px solid var(--border);
   border-radius: 999px;
   font-size: 12.5px;
   color: var(--text);
+}
+
+.type-name {
+  width: 4.4em;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+}
+
+.type-name:focus {
+  outline: none;
+  border-bottom: 1px solid var(--accent);
 }
 
 .type-del {

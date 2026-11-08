@@ -698,6 +698,24 @@
       tableCount: stats.count,
       points: points,
       target: target,
+      subjectForecast: (function () {
+        var s = stats.series;
+        if (s.length < 3) return null;
+        var vals = s.map(function (p) { return p.score; });
+        var n = vals.length;
+        var mx = (n - 1) / 2;
+        var my = vals.reduce(function (a, b) { return a + b; }, 0) / n;
+        var num = 0, den = 0;
+        vals.forEach(function (y, i) {
+          num += (i - mx) * (y - my);
+          den += (i - mx) * (i - mx);
+        });
+        var slope = den ? num / den : 0;
+        var lastV = vals[n - 1];
+        var cap = Number(active.full) || Infinity;
+        var est = Math.max(0, Math.min(cap, lastV + slope));
+        return { value: Math.round(est), label: '下次约 ' + Math.round(est) };
+      })(),
       bands: S.semesterBands(state)
     };
   }
@@ -988,7 +1006,7 @@
   /* ================= 单次考试 ================= */
 
   function examDetail(state, id) {
-    var list = S.sorted(state);
+    var list = S.allSorted(state);
     var exam = list.find(function (e) { return e.id === id; });
     if (!exam) return '<header class="page-head"><div><h1>没有这次考试</h1><p class="page-sub">它可能已经被删掉了。</p></div><a class="btn" href="#/exams">回到考试记录</a></header>';
 
@@ -1142,7 +1160,10 @@
       '  <div class="card-head"><div class="card-title-wrap"><h2 class="card-title">考试类型</h2><p class="card-sub">记录考试时可以从这里选到的类型</p></div></div>' +
       '  <div class="type-manage">' +
       '    <div class="type-chips">' + (c.types || []).map(function (t) {
-        return '<span class="type-chip">' + esc(t) + '<button type="button" class="type-del" data-type-del="' + esc(t) + '" aria-label="删除 ' + esc(t) + '">×</button></span>';
+        return '<span class="type-chip">' +
+          '<input class="type-name" type="text" value="' + esc(t) + '" data-type-old="' + esc(t) + '" maxlength="8" aria-label="类型名称">' +
+          '<button type="button" class="type-del" data-type-del="' + esc(t) + '" aria-label="删除 ' + esc(t) + '">×</button>' +
+          '</span>';
       }).join('') + '</div>' +
       '    <div class="type-add">' +
       '      <input class="input" id="typeNew" type="text" placeholder="周测、摸底、联考…" maxlength="8">' +

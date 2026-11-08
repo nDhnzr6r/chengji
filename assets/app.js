@@ -112,6 +112,17 @@
     document.title = title + ' · 成迹';
     currentView = name;
     resizeHandler = null;
+
+    /* 筛选开着就在每页顶上挂一条，免得看着像全部数据 */
+    if (picked !== 'all') {
+      var shownCount = S.sorted(state).length;
+      var totalCount = S.allSorted(state).length;
+      html = '<div class="filter-note">' +
+        '<span>只看' + V.esc(picked) + '，' + shownCount + ' 次</span>' +
+        '<button type="button" class="filter-clear" data-exam-filter="all">显示全部 ' + totalCount + ' 次</button>' +
+        '</div>' + html;
+    }
+
     mainEl.innerHTML = html;
     setActive(name);
     if (global.UI) global.UI.mountAll(mainEl);
@@ -328,6 +339,7 @@
         xMode: 'time',
         bands: parts.bands,
         label: '单科走势',
+        forecast: parts.subjectForecast || null,
         animate: animate !== false
       };
       if (!chart) {
@@ -455,6 +467,24 @@
     bind('cfgRemaining', 'remainingExams', Number, 0, 60);
     bind('cfgPassRate', 'passRate', Number, 10, 100);
     bind('cfgGoodRate', 'goodRate', Number, 10, 100);
+
+    /* 改类型名：旧名字下挂着的考试一起换过去 */
+    mainEl.querySelectorAll('.type-name').forEach(function (input) {
+      input.addEventListener('change', function () {
+        var oldName = input.getAttribute('data-type-old');
+        var next = (input.value || '').trim().slice(0, 8);
+        if (!next || next === oldName) { input.value = oldName; return; }
+        if ((c.types || []).indexOf(next) >= 0) { input.value = oldName; toast('已经有这个类型了', 'bad'); return; }
+        c.types = (c.types || []).map(function (t) { return t === oldName ? next : t; });
+        state.exams.forEach(function (e) {
+          if ((e.type || '月考') === oldName) e.type = next;
+        });
+        if (state.filter === oldName) state.filter = next;
+        S.save(state);
+        render();
+        toast('「' + oldName + '」改成了「' + next + '」');
+      });
+    });
 
     mainEl.querySelectorAll('.table-form tbody tr').forEach(function (tr) {
       var id = tr.getAttribute('data-subject');
@@ -721,7 +751,7 @@
       .concat(['班级排名', '年级排名', '班级平均', '年级平均', '年级最高']);
 
     var rows = [head];
-    S.sorted(state).forEach(function (e) {
+    S.allSorted(state).forEach(function (e) {
       var avg = e.averages || {};
       var sr = e.subjectRanks || {};
       var sa = e.subjectAverages || {};
@@ -745,7 +775,7 @@
     var esc = V.esc;
     var cnDate = V.cnDate;
     var signed = V.signed;
-    var list = S.sorted(state);
+    var list = S.allSorted(state);
     if (!list.length) { toast('还没有成绩记录', 'bad'); return; }
     var last = list[list.length - 1];
     var ins = S.insight(state);
@@ -844,12 +874,18 @@
   }
 
   function downloadTemplate() {
-    var subjects = state.config.subjects.map(function (s) { return s.name; });
-    var head = ['考试名称', '日期', '类型'].concat(subjects, ['班级排名', '年级排名']);
-    var sample = ['高二上 · 第三次月考', '2026-12-11', '月考'].concat(
-      state.config.subjects.map(function (s) { return Math.round(Number(s.full) * 0.82); }),
-      ['4', '88']
-    );
+    var subs = state.config.subjects;
+    var names = subs.map(function (s) { return s.name; });
+    var head = ['考试名称', '日期', '类型']
+      .concat(names)
+      .concat(names.map(function (n) { return n + '名次'; }))
+      .concat(names.map(function (n) { return n + '平均'; }))
+      .concat(['班级排名', '年级排名', '班级平均', '年级平均', '年级最高']);
+    var sample = ['高二上 · 第三次月考', '2026-12-11', '月考']
+      .concat(subs.map(function (s) { return Math.round(Number(s.full) * 0.82); }))
+      .concat(subs.map(function () { return ''; }))
+      .concat(subs.map(function (s) { return Math.round(Number(s.full) * 0.68); }))
+      .concat(['4', '88', '446', '441', '682']);
     var csv = '\uFEFF' + [head, sample].map(function (row) { return row.join(','); }).join('\r\n');
     download('成迹-导入模板.csv', csv, 'text/csv;charset=utf-8');
     toast('模板已下载');
@@ -930,6 +966,9 @@
 
     var themeBtn = evt.target.closest('#themeToggle');
     if (themeBtn) { toggleTheme(); return; }
+
+    var renameInput = evt.target.closest('.type-name');
+    if (renameInput) { renameInput.select(); return; }
 
     if (evt.target.closest('[data-type-add]')) {
       var typeInput = document.getElementById('typeNew');
@@ -1152,7 +1191,7 @@
 
     var bootEl = document.getElementById('boot');
     var subEl = document.getElementById('bootSub');
-    var list = S.sorted(state);
+    var list = S.allSorted(state);
 
     if (!bootEl || C.reduced() || !list.length) {
       if (bootEl) bootEl.remove();
