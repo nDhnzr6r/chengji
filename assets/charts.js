@@ -245,7 +245,9 @@
       if (o.target) {
         var ty = y(o.target);
         gTarget.appendChild(el('line', { x1: pad.l, x2: W - pad.r, y1: ty, y2: ty, class: 'target-line' }));
-        var tlabel = el('text', { x: W - pad.r, y: ty - 7, class: 'target-label', 'text-anchor': 'end' });
+        var labelY = ty - 7;
+        if (labelY < pad.t + 10) labelY = ty + 14;
+        var tlabel = el('text', { x: pad.l + 6, y: labelY, class: 'target-label', 'text-anchor': 'start' });
         tlabel.textContent = (o.targetLabel || '目标') + ' ' + fmtNumber(o.target, o.digits || 0);
         gTarget.appendChild(tlabel);
       }
@@ -333,7 +335,7 @@
           if (i === lastIndex) return x(i);
           return x(i) + half;
         };
-        var gap = 4;
+        var gap = W < 520 ? 12 : 8;
         var lastRight = -Infinity;
         points.forEach(function (p, i) {
           if (leftEdge(i) >= lastRight + gap) {
@@ -432,21 +434,21 @@
         lastDot.style.opacity = '0';
 
         nextFrame(function () {
-          gGrid.style.transition = 'opacity 420ms ' + EASE.soft;
+          gGrid.style.transition = 'opacity 360ms ' + EASE.soft;
           gGrid.style.opacity = '1';
-          line.style.transition = 'stroke-dashoffset 1250ms ' + EASE.out;
+          line.style.transition = 'stroke-dashoffset 900ms ' + EASE.out;
           line.style.strokeDashoffset = '0';
           if (area) {
-            area.style.transition = 'opacity 900ms ' + EASE.soft + ' 260ms';
+            area.style.transition = 'opacity 620ms ' + EASE.soft + ' 220ms';
             area.style.opacity = '1';
           }
-          gTarget.style.transition = 'opacity 520ms ' + EASE.soft + ' 480ms';
+          gTarget.style.transition = 'opacity 420ms ' + EASE.soft + ' 380ms';
           gTarget.style.opacity = '1';
           dots.forEach(function (dt, i) {
-            dt.style.transition = 'opacity 340ms ' + EASE.soft + ' ' + (340 + i * 62) + 'ms';
+            dt.style.transition = 'opacity 300ms ' + EASE.soft + ' ' + (300 + i * 45) + 'ms';
             dt.style.opacity = '1';
           });
-          lastDot.style.transition = 'opacity 360ms ' + EASE.soft + ' ' + (380 + points.length * 62) + 'ms';
+          lastDot.style.transition = 'opacity 320ms ' + EASE.soft + ' ' + (320 + points.length * 45) + 'ms';
           lastDot.style.opacity = '1';
         });
       }
@@ -711,8 +713,8 @@
       track.className = 'bullet-track';
       var fill = document.createElement('div');
       fill.className = 'bullet-fill' + (row.hit ? ' is-hit' : '');
-      fill.style.width = '0%';
-      fill.setAttribute('data-w', (row.rate * 100).toFixed(2) + '%');
+      fill.style.transform = 'scaleX(0)';
+      fill.setAttribute('data-w', Math.max(0, Math.min(1, row.rate)).toFixed(4));
       track.appendChild(fill);
       if (row.targetRate) {
         var tick = document.createElement('div');
@@ -741,13 +743,13 @@
     if (!reduced() && opts.animate !== false) {
       nextFrame(function () {
         list.querySelectorAll('.bullet-fill').forEach(function (fill, i) {
-          fill.style.transition = 'width 1000ms ' + EASE.out + ' ' + (i * 80) + 'ms';
-          fill.style.width = fill.getAttribute('data-w');
+          fill.style.transition = 'transform 640ms ' + EASE.out + ' ' + (i * 60) + 'ms';
+          fill.style.transform = 'scaleX(' + fill.getAttribute('data-w') + ')';
         });
       });
     } else {
       list.querySelectorAll('.bullet-fill').forEach(function (fill) {
-        fill.style.width = fill.getAttribute('data-w');
+        fill.style.transform = 'scaleX(' + fill.getAttribute('data-w') + ')';
       });
     }
   }

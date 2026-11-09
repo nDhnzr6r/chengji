@@ -392,7 +392,7 @@
     if (totalEl) {
       var finalTotal = Number(totalEl.textContent) || 0;
       C.roll(totalEl, lastShownTotal === null ? 0 : lastShownTotal, finalTotal, {
-        duration: lastShownTotal === null ? 1250 : 800
+        duration: lastShownTotal === null ? 900 : 600
       });
       lastShownTotal = finalTotal;
     }
@@ -400,7 +400,7 @@
     var gapEl = document.getElementById('kpiGap');
     if (gapEl) {
       var gapFinal = Number(gapEl.textContent) || 0;
-      C.roll(gapEl, 0, gapFinal, { duration: 1150 });
+      C.roll(gapEl, 0, gapFinal, { duration: 900 });
     }
 
     bindResize(function () {
@@ -684,18 +684,7 @@
   function refreshSidebar() {
     var route = parseHash();
     sideHost.innerHTML = V.sidebar(state, route.name === 'exam' ? 'exams' : route.name);
-    applyGoalBar();
     updateThemeButtons();
-  }
-
-  function applyGoalBar() {
-    var fill = sideHost.querySelector('.goal-fill');
-    if (!fill) return;
-    var pct = fill.style.getPropertyValue('--pct');
-    fill.style.width = '0%';
-    requestAnimationFrame(function () {
-      fill.style.width = pct;
-    });
   }
 
   /* ---------------- 对话框 ---------------- */
@@ -1367,31 +1356,10 @@
   function toggleTheme() {
     var actual = document.documentElement.getAttribute('data-theme');
     var next = actual === 'dark' ? 'light' : 'dark';
-    var btn = document.getElementById('themeToggle');
-    var rect = btn ? btn.getBoundingClientRect() : null;
-    var x = rect ? rect.left + rect.width / 2 : global.innerWidth / 2;
-    var y = rect ? rect.top + rect.height / 2 : global.innerHeight / 2;
-
-    /* 新主题从按钮那里铺开 */
-    if (typeof document.startViewTransition === 'function') {
-      var vw = global.innerWidth;
-      var vh = global.innerHeight;
-      var r = Math.hypot(Math.max(x, vw - x), Math.max(y, vh - y));
-      var rootStyle = document.documentElement.style;
-      rootStyle.setProperty('--tx', x + 'px');
-      rootStyle.setProperty('--ty', y + 'px');
-      rootStyle.setProperty('--tr', Math.ceil(r) + 'px');
-      document.startViewTransition(function () {
-        applyTheme(next, true);
-      });
-      return;
-    }
-
-    /* 浏览器不支持就退成一整片颜色的渐变 */
     var root = document.documentElement;
     root.classList.add('is-theme-fading');
     applyTheme(next, true);
-    setTimeout(function () { root.classList.remove('is-theme-fading'); }, 420);
+    setTimeout(function () { root.classList.remove('is-theme-fading'); }, 300);
   }
 
   if (darkQuery && darkQuery.addEventListener) {
@@ -1417,7 +1385,6 @@
     if (!bootEl || C.reduced() || !list.length) {
       if (bootEl) bootEl.remove();
       render();
-      requestAnimationFrame(applyGoalBar);
       maybeTour(900);
       return;
     }
@@ -1432,7 +1399,6 @@
       render();
       bootEl.classList.add('is-done');
       setTimeout(function () { bootEl.remove(); }, 460);
-      requestAnimationFrame(applyGoalBar);
       maybeTour(2400);
     }
 

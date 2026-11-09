@@ -10,7 +10,7 @@
     subjects: '<path d="M2 12.2l3.4-3.8 2.9 2.4L14 4.6"/><path d="M2 14.2h12"/>',
     compare: '<rect x="2.4" y="8.6" width="4" height="5.6" rx="1.1"/><rect x="9.6" y="2.6" width="4" height="11.6" rx="1.1"/>',
     exams: '<path d="M3 4.2h10M3 8h10M3 11.8h6.2"/>',
-    settings: '<circle cx="8" cy="8" r="2.1"/><path d="M8 1.9v1.5M8 12.6v1.5M2.1 8h1.5M12.4 8h1.5M3.9 3.9l1.1 1.1M11 11l1.1 1.1M12.1 3.9L11 5M5 11l-1.1 1.1"/>'
+    settings: '<path d="M2 5h5M11.5 5H14M2 11h2.5M9 11h5"/><circle cx="9.2" cy="5" r="1.8"/><circle cx="6.7" cy="11" r="1.8"/>'
   };
 
   function icon(name, size) {
@@ -266,7 +266,6 @@
       '  <span class="kpi-value num" id="kpiTotal">' + total + '</span><span class="kpi-unit">/ ' + full + '</span>' +
       '  <span class="kpi-foot">' + (diff ? '<em class="delta ' + (diff.total > 0 ? 'good' : diff.total < 0 ? 'bad' : 'flat') + ' num">' + signed(diff.total) + '</em> 较 ' + examTag(prev) : '首次记录') +
       ' · 得分率 ' + pctOf(total, full).toFixed(1) + '%</span>' +
-      '  <span class="kpi-progress"><span style="width:' + Math.min(100, pctOf(total, full)).toFixed(1) + '%"></span></span>' +
       '</div>'
     );
 
@@ -274,9 +273,6 @@
     var classSize = Number(state.config.classSize) || 0;
 
     if (rankGrade) {
-      /* 条子画的是「超过多少人」，所以位置越靠前条子越长 */
-      var gradePct = gradeSize ? Math.max(0, Math.min(100, ((gradeSize - rankGrade) / gradeSize) * 100)) : 0;
-      var gradeMark = goalGrade && gradeSize ? Math.max(0, Math.min(100, ((gradeSize - goalGrade) / gradeSize) * 100)) : 0;
       kpiCells.push(
         '<div class="kpi">' +
         '  <span class="kpi-label">年级排名</span>' +
@@ -285,17 +281,11 @@
         '  <span class="kpi-foot">' + (diff && prev.ranks.grade ? '<em class="delta ' + (diff.gradeRank < 0 ? 'good' : diff.gradeRank > 0 ? 'bad' : 'flat') + '">' + rankWord(diff.gradeRank).text + '</em> 较 ' + examTag(prev) : '首次记录') +
         (gradeSize ? ' · 前 ' + Math.round((rankGrade / gradeSize) * 100) + '%' : '') +
         (goalGrade ? ' · 目标 ' + goalGrade + '</span>' : '</span>') +
-        '<span class="kpi-progress">' +
-        (gradeSize ? '<span style="width:' + gradePct.toFixed(1) + '%"></span>' : '') +
-        (gradeMark ? '<span class="kpi-mark" style="left:' + gradeMark.toFixed(1) + '%"></span>' : '') +
-        '</span>' +
         '</div>'
       );
     }
 
     if (rankClass) {
-      var classPct = classSize ? Math.max(0, Math.min(100, ((classSize - rankClass) / classSize) * 100)) : 0;
-      var classMark = goalClass && classSize ? Math.max(0, Math.min(100, ((classSize - goalClass) / classSize) * 100)) : 0;
       kpiCells.push(
         '<div class="kpi">' +
         '  <span class="kpi-label">班级排名</span>' +
@@ -304,10 +294,6 @@
         '  <span class="kpi-foot">' + (diff && prev.ranks.class ? '<em class="delta ' + (diff.classRank < 0 ? 'good' : diff.classRank > 0 ? 'bad' : 'flat') + '">' + rankWord(diff.classRank).text + '</em> 较 ' + examTag(prev) : '首次记录') +
         (classSize ? ' · 前 ' + Math.round((rankClass / classSize) * 100) + '%' : '') +
         (goalClass ? ' · 目标 ' + goalClass + '</span>' : '</span>') +
-        '<span class="kpi-progress">' +
-        (classSize ? '<span style="width:' + classPct.toFixed(1) + '%"></span>' : '') +
-        (classMark ? '<span class="kpi-mark" style="left:' + classMark.toFixed(1) + '%"></span>' : '') +
-        '</span>' +
         '</div>'
       );
     }
@@ -316,9 +302,8 @@
       '<div class="kpi">' +
       '  <span class="kpi-label">距目标</span>' +
       stateTag(ins && ins.gapState) +
-      '  <span class="kpi-value num ' + (gap <= 0 ? 'is-hit' : '') + '" id="kpiGap">' + (gap > 0 ? gap : Math.abs(gap)) + '</span><span class="kpi-unit">' + (gap > 0 ? '分' : '分超出') + '</span>' +
+      '  <span class="kpi-value num ' + (gap <= 0 ? 'is-hit' : 'is-gap') + '" id="kpiGap">' + (gap > 0 ? gap : Math.abs(gap)) + '</span><span class="kpi-unit">' + (gap > 0 ? '分' : '分超出') + '</span>' +
       '  <span class="kpi-foot">目标 ' + goal + ' 分' + (gap <= 0 ? ' · 已跨过' : ' · 已完成 ' + Math.min(100, Math.round((total / goal) * 100)) + '%') + '</span>' +
-      (goal > 0 ? '<span class="kpi-progress is-goal"><span style="width:' + Math.min(100, (total / goal) * 100).toFixed(1) + '%"></span></span>' : '') +
       '</div>'
     );
 
@@ -387,7 +372,7 @@
     var subjectsCard = '' +
       '<section class="card card-subjects">' +
       '  <div class="card-head">' +
-      '    <div class="card-title-wrap"><h2 class="card-title">各科对照</h2><p class="card-sub">横条是本次得分率，竖线是该科目标</p></div>' +
+      '    <div class="card-title-wrap"><h2 class="card-title">各科对照</h2><p class="card-sub">横条是本次得分率，竖线是该科目标；蓝条过线，灰条还差一点</p></div>' +
       '    <a class="text-link" href="#/subjects">逐科分析</a>' +
       '  </div>' +
       '  <div id="subjectBullets"></div>' +
@@ -497,10 +482,10 @@
         byType.map(function (g) {
           /* 把差距拉开，不然四条几乎一样长看不清 */
           var span = topAvg - lowAvg || 1;
-          var w = 34 + ((g.avg - lowAvg) / span) * 66;
+          var w = (34 + ((g.avg - lowAvg) / span) * 66) / 100;
           return '<div class="type-bar-row">' +
             '<span class="type-bar-name">' + esc(g.type) + '</span>' +
-            '<span class="type-bar-track"><span class="type-bar-fill" style="--w:' + w.toFixed(1) + '%"></span></span>' +
+            '<span class="type-bar-track"><span class="type-bar-fill" style="--w:' + w.toFixed(3) + '"></span></span>' +
             '<span class="type-bar-val num">' + g.avg.toFixed(0) + '</span>' +
             '<span class="type-bar-count num">' + g.count + ' 次</span>' +
             '</div>';
@@ -539,7 +524,9 @@
     /* 本学期还会走到哪 */
     var term = S.termForecast(state);
     var termLine = term
-      ? '按' + term.term + '这几场的速度，下次大约 ' + Math.round(term.next) + ' 分，学期末大约 ' + Math.round(term.end) + ' 分'
+      ? (Math.abs(Math.round(term.next) - Math.round(term.end)) < 1
+        ? '按' + term.term + '这几场的速度，下次和学期末都大约 ' + Math.round(term.next) + ' 分'
+        : '按' + term.term + '这几场的速度，下次大约 ' + Math.round(term.next) + ' 分，学期末大约 ' + Math.round(term.end) + ' 分')
       : '';
 
     return '' +
@@ -613,7 +600,7 @@
     var trend = stats.slope >= 0.4 ? '一直在往上走' : stats.slope <= -0.4 ? '在往下掉' : '基本平着走';
     var volatility = stats.sdRate > 0.055 ? '，起伏偏大' : stats.sdRate < 0.028 ? '，很稳' : '';
     return '这一科' + trend + volatility + '。' +
-      (diff >= 0 ? '最近一次高出目标 ' + diff + ' 分。' : '最近一次离目标还差 ' + Math.abs(diff) + ' 分。');
+      (diff > 0 ? '最近一次高出目标 ' + diff + ' 分。' : diff === 0 ? '最近一次刚好达到目标。' : '最近一次离目标还差 ' + Math.abs(diff) + ' 分。');
   }
 
   function buildNote(state, rows, gap) {
@@ -861,13 +848,13 @@
       }).join('');
       var meta = g.count + ' 次 · 平均 ' + g.avgTotal.toFixed(1) + ' 分' +
         ' · 最高 ' + g.best + ' · 最低 ' + g.worst;
-      return '<section class="card card-semester">' +
-        '  <div class="card-head">' +
-        '    <div class="card-title-wrap"><h2 class="card-title">' + esc(g.label) + '</h2><p class="card-sub num">' + meta + '</p></div>' +
+      return '<div class="sem-block">' +
+        '  <div class="sem-head">' +
+        '    <h2 class="card-title">' + esc(g.label) + '</h2>' +
+        '    <p class="card-sub num">' + meta + '</p>' +
         '  </div>' +
-        head +
         '  <div class="list-rows">' + rows + '</div>' +
-        '</section>';
+        '</div>';
     }).join('');
 
     var chips = '<div class="filter-chips" role="group" aria-label="按考试类型筛选">' +
@@ -883,7 +870,10 @@
     return '' +
       '<header class="page-head"><div><h1>考试记录</h1><p class="page-sub num">共 ' + shown.length + ' 次' + (filter === 'all' ? '' : '（只看' + esc(filter) + '）') + '，跨 ' + groups.length + ' 个学期，从近到远排列</p></div><button class="btn btn-primary" data-action="new-exam">记录一次考试</button></header>' +
       chips +
-      '<div class="semester-list">' + sections + '</div>' +
+      '<section class="card card-semester">' +
+      head +
+      sections +
+      '</section>' +
       (totals.length
         ? '<div class="table-foot">' +
           '  <span>' + shown.length + ' 次考试</span>' +
