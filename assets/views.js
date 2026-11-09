@@ -1221,6 +1221,44 @@
       (issues.length
         ? '  <ul class="issue-list">' + issues.map(function (i) { return '<li>' + esc(i.text) + '</li>'; }).join('') + '</ul>'
         : '  <p class="analysis-note issue-ok">没有发现问题。</p>') +
+      '</section>' +
+
+      storageCard() +
+      '<p class="app-version">成迹 ' + esc(S.VERSION) + '</p>';
+  }
+
+  /* 存储状况：能不能写、会不会被清、占了多少 */
+  function storageCard() {
+    var st = S.storage || {};
+    var persisted = st.persisted;
+    var persistText = persisted === true ? '已同意长期保留'
+      : persisted === false ? '没有同意，磁盘紧张时可能被清理'
+        : persisted === 'unsupported' ? '这个浏览器不支持申请'
+          : '正在确认';
+    var kb = Math.max(1, Math.round((S.footprint ? S.footprint() : 0) / 1024));
+    var hasBroken = !!st.broken || (S.brokenExists && S.brokenExists());
+
+    return '<section class="card card-form">' +
+      '  <div class="card-head"><div class="card-title-wrap"><h2 class="card-title">存储</h2>' +
+      '    <p class="card-sub">成绩保存在这台电脑的浏览器里，没有云端副本</p></div></div>' +
+      '  <dl class="storage-facts">' +
+      '    <div><dt>本地存储</dt><dd' + (st.available === false ? ' class="is-bad"' : '') + '>' +
+      (st.available === false ? '被浏览器禁止' : '可以写入') + '</dd></div>' +
+      '    <div><dt>长期保留</dt><dd>' + esc(persistText) + '</dd></div>' +
+      '    <div><dt>当前占用</dt><dd class="num">' + kb + ' KB</dd></div>' +
+      '  </dl>' +
+      (hasBroken
+        ? '  <div class="danger-zone">' +
+        '    <div><strong>有一份读不出来的存档留底</strong><p>原始内容按原样保存着，可以下载下来自行检查，确认不需要再丢弃。</p></div>' +
+        '    <button class="btn" data-action="export-broken">下载</button>' +
+        '    <button class="btn btn-danger" data-action="discard-broken">丢弃</button>' +
+        '  </div>'
+        : '') +
+      '  <div class="data-actions">' +
+      '    <button class="btn" data-action="request-persist">申请长期保留</button>' +
+      '    <button class="btn" data-action="export-json">导出备份（JSON）</button>' +
+      '  </div>' +
+      '  <p class="field-hint data-hint">清理浏览器数据、关掉无痕窗口、换一台电脑，成绩都会不见。隔一段时间导出一份 JSON 放到别处最稳妥。</p>' +
       '</section>';
   }
 

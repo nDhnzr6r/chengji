@@ -867,18 +867,66 @@
 
   /* ---------- 持久化 ---------- */
 
-  function load() {
+  var VERSION = '1.0.0';
+  var BROKEN_KEY = STORAGE_KEY + '.broken';
+
+  /* 存储层的真实状况，界面据此提示，不再靠猜 */
+  var storage = {
+    available: true,
+    reason: null,
+    broken: null,
+    persisted: null,
+    savedAt: 0
+  };
+
+  function describeError(err) {
+    if (!err) return '未知原因';
+    if (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+      return '浏览器给这个页面的存储空间满了';
+    }
+    if (err.name === 'SecurityError') return '浏览器禁止了这个页面保存数据';
+    return '写入失败（' + (err.name || '未知错误') + '）';
+  }
+
+  /* 读不出来的原文先原样存一份，别让它被下一次保存冲掉 */
+  function rescue(raw) {
     try {
-      var raw = global.localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        /* 第一次打开：把初始数据存下来，之后就以本地为准 */
-        var fresh = defaultState();
-        save(fresh);
-        return fresh;
-      }
-      var parsed = JSON.parse(raw);
-      return normalize(parsed);
+      global.localStorage.setItem(BROKEN_KEY, raw);
+      return BROKEN_KEY;
     } catch (err) {
+      return null;
+    }
+  }
+
+  function load() {
+    storage.available = true;
+    storage.reason = null;
+    storage.broken = null;
+
+    var raw;
+    try {
+      raw = global.localStorage.getItem(STORAGE_KEY);
+    } catch (err) {
+      storage.available = false;
+      storage.reason = '浏览器不让这个页面读取本地存储';
+      return defaultState();
+    }
+
+    if (raw === null || raw === '') {
+      /* 第一次打开：把初始数据存下来，之后就以本地为准 */
+      var fresh = defaultState();
+      save(fresh);
+      return fresh;
+    }
+
+    try {
+      return normalize(JSON.parse(raw));
+    } catch (err) {
+      storage.broken = {
+        raw: raw,
+        rescued: rescue(raw),
+        reason: '存档内容不是一个完整的 JSON'
+      };
       return defaultState();
     }
   }
@@ -919,12 +967,81 @@
   }
 
   function save(state) {
+    if (!storage.available) {
+      storage.reason = '浏览器不让这个页面保存数据';
+      return false;
+    }
     try {
       global.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      storage.reason = null;
+      storage.savedAt = Date.now();
+      return true;
+    } catch (err) {
+      storage.reason = describeError(err);
+      return false;
+    }
+  }
+
+  /* 当前占用的字节数，按 UTF-16 粗估，只用于显示 */
+  function footprint() {
+    try {
+      var main = global.localStorage.getItem(STORAGE_KEY) || '';
+      var spare = global.localStorage.getItem(BROKEN_KEY) || '';
+      return (main.length + spare.length) * 2;
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  function brokenExists() {
+    try {
+      return !!global.localStorage.getItem(BROKEN_KEY);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function readBroken() {
+    try {
+      return global.localStorage.getItem(BROKEN_KEY) || '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function discardBroken() {
+    try {
+      global.localStorage.removeItem(BROKEN_KEY);
+      storage.broken = null;
       return true;
     } catch (err) {
       return false;
     }
+  }
+
+  /* 向浏览器申请持久化，避免磁盘紧张时被整体清掉 */
+  function requestPersist() {
+    var api = global.navigator && global.navigator.storage;
+    if (!api || typeof api.persist !== 'function') {
+      storage.persisted = 'unsupported';
+      return Promise.resolve('unsupported');
+    }
+    return Promise.resolve()
+      .then(function () { return api.persisted(); })
+      .then(function (already) {
+        if (already) {
+          storage.persisted = true;
+          return true;
+        }
+        return api.persist().then(function (granted) {
+          storage.persisted = !!granted;
+          return !!granted;
+        });
+      })
+      .catch(function () {
+        storage.persisted = 'unsupported';
+        return 'unsupported';
+      });
   }
 
   function reset() {
@@ -1157,10 +1274,18 @@
   }
 
   global.Store = {
+    VERSION: VERSION,
     STORAGE_KEY: STORAGE_KEY,
+    BROKEN_KEY: BROKEN_KEY,
+    storage: storage,
     DEFAULT_CONFIG: DEFAULT_CONFIG,
     load: load,
     save: save,
+    footprint: footprint,
+    brokenExists: brokenExists,
+    readBroken: readBroken,
+    discardBroken: discardBroken,
+    requestPersist: requestPersist,
     reset: reset,
     clearExams: clearExams,
     resetAll: resetAll,

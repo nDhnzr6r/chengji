@@ -1,0 +1,324 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const path = require('node:path');
+
+/* 内存版 localStorage；failNext 用来模拟配额写满 */
+const ls = {
+  map: new Map(),
+  failNext: false,
+  getItem(key) {
+    return this.map.has(key) ? this.map.get(key) : null;
+  },
+  setItem(key, value) {
+    if (this.failNext) {
+      this.failNext = false;
+      const err = new Error('quota');
+      err.name = 'QuotaExceededError';
+      throw err;
+    }
+    this.map.set(key, String(value));
+  },
+  removeItem(key) {
+    this.map.delete(key);
+  }
+};
+
+global.window = { localStorage: ls };
+require(path.join(__dirname, '..', 'assets', 'store.js'));
+const S = global.window.Store;
+
+test.beforeEach(() => {
+  ls.map.clear();
+  ls.failNext = false;
+  S.storage.available = true;
+  S.storage.reason = null;
+  S.storage.broken = null;
+});
+
+/* 造一批指定总分的考试，分数平均摊到六科 */
+function stateWithTotals(totals) {
+  const state = S.defaultState();
+  state.filter = 'all';
+  state.exams = totals.map((total, i) => {
+    const per = total / state.config.subjects.length;
+    const scores = {};
+    state.config.subjects.forEach((s) => { scores[s.id] = per; });
+    return {
+      id: 'e' + i,
+      name: '第 ' + (i + 1) + ' 次',
+      date: '2026-0' + (i + 1) + '-10',
+      type: '月考',
+      scores,
+      ranks: {},
+      averages: {}
+    };
+  });
+  return state;
+}
+
+/* ---------------- 数据整理 ---------------- */
+
+test('缺字段的记录被补齐，没有日期的行被丢掉', () => {
+  const state = S.normalize({
+    exams: [
+      { date: '2026-03-01', name: '有日期', scores: { math: 100 } },
+      { name: '没有日期' }
+    ]
+  });
+  assert.equal(state.exams.length, 1);
+  assert.equal(state.exams[0].name, '有日期');
+  assert.equal(state.config.subjects.length, 6);
+});
+
+test('考试里出现的类型会补进类型列表', () => {
+  const state = S.normalize({
+    exams: [{ date: '2026-03-01', name: '周测一场', type: '周测', scores: {} }]
+  });
+  assert.ok(state.config.types.includes('周测'));
+});
+
+test('sample 为 false 时不被默认值改回来', () => {
+  const state = S.normalize({ sample: false, exams: [] });
+  assert.equal(state.sample, false);
+});
+
+/* ---------------- 排序与筛选 ---------------- */
+
+test('按日期升序，筛选只留指定类型', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  state.exams = [
+    { id: 'b', name: '后', date: '2026-05-01', type: '期中', scores: {} },
+    { id: 'a', name: '前', date: '2026-03-01', type: '月考', scores: {} }
+  ];
+  assert.deepEqual(S.allSorted(state).map((e) => e.id), ['a', 'b']);
+
+  state.filter = '期中';
+  assert.deepEqual(S.sorted(state).map((e) => e.id), ['b']);
+  assert.equal(S.allSorted(state).length, 2);
+});
+
+/* ---------------- 分数换算 ---------------- */
+
+test('总分只累加配置里的科目', () => {
+  const state = S.defaultState();
+  const exam = { scores: { chinese: 100, math: 120, english: 110, physics: 70, chemistry: 80, biology: 90, 别的科目: 999 } };
+  assert.equal(S.examTotal(state, exam), 570);
+  assert.equal(S.fullTotal(state), 750);
+});
+
+test('得分率按满分折算', () => {
+  assert.equal(S.rate(90, 150), 0.6);
+  assert.equal(S.rate(0, 150), 0);
+  assert.equal(S.rate(50, 0), 0);
+});
+
+test('单科班级名次换成百分比', () => {
+  const state = S.defaultState();
+  const info = S.subjectRankOf(state, { subjectRanks: { math: 9 } }, 'math');
+  assert.equal(info.rank, 9);
+  assert.equal(info.size, 45);
+  assert.ok(Math.abs(info.topPct - 20) < 1e-9);
+  assert.equal(S.subjectRankOf(state, { subjectRanks: {} }, 'math'), null);
+});
+
+/* ---------------- 线性拟合预测 ---------------- */
+
+test('连续三场稳定上涨时按斜率预测下一场', () => {
+  const p = S.pace(stateWithTotals([500, 520, 540]));
+  assert.ok(Math.abs(p.slope - 20) < 1e-9);
+  assert.ok(Math.abs(p.predict - 560) < 1e-9);
+  /* 每场要 33 分才能到 640，20 分不算赶上 */
+  assert.equal(p.onTrack, false);
+});
+
+test('预测不会超过满分，也不会低于零', () => {
+  const high = S.pace(stateWithTotals([700, 720, 740]));
+  assert.equal(high.predict, 750);
+
+  const low = S.pace(stateWithTotals([400, 300, 200]));
+  assert.ok(low.predict >= 0);
+});
+
+test('不足三场时不给预测', () => {
+  assert.equal(S.pace(stateWithTotals([500, 520])).predict, null);
+  assert.equal(S.pace(stateWithTotals([])), null);
+});
+
+test('预测区间夹在合理范围内', () => {
+  const p = S.pace(stateWithTotals([500, 520, 540]));
+  assert.ok(p.low <= p.predict);
+  assert.ok(p.high >= p.predict);
+  assert.ok(p.low >= 0);
+});
+
+/* ---------------- 学期归属 ---------------- */
+
+test('按 9 月划分学年，1 月算上学期', () => {
+  const state = S.defaultState();
+  assert.equal(S.semesterOf(state, '2025-09-26').label, '高一上');
+  assert.equal(S.semesterOf(state, '2026-01-15').label, '高一上');
+  assert.equal(S.semesterOf(state, '2026-03-06').label, '高一下');
+  assert.equal(S.semesterOf(state, '2026-09-11').label, '高二上');
+  assert.equal(S.semesterOf(state, '2027-02-01').label, '高二下');
+});
+
+test('同一学期的考试归到一组', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  const groups = S.groupBySemester(state);
+  assert.ok(groups.length > 1);
+  assert.equal(groups[0].label, '高一上');
+});
+
+/* ---------------- 日期解析 ---------------- */
+
+test('横线、斜杠、中文和 Excel 序列号都认', () => {
+  assert.equal(S.normalizeDate('2026-11-05'), '2026-11-05');
+  assert.equal(S.normalizeDate('2026/11/5'), '2026-11-05');
+  assert.equal(S.normalizeDate('2026年11月5日'), '2026-11-05');
+  assert.match(S.normalizeDate(46329), /^2026-11-\d{2}$/);
+});
+
+test('空值和读不懂的文本返回 null', () => {
+  assert.equal(S.normalizeDate(''), null);
+  assert.equal(S.normalizeDate(null), null);
+  assert.equal(S.normalizeDate('不是日期'), null);
+});
+
+/* ---------------- CSV ---------------- */
+
+test('CSV 解析认引号、逗号和转义引号', () => {
+  const rows = S.parseCSV('a,b\r\n"x,y",z\r\n"他说 ""好""",w');
+  assert.deepEqual(rows, [
+    ['a', 'b'],
+    ['x,y', 'z'],
+    ['他说 "好"', 'w']
+  ]);
+});
+
+test('导出再导入，记录不丢也不串', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  const rows = S.parseCSV(S.toCSV(state));
+  const back = S.tableToExams(state, rows);
+
+  assert.equal(back.exams.length, state.exams.length);
+  assert.equal(back.exams[0].date, state.exams[0].date);
+  assert.equal(back.exams[0].name, state.exams[0].name);
+  assert.equal(back.exams[0].scores.math, state.exams[0].scores.math);
+  assert.equal(back.exams[0].subjectRanks.math, state.exams[0].subjectRanks.math);
+});
+
+test('缺日期列的表格直接报错', () => {
+  const state = S.defaultState();
+  const result = S.tableToExams(state, [['考试名称', '语文'], ['没有日期', 100]]);
+  assert.equal(result.exams.length, 0);
+  assert.match(result.errors[0], /日期/);
+});
+
+/* ---------------- 排序与检查 ---------------- */
+
+test('补差顺序按缺口占满分的比例排', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  const rows = S.priority(state, state.exams[state.exams.length - 1]);
+  assert.equal(rows.length, 6);
+  for (let i = 1; i < rows.length; i++) {
+    assert.ok(rows[i - 1].gapRate >= rows[i].gapRate);
+  }
+});
+
+test('数据检查能发现超满分和名次越界', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  state.exams.push({
+    id: 'bad', name: '坏数据', date: '2026-12-01', type: '月考',
+    scores: { math: 999 }, ranks: { class: 99 }, averages: {}
+  });
+  const issues = S.audit(state);
+  assert.ok(issues.some((i) => /超过满分/.test(i.text)));
+  assert.ok(issues.some((i) => /超过班级人数/.test(i.text)));
+});
+
+/* ---------------- 存储 ---------------- */
+
+test('保存之后能原样读回来', () => {
+  const state = S.defaultState();
+  state.exams = [];
+  state.sample = false;
+  assert.equal(S.save(state), true);
+
+  const back = S.load();
+  assert.equal(back.exams.length, 0);
+  assert.equal(back.sample, false);
+});
+
+test('第一次打开没有存档时给示例数据并落盘', () => {
+  const state = S.load();
+  assert.equal(state.exams.length, 15);
+  assert.ok(ls.map.has(S.STORAGE_KEY));
+});
+
+test('存储写满时保存返回 false 并说明原因', () => {
+  ls.failNext = true;
+  assert.equal(S.save(S.defaultState()), false);
+  assert.match(S.storage.reason, /存储空间满了/);
+});
+
+test('浏览器禁止存储时保存返回 false', () => {
+  S.storage.available = false;
+  assert.equal(S.save(S.defaultState()), false);
+  assert.match(S.storage.reason, /不让这个页面保存/);
+});
+
+test('存档读不出来时原样留底，不被覆盖', () => {
+  const broken = '{"exams": [坏掉的';
+  ls.map.set(S.STORAGE_KEY, broken);
+
+  const state = S.load();
+  assert.equal(S.storage.broken.raw, broken);
+  assert.equal(ls.map.get(S.BROKEN_KEY), broken);
+  assert.equal(S.readBroken(), broken);
+  assert.ok(state.exams.length > 0);
+});
+
+test('留底可以丢弃', () => {
+  ls.map.set(S.STORAGE_KEY, '破');
+  S.load();
+  assert.equal(S.brokenExists(), true);
+  assert.equal(S.discardBroken(), true);
+  assert.equal(S.brokenExists(), false);
+});
+
+test('占用体积按内容算出来', () => {
+  S.save(S.defaultState());
+  assert.ok(S.footprint() > 0);
+});
+
+/* ---------------- 其余计算不抛错 ---------------- */
+
+test('总览用到的各项计算都能跑通', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  const last = state.exams[state.exams.length - 1];
+
+  assert.ok(S.insight(state));
+  assert.ok(S.typeStats(state).length > 0);
+  assert.ok(S.typeFacets(state).length > 0);
+  assert.ok(S.examVsPeers(state, last));
+  assert.ok(S.subjectSpread(state, last));
+  assert.ok(S.contribution(state, last));
+  assert.ok(S.distribution(state));
+  assert.ok(S.sensitivity(state, 'math', 10));
+  assert.ok(S.termForecast(state));
+  assert.ok(S.spreadHistory(state));
+  assert.ok(S.goalCheck(state));
+  assert.ok(S.movers(state));
+  assert.ok(S.smoothMovers(state));
+  assert.ok(S.changeSince(state, last));
+  assert.ok(S.subjectStats(state, 'math'));
+  assert.ok(S.semesterBands(state));
+});

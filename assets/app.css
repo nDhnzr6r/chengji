@@ -1135,8 +1135,82 @@ button, input, select { font: inherit; color: inherit; }
   border-color: var(--control-hover);
 }
 
+.storage-note {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: -4px 0 14px;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius-control);
+  background: var(--raised);
+  flex-wrap: wrap;
+}
+
+.storage-note.storage-bad { border-left-color: var(--negative); }
+
+.storage-text {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.storage-text b {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.storage-note.storage-bad .storage-text b { color: var(--negative); }
+
+.storage-actions { display: flex; gap: 8px; flex: none; }
+
+.storage-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0 0 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--border);
+  overflow: hidden;
+}
+
+.storage-facts > div {
+  background: var(--surface);
+  padding: 12px 14px;
+}
+
+.storage-facts dt {
+  font-size: 11.5px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.storage-facts dd {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: var(--text);
+}
+
+.storage-facts dd.is-bad { color: var(--negative); }
+
+.app-version {
+  margin: 22px 0 0;
+  font-size: 11.5px;
+  color: var(--faint);
+  letter-spacing: 0.02em;
+}
+
 @media (max-width: 1080px) {
   .card-types, .card-priority { grid-column: 1; grid-row: auto; }
+  .storage-facts { grid-template-columns: 1fr; }
 }
 
 .form-more {

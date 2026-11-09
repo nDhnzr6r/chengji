@@ -51,6 +51,78 @@
     }, 2600);
   }
 
+  /* ---------------- 存储状态 ---------------- */
+
+  var storageNote = null;
+
+  function storageNoteHTML() {
+    if (!storageNote) return '';
+    var extra = '';
+    if (storageNote.kind === 'broken') {
+      extra = '<button type="button" class="btn btn-sm btn-ghost" data-action="export-broken">下载原始存档</button>' +
+        '<button type="button" class="btn btn-sm btn-ghost" data-action="discard-broken">丢弃</button>';
+    } else if (storageNote.kind === 'save' || storageNote.kind === 'off') {
+      extra = '<button type="button" class="btn btn-sm btn-primary" data-action="export-json">导出备份</button>';
+    }
+    return '<div class="storage-note storage-' + storageNote.tone + '" id="storageNote" role="alert">' +
+      '<div class="storage-text"><b>' + V.esc(storageNote.title) + '</b><span>' + V.esc(storageNote.text) + '</span></div>' +
+      (extra ? '<div class="storage-actions">' + extra + '</div>' : '') +
+      '</div>';
+  }
+
+  function setStorageNote(note) {
+    storageNote = note;
+    var host = document.getElementById('storageNote');
+    var html = storageNoteHTML();
+    if (!html) {
+      if (host && host.parentNode) host.parentNode.removeChild(host);
+      return;
+    }
+    if (host && host.parentNode) host.outerHTML = html;
+    else if (mainEl) mainEl.insertAdjacentHTML('afterbegin', html);
+  }
+
+  /* 保存之后看结果，失败就把话说清楚 */
+  function noteStorageOutcome() {
+    if (S.storage.reason) {
+      setStorageNote({
+        tone: 'bad',
+        kind: 'save',
+        title: '这次改动没能存进浏览器',
+        text: S.storage.reason + '。关掉页面就会丢失，先导出一份备份。'
+      });
+    } else if (storageNote && (storageNote.kind === 'save' || storageNote.kind === 'off')) {
+      setStorageNote(null);
+    }
+  }
+
+  function persist() {
+    var ok = S.save(state);
+    noteStorageOutcome();
+    return ok;
+  }
+
+  /* 打开时检查存储状况，把异常一次说清 */
+  function checkStorage() {
+    if (!S.storage.available) {
+      setStorageNote({
+        tone: 'bad',
+        kind: 'off',
+        title: '这个浏览器不让保存数据',
+        text: '改动只在这次打开期间有效，关掉页面就没了。可以换一个正常窗口，或者现在就导出备份。'
+      });
+      return;
+    }
+    if (S.storage.broken) {
+      setStorageNote({
+        tone: 'warn',
+        kind: 'broken',
+        title: '上次的存档读不出来',
+        text: '原始内容已经原样留底，没有被覆盖。现在看到的是示例数据，可以先把那份存档下载下来看看。'
+      });
+    }
+  }
+
   function download(filename, content, mime) {
     var blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
     var url = URL.createObjectURL(blob);
@@ -134,6 +206,7 @@
     }
 
     mainEl.innerHTML = html;
+    setStorageNote(storageNote);
     setActive(name);
     if (global.UI) global.UI.mountAll(mainEl);
     initSegs();
@@ -446,8 +519,9 @@
 
     function commit() {
       state.sample = false;
-      S.save(state);
+      var ok = persist();
       refreshSidebar();
+      return ok;
     }
 
     function bind(id, key, transform, min, max) {
@@ -462,7 +536,8 @@
           if (value !== Number(el.value)) el.value = value;
         }
         c[key] = value;
-        commit();
+        /* 存不进去就别给「已保存」的绿框 */
+        if (!commit()) return;
         el.classList.add('is-saved');
         setTimeout(function () { el.classList.remove('is-saved'); }, 900);
       });
@@ -492,7 +567,7 @@
         });
         if (state.filter === oldName) state.filter = next;
         state.sample = false;
-        S.save(state);
+        persist();
         render();
         toast('「' + oldName + '」改成了「' + next + '」');
       });
@@ -526,7 +601,7 @@
             }
           }
           state.sample = false;
-          S.save(state);
+          persist();
           var rateCell = tr.querySelector('td:last-child');
           if (rateCell) {
             rateCell.textContent = subject.full ? ((Number(subject.target || 0) / Number(subject.full)) * 100).toFixed(1) + '%' : '—';
@@ -741,7 +816,7 @@
           toast('已记录「' + name + '」');
         }
         state.sample = false;
-        S.save(state);
+        persist();
         closeDialog();
         refreshSidebar();
         render();
@@ -942,7 +1017,7 @@
           var next = S.normalize(parsed);
           next.sample = false;
           state = next;
-          S.save(state);
+          persist();
           lastShownTotal = null;
           refreshSidebar();
           render();
@@ -987,7 +1062,7 @@
     }
     var merged = S.mergeExams(state, result.exams);
     state.sample = false;
-    S.save(state);
+    persist();
     refreshSidebar();
     render();
     var parts = ['新增 ' + merged.added + ' 次'];
@@ -1023,7 +1098,7 @@
       state.config.types = state.config.types || [];
       if (state.config.types.indexOf(typeName) < 0) state.config.types.push(typeName);
       state.sample = false;
-      S.save(state);
+      persist();
       render();
       toast('已加上「' + typeName + '」');
       return;
@@ -1036,7 +1111,7 @@
       if (inUse) { toast('还有考试用着这个类型，改掉之后才能删', 'bad'); return; }
       state.config.types = (state.config.types || []).filter(function (t) { return t !== dropType; });
       state.sample = false;
-      S.save(state);
+      persist();
       render();
       return;
     }
@@ -1064,7 +1139,7 @@
         '</dialog>', function (dlg) {
           dlg.querySelector('[data-action="confirm-delete"]').addEventListener('click', function () {
             state.exams = state.exams.filter(function (e) { return e.id !== exam.id; });
-            S.save(state);
+            persist();
             closeDialog();
             refreshSidebar();
             global.location.hash = '#/exams';
@@ -1112,6 +1187,7 @@
         '</dialog>', function (dlg) {
           dlg.querySelector('[data-action="confirm-clear"]').addEventListener('click', function () {
             state = S.clearExams();
+            noteStorageOutcome();
             closeDialog();
             refreshSidebar();
             render();
@@ -1128,6 +1204,7 @@
         '</dialog>', function (dlg) {
           dlg.querySelector('[data-action="confirm-reset"]').addEventListener('click', function () {
             state = S.resetAll();
+            noteStorageOutcome();
             closeDialog();
             refreshSidebar();
             render();
@@ -1144,12 +1221,33 @@
         '</dialog>', function (dlg) {
           dlg.querySelector('[data-action="confirm-sample"]').addEventListener('click', function () {
             state = S.loadSample();
+            noteStorageOutcome();
             closeDialog();
             refreshSidebar();
             render();
             toast('示例数据已经装回来了');
           });
         });
+    }
+    else if (action === 'export-broken') {
+      var rawArchive = (S.storage.broken && S.storage.broken.raw) || S.readBroken();
+      if (!rawArchive) { toast('没有留底的存档', 'bad'); return; }
+      download('成迹-原始存档-' + todayStamp() + '.json', rawArchive, 'application/json');
+      toast('原始存档已下载');
+    }
+    else if (action === 'discard-broken') {
+      S.discardBroken();
+      if (storageNote && storageNote.kind === 'broken') setStorageNote(null);
+      toast('留底的存档已丢弃');
+      if (currentView === 'settings') render();
+    }
+    else if (action === 'request-persist') {
+      S.requestPersist().then(function (result) {
+        if (result === true) toast('浏览器已同意长期保留这些数据');
+        else if (result === 'unsupported') toast('这个浏览器不支持申请长期保留', 'bad');
+        else toast('浏览器没有同意，数据仍可能被清理', 'bad');
+        if (currentView === 'settings') render();
+      });
     }
     else if (action === 'confirm-delete') { /* 由对话框内部处理 */ }
   });
@@ -1265,6 +1363,8 @@
 
   function boot() {
     applyTheme(themeMode(), false);
+    checkStorage();
+    S.requestPersist();
     var route = parseHash();
     sideHost.innerHTML = V.sidebar(state, route.name === 'exam' ? 'exams' : route.name);
     updateThemeButtons();
