@@ -443,3 +443,80 @@ test('数据检查不受筛选影响', () => {
   const issues = S.audit(state);
   assert.ok(issues.some((i) => /超过满分/.test(i.text)));
 });
+
+/* ---------------- 导入数据的安全性 ---------------- */
+
+const EVIL = 'x"><img src=x onerror="alert(1)">';
+
+test('备份里的 id 带标签会被换掉，不会拼进属性', () => {
+  const state = S.normalize({
+    config: { subjects: [{ id: EVIL, name: '数学', full: 150, target: 120 }] },
+    exams: [{ id: EVIL, name: '考试', date: '2026-03-01', type: '月考', scores: {} }]
+  });
+  assert.doesNotMatch(state.exams[0].id, /["'<>\s]/);
+  assert.doesNotMatch(state.config.subjects[0].id, /["'<>\s]/);
+  assert.notEqual(state.exams[0].id, EVIL);
+});
+
+test('备份里的数值字段写成标签会被挡回默认值', () => {
+  const state = S.normalize({
+    config: {
+      gradeSize: EVIL,
+      classSize: EVIL,
+      targetTotal: EVIL,
+      subjects: [{ id: 'math', name: '数学', full: EVIL, target: EVIL }]
+    },
+    exams: [{
+      id: 'e1', name: '考试', date: '2026-03-01', type: '月考',
+      scores: { math: EVIL }, ranks: { grade: EVIL }, averages: { class: EVIL }
+    }]
+  });
+  assert.equal(state.config.gradeSize, 620);
+  assert.equal(state.config.classSize, 45);
+  assert.equal(state.config.targetTotal, 640);
+  assert.equal(typeof state.config.subjects[0].full, 'number');
+  assert.equal(state.config.subjects[0].full, 100);
+  assert.equal(state.exams[0].scores.math, undefined);
+  assert.equal(state.exams[0].ranks.grade, undefined);
+  assert.equal(state.exams[0].averages.class, undefined);
+});
+
+test('未知的配置键不会被合并进来', () => {
+  const state = S.normalize({
+    config: { someExtraKey: 'x', __proto__: { polluted: true } }
+  });
+  assert.equal(state.config.someExtraKey, undefined);
+  assert.equal({}.polluted, undefined);
+});
+
+test('备份里的日期不合法时整条跳过', () => {
+  const state = S.normalize({
+    exams: [
+      { id: 'a', name: '坏日期', date: '2026-13-01', type: '月考', scores: {} },
+      { id: 'b', name: '好日期', date: '2026-03-01', type: '月考', scores: {} }
+    ]
+  });
+  assert.equal(state.exams.length, 1);
+  assert.equal(state.exams[0].name, '好日期');
+});
+
+test('同名 id 的重复记录会被分开', () => {
+  const state = S.normalize({
+    exams: [
+      { id: 'same', name: 'A', date: '2026-03-01', type: '月考', scores: {} },
+      { id: 'same', name: 'B', date: '2026-04-01', type: '月考', scores: {} }
+    ]
+  });
+  assert.notEqual(state.exams[0].id, state.exams[1].id);
+});
+
+test('导出 CSV 时公式开头的名字会被标成文本', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  state.exams = [{
+    id: 'f', name: '=HYPERLINK("http://x")', date: '2026-03-01', type: '月考',
+    scores: { math: 100 }, ranks: {}, averages: {}
+  }];
+  const csv = S.toCSV(state);
+  assert.ok(csv.indexOf("'=HYPERLINK") >= 0);
+});

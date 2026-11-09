@@ -194,7 +194,7 @@
       '  </div>' +
       '  <nav class="nav" aria-label="主导航">' +
       nav.map(function (item) {
-        return '<a class="nav-item' + (item.id === active ? ' is-active' : '') + '" href="#/' + item.id + '">' +
+        return '<a class="nav-item' + (item.id === active ? ' is-active' : '') + '" href="#/' + esc(item.id) + '">' +
           icon(item.id) + '<span>' + item.label + '</span></a>';
       }).join('') +
       '  </nav>' +
@@ -357,7 +357,7 @@
       var idx = list.findIndex(function (e) { return e.id === exam.id; });
       var before = idx > 0 ? S.examTotal(state, list[idx - 1]) : null;
       var d = before === null ? null : t - before;
-      return '<a class="record" href="#/exam/' + exam.id + '">' +
+      return '<a class="record" href="#/exam/' + esc(exam.id) + '">' +
         '<span class="record-main"><span class="record-name">' + esc(exam.name) + '</span>' +
         '<span class="record-meta">' + esc(exam.date) + (Number(exam.ranks.grade) ? ' · 年级 ' + exam.ranks.grade : '') + '</span></span>' +
         '<span class="record-side"><span class="record-total num">' + t + '</span>' +
@@ -720,7 +720,7 @@
       var rankCells = withRank
         ? '<span class="cell-num num">' + (sr || '—') + '</span>'
         : '';
-      return '<a class="row-link ' + (withRank ? 'row-subject-5' : 'row-subject-4') + '" href="#/exam/' + exam.id + '">' +
+      return '<a class="row-link ' + (withRank ? 'row-subject-5' : 'row-subject-4') + '" href="#/exam/' + esc(exam.id) + '">' +
         '<span class="cell-main"><span class="cell-title">' + esc(exam.name) + '</span><span class="cell-sub">' + esc(exam.date) + '</span></span>' +
         '<span class="cell-num num">' + (isNaN(score) ? '—' : score) + '</span>' +
         '<span class="cell-num num muted">' + (r === null ? '—' : (r * 100).toFixed(1) + '%') + '</span>' +
@@ -784,7 +784,7 @@
     }
 
     var tabs = '<div class="tabs" role="tablist">' + subjectList.map(function (s) {
-      return '<a class="tab' + (s.id === active.id ? ' is-active' : '') + '" role="tab" aria-selected="' + (s.id === active.id) + '" data-subject-tab="' + s.id + '" href="#/subjects/' + s.id + '">' + esc(s.name) + '</a>';
+      return '<a class="tab' + (s.id === active.id ? ' is-active' : '') + '" role="tab" aria-selected="' + (s.id === active.id) + '" data-subject-tab="' + esc(s.id) + '" href="#/subjects/' + esc(s.id) + '">' + esc(s.name) + '</a>';
     }).join('') + '</div>';
 
     var parts = subjectParts(state, active);
@@ -813,7 +813,7 @@
       '<span class="cell-num num ' + (dg === null ? 'muted' : dg < 0 ? 'good' : dg > 0 ? 'bad' : 'muted') + '">' + (dg === null ? '—' : rankWord(dg).text) + '</span>' +
       '<span class="cell-num num">' + (rc || '—') + '</span>'
       : '';
-    return '<a class="row-link ' + (withRank ? 'row-exam' : 'row-exam-3') + '" href="#/exam/' + exam.id + '">' +
+    return '<a class="row-link ' + (withRank ? 'row-exam' : 'row-exam-3') + '" href="#/exam/' + esc(exam.id) + '">' +
       '<span class="cell-main"><span class="cell-title">' + esc(exam.name) + '</span><span class="cell-sub">' + esc(exam.date) + ' · ' + esc(exam.type || '考试') + '</span></span>' +
       '<span class="cell-num num">' + t + '<span class="cell-sub-inline"> / ' + total + '</span></span>' +
       rankCells +
@@ -1091,8 +1091,8 @@
 
     var nav = '';
     var idx = list.findIndex(function (e) { return e.id === exam.id; });
-    if (idx > 0) nav += '<a class="text-link" href="#/exam/' + list[idx - 1].id + '">← 上一次</a>';
-    if (idx < list.length - 1) nav += '<a class="text-link" href="#/exam/' + list[idx + 1].id + '">下一次 →</a>';
+    if (idx > 0) nav += '<a class="text-link" href="#/exam/' + esc(list[idx - 1].id) + '">← 上一次</a>';
+    if (idx < list.length - 1) nav += '<a class="text-link" href="#/exam/' + esc(list[idx + 1].id) + '">下一次 →</a>';
 
     var positionPoints = list.map(function (e) {
       return {
@@ -1116,8 +1116,8 @@
       '<header class="page-head">' +
       '  <div><h1>' + esc(exam.name) + '</h1><p class="page-sub">' + cnDate(exam.date) + ' ' + weekday(exam.date) + ' · ' + esc(exam.type || '考试') + '</p></div>' +
       '  <div class="head-actions">' + nav +
-      '<button class="btn btn-ghost" data-action="edit-exam" data-id="' + exam.id + '">修改这次</button>' +
-      '<button class="btn btn-ghost" data-action="delete-exam" data-id="' + exam.id + '">删除这次</button></div>' +
+      '<button class="btn btn-ghost" data-action="edit-exam" data-id="' + esc(exam.id) + '">修改这次</button>' +
+      '<button class="btn btn-ghost" data-action="delete-exam" data-id="' + esc(exam.id) + '">删除这次</button></div>' +
       '</header>' +
       detailKpi(state, exam, total, full, goal, diff) +
       detailPeers(plain, exam) +
@@ -1168,10 +1168,10 @@
     var goalMate = S.goalCheck(state);
     var c = state.config;
     var subjectRows = c.subjects.map(function (s) {
-      return '<tr data-subject="' + s.id + '">' +
+      return '<tr data-subject="' + esc(s.id) + '">' +
         '<td><input class="input input-plain" data-field="name" value="' + esc(s.name) + '" aria-label="科目名称"></td>' +
-        '<td class="num"><input class="input input-plain num" data-field="full" type="number" min="1" max="300" value="' + s.full + '" aria-label="' + esc(s.name) + '满分"></td>' +
-        '<td class="num"><input class="input input-plain num" data-field="target" type="number" min="0" max="' + s.full + '" value="' + (s.target || 0) + '" aria-label="' + esc(s.name) + '目标分"></td>' +
+        '<td class="num"><input class="input input-plain num" data-field="full" type="number" min="1" max="300" value="' + esc(s.full) + '" aria-label="' + esc(s.name) + '满分"></td>' +
+        '<td class="num"><input class="input input-plain num" data-field="target" type="number" min="0" max="' + esc(s.full) + '" value="' + (s.target || 0) + '" aria-label="' + esc(s.name) + '目标分"></td>' +
         '<td class="num muted">' + (s.full ? ((Number(s.target || 0) / Number(s.full)) * 100).toFixed(1) + '%' : '—') + '</td>' +
         '</tr>';
     }).join('');
@@ -1316,12 +1316,12 @@
     var rows = c.subjects.map(function (s) {
       var v = subjectRanks[s.id];
       return '<label class="field"><span class="field-label">' + esc(s.name) + '</span>' +
-        '<input class="input num" type="number" min="1" data-subrank="' + s.id + '" value="' + (v || '') + '" placeholder="—"></label>';
+        '<input class="input num" type="number" min="1" data-subrank="' + esc(s.id) + '" value="' + (v || '') + '" placeholder="—"></label>';
     }).join('');
     var avgRows = c.subjects.map(function (s) {
       var v = subjectAverages[s.id];
       return '<label class="field"><span class="field-label">' + esc(s.name) + '</span>' +
-        '<input class="input num" type="number" min="0" max="' + s.full + '" data-subavg="' + s.id + '" value="' + (v || '') + '" placeholder="—"></label>';
+        '<input class="input num" type="number" min="0" max="' + esc(s.full) + '" data-subavg="' + esc(s.id) + '" value="' + (v || '') + '" placeholder="—"></label>';
     }).join('');
 
     return '<details class="form-more">' +
@@ -1358,8 +1358,8 @@
       return '<label class="field field-score">' +
         '<span class="field-label">' + esc(s.name) + '</span>' +
         '<span class="input-suffix">' +
-        '  <input class="input num" type="number" min="0" max="' + s.full + '" step="1" data-subject="' + s.id + '" value="' + (v === undefined || v === null ? '' : v) + '" placeholder="—">' +
-        '  <span class="suffix num">/ ' + s.full + '</span>' +
+        '  <input class="input num" type="number" min="0" max="' + esc(s.full) + '" step="1" data-subject="' + esc(s.id) + '" value="' + (v === undefined || v === null ? '' : v) + '" placeholder="—">' +
+        '  <span class="suffix num">/ ' + esc(s.full) + '</span>' +
         '</span></label>';
     }).join('');
 

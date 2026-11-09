@@ -878,7 +878,7 @@
 
   /* ---------- 持久化 ---------- */
 
-  var VERSION = '1.0.5';
+  var VERSION = '1.0.6';
   var BROKEN_KEY = STORAGE_KEY + '.broken';
 
   /* 存储层的真实状况，界面据此提示，不再靠猜 */
@@ -942,37 +942,107 @@
     }
   }
 
+  /* ---------- 输入收敛 ---------- */
+
+  var CONFIG_NUMERIC = ['classSize', 'gradeSize', 'enrollYear', 'targetTotal',
+    'targetRankClass', 'targetRankGrade', 'remainingExams', 'passRate', 'goodRate'];
+
+  /* 这些 id 会拼进 HTML 属性，带引号尖括号空格的一律重生成 */
+  function safeId(value, prefix) {
+    var text = String(value === null || value === undefined ? '' : value).trim();
+    if (text && text.length <= 64 && !/["'<>\s`\/=&]/.test(text)) return text;
+    return (prefix || 'x') + '_' + Math.random().toString(36).slice(2, 10);
+  }
+
+  function toNumber(value, fallback) {
+    var n = Number(value);
+    return isFinite(n) ? n : fallback;
+  }
+
+  /* 只收数字，键也挡掉不能进 HTML 的字符 */
+  function numberMap(src) {
+    var out = {};
+    if (!src || typeof src !== 'object' || Array.isArray(src)) return out;
+    Object.keys(src).forEach(function (key) {
+      if (!key || key.length > 64 || /["'<>\s`\/=&]/.test(key)) return;
+      var n = Number(src[key]);
+      if (isFinite(n)) out[key] = n;
+    });
+    return out;
+  }
+
+  function plainText(value, fallback, max) {
+    var text = String(value === null || value === undefined ? '' : value).slice(0, max || 64).trim();
+    return text || fallback;
+  }
+
   function normalize(input) {
     var state = defaultState();
     if (!input || typeof input !== 'object') return state;
     if (input.sample === false) state.sample = false;
-    if (input.config && typeof input.config === 'object') {
-      state.config = Object.assign(state.config, input.config);
-      if (!Array.isArray(state.config.subjects) || !state.config.subjects.length) {
-        state.config.subjects = clone(DEFAULT_CONFIG.subjects);
+
+    var src = input.config && typeof input.config === 'object' ? input.config : null;
+    if (src) {
+      /* 只认已知的键，数值键强制成数字，不做整块合并 */
+      CONFIG_NUMERIC.forEach(function (key) {
+        if (src[key] === undefined) return;
+        state.config[key] = toNumber(src[key], state.config[key]);
+      });
+      state.config.className = plainText(src.className, state.config.className, 40);
+
+      if (Array.isArray(src.subjects) && src.subjects.length) {
+        var subjects = [];
+        src.subjects.slice(0, 20).forEach(function (s) {
+          if (!s || typeof s !== 'object') return;
+          subjects.push({
+            id: safeId(s.id, 'sub'),
+            name: plainText(s.name, '科目', 16),
+            full: Math.min(1000, Math.max(1, toNumber(s.full, 100))),
+            target: Math.max(0, toNumber(s.target, 0))
+          });
+        });
+        if (subjects.length) state.config.subjects = subjects;
+      }
+
+      if (Array.isArray(src.types)) {
+        var types = [];
+        src.types.forEach(function (t) {
+          if (t === null || t === undefined) return;
+          var name = String(t).trim().slice(0, 8);
+          if (name && types.indexOf(name) < 0) types.push(name);
+        });
+        if (types.length) state.config.types = types;
       }
     }
-    if (!Array.isArray(state.config.types) || !state.config.types.length) {
-      state.config.types = ['月考', '期中', '期末', '联考', '模拟'];
-    }
+
     if (Array.isArray(input.exams)) {
-      state.exams = input.exams.filter(function (e) { return e && e.date; }).map(function (e) {
-        return {
-          id: e.id || uid(),
-          name: e.name || '未命名考试',
-          date: String(e.date).slice(0, 10),
-          type: e.type || '月考',
-          scores: e.scores || {},
-          ranks: e.ranks || {},
-          averages: e.averages || {},
-          subjectAverages: e.subjectAverages || {},
-          subjectRanks: e.subjectRanks || {}
-        };
+      state.exams = [];
+      input.exams.slice(0, 5000).forEach(function (e) {
+        if (!e || typeof e !== 'object') return;
+        var date = normalizeDate(e.date);
+        if (!date) return;
+        state.exams.push({
+          id: safeId(e.id, 'e'),
+          name: plainText(e.name, '未命名考试', 64),
+          date: date,
+          type: plainText(e.type, '月考', 8),
+          scores: numberMap(e.scores),
+          ranks: numberMap(e.ranks),
+          averages: numberMap(e.averages),
+          subjectAverages: numberMap(e.subjectAverages),
+          subjectRanks: numberMap(e.subjectRanks)
+        });
+      });
+      /* id 撞了就换一个，别让两条记录共用一个 */
+      var used = {};
+      state.exams.forEach(function (e) {
+        while (used[e.id]) e.id = safeId('', 'e');
+        used[e.id] = true;
       });
     }
+
     state.exams.forEach(function (e) {
-      var t = e.type || '月考';
-      if (state.config.types.indexOf(t) < 0) state.config.types.push(t);
+      if (state.config.types.indexOf(e.type) < 0) state.config.types.push(e.type);
     });
     return state;
   }
@@ -1088,6 +1158,8 @@
 
   function csvEscape(value) {
     var text = value === null || value === undefined ? '' : String(value);
+    /* 以这几个字符开头的内容，Excel 打开会当公式算，先标成文本 */
+    if (/^[=+\-@\t\r]/.test(text)) text = "'" + text;
     return /[",\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
   }
 
