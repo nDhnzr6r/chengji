@@ -570,6 +570,16 @@ button, input, select { font: inherit; color: inherit; }
   grid-column: 1 / -1;
 }
 
+/* 考试名长短不一，超出就省略，别把后面的目标挤掉 */
+.kpi-exam {
+  display: inline-block;
+  max-width: 6em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
 .kpi-progress {
   position: relative;
   display: block;

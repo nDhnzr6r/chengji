@@ -53,6 +53,21 @@
     return p.length >= 3 ? Number(p[1]) + '/' + Number(p[2]) : iso;
   }
 
+  /* 脚注里指代上一场考试：用名字，带学期前缀的只留后面那一段 */
+  function examLabel(exam) {
+    var text = String((exam && exam.name) || '').trim();
+    if (!text) return exam && exam.date ? shortMd(exam.date) : '上一场';
+    var parts = text.split(/\s*[·・]\s*/).filter(Boolean);
+    return parts.length > 1 ? parts[parts.length - 1] : text;
+  }
+
+  /* 名字太长就省略，鼠标停上去能看全称 */
+  function examTag(exam) {
+    var label = examLabel(exam);
+    var full = String((exam && exam.name) || '').trim() || label;
+    return '<span class="kpi-exam" title="' + esc(full) + '">' + esc(label) + '</span>';
+  }
+
   function weekday(iso) {
     var names = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
     var d = new Date(iso + 'T00:00:00');
@@ -249,7 +264,7 @@
       '  <span class="kpi-label">总分</span>' +
       stateTag(ins && ins.totalState) +
       '  <span class="kpi-value num" id="kpiTotal">' + total + '</span><span class="kpi-unit">/ ' + full + '</span>' +
-      '  <span class="kpi-foot">' + (diff ? '<em class="delta ' + (diff.total > 0 ? 'good' : diff.total < 0 ? 'bad' : 'flat') + ' num">' + signed(diff.total) + '</em> 较 ' + shortMd(prev.date) : '首次记录') +
+      '  <span class="kpi-foot">' + (diff ? '<em class="delta ' + (diff.total > 0 ? 'good' : diff.total < 0 ? 'bad' : 'flat') + ' num">' + signed(diff.total) + '</em> 较 ' + examTag(prev) : '首次记录') +
       ' · 得分率 ' + pctOf(total, full).toFixed(1) + '%</span>' +
       '  <span class="kpi-progress"><span style="width:' + Math.min(100, pctOf(total, full)).toFixed(1) + '%"></span></span>' +
       '</div>'
@@ -267,7 +282,7 @@
         '  <span class="kpi-label">年级排名</span>' +
         stateTag(ins && ins.gradeState) +
         '  <span class="kpi-value num" id="kpiGrade">' + rankGrade + '</span><span class="kpi-unit">/ ' + gradeSize + '</span>' +
-        '  <span class="kpi-foot">' + (diff && prev.ranks.grade ? '<em class="delta ' + (diff.gradeRank < 0 ? 'good' : diff.gradeRank > 0 ? 'bad' : 'flat') + '">' + rankWord(diff.gradeRank).text + '</em> 较 ' + shortMd(prev.date) : '首次记录') +
+        '  <span class="kpi-foot">' + (diff && prev.ranks.grade ? '<em class="delta ' + (diff.gradeRank < 0 ? 'good' : diff.gradeRank > 0 ? 'bad' : 'flat') + '">' + rankWord(diff.gradeRank).text + '</em> 较 ' + examTag(prev) : '首次记录') +
         (gradeSize ? ' · 前 ' + Math.round((rankGrade / gradeSize) * 100) + '%' : '') +
         (goalGrade ? ' · 目标 ' + goalGrade + '</span>' : '</span>') +
         '<span class="kpi-progress">' +
@@ -286,7 +301,7 @@
         '  <span class="kpi-label">班级排名</span>' +
         stateTag(ins && ins.classState) +
         '  <span class="kpi-value num" id="kpiClass">' + rankClass + '</span><span class="kpi-unit">/ ' + classSize + '</span>' +
-        '  <span class="kpi-foot">' + (diff && prev.ranks.class ? '<em class="delta ' + (diff.classRank < 0 ? 'good' : diff.classRank > 0 ? 'bad' : 'flat') + '">' + rankWord(diff.classRank).text + '</em> 较 ' + shortMd(prev.date) : '首次记录') +
+        '  <span class="kpi-foot">' + (diff && prev.ranks.class ? '<em class="delta ' + (diff.classRank < 0 ? 'good' : diff.classRank > 0 ? 'bad' : 'flat') + '">' + rankWord(diff.classRank).text + '</em> 较 ' + examTag(prev) : '首次记录') +
         (classSize ? ' · 前 ' + Math.round((rankClass / classSize) * 100) + '%' : '') +
         (goalClass ? ' · 目标 ' + goalClass + '</span>' : '</span>') +
         '<span class="kpi-progress">' +
