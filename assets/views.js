@@ -581,7 +581,9 @@
           id: e.id,
           name: e.name,
           date: e.date,
-          label: shortMd(e.date),
+          /* 轴标签用考试类型，两个字，挤得下更多场；完整名称在悬停提示里 */
+          label: String(e.type || '').trim() || '月考',
+          dateLabel: shortMd(e.date),
           ts: new Date(e.date + 'T00:00:00').getTime(),
           total: total,
           rate: full ? (total / full) * 100 : null,

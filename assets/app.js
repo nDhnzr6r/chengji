@@ -302,9 +302,9 @@
       return exams.map(function (e) {
         return {
           label: e.label,
+          sub: e.dateLabel,
           full: e.date + ' · ' + e.name,
           value: e[key],
-          sub: '',
           ts: e.ts
         };
       });
@@ -316,6 +316,7 @@
       var opts = {
         target: data.target[metric] || null,
         targetLabel: m.label,
+        stackAxis: true,
         height: host.clientWidth < 520 ? 200 : 232,
         unit: m.unit,
         digits: m.digits,

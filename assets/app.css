@@ -677,6 +677,15 @@ button, input, select { font: inherit; color: inherit; }
   font-variant-numeric: tabular-nums;
 }
 
+.axis-x-two {
+  font-size: 10px;
+}
+
+.axis-x-sub {
+  font-size: 9px;
+  fill: var(--faint);
+}
+
 .chart-line {
   fill: none;
   stroke: var(--chart-3);

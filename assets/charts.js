@@ -133,7 +133,14 @@
       var W = Math.max(240, host.clientWidth || 640);
       var H = o.height || 300;
       var showBands = !!(o.bands && o.bands.length > 1 && o.xMode === 'time');
-      var pad = { t: showBands ? 40 : 26, r: o.padRight === undefined ? 46 : o.padRight, b: 30, l: o.padLeft || 42 };
+      /* 只有明确要求时才把横轴写成两行，别的图 sub 是给悬浮提示用的 */
+      var twoLine = !!o.stackAxis && points.some(function (p) { return p.sub; });
+      var pad = {
+        t: showBands ? 40 : 26,
+        r: o.padRight === undefined ? 46 : o.padRight,
+        b: twoLine ? 44 : 30,
+        l: o.padLeft || 42
+      };
       var plotW = W - pad.l - pad.r;
       var plotH = H - pad.t - pad.b;
 
@@ -300,21 +307,75 @@
       }
 
       var gAxis = el('g', { class: 'chart-axis' });
-      var minGap = W < 520 ? 56 : 68;
+      var measure = twoLine ? (function () {
+        var ctx = document.createElement('canvas').getContext('2d');
+        ctx.font = '10px "Geist", "PingFang SC", "Microsoft YaHei", sans-serif';
+        return function (t) { return ctx.measureText(String(t || '')).width; };
+      })() : null;
       var chosen = [];
-      points.forEach(function (p, i) {
-        if (!chosen.length || x(i) - x(chosen[chosen.length - 1]) >= minGap) chosen.push(i);
-      });
-      if (chosen.length && chosen[chosen.length - 1] !== lastIndex) {
-        if (chosen.length > 1 && x(lastIndex) - x(chosen[chosen.length - 1]) < minGap * 0.72) chosen.pop();
-        chosen.push(lastIndex);
-      }
-      chosen.forEach(function (i) {
-        var label = el('text', {
-          x: x(i), y: H - 10, class: 'axis-x',
-          'text-anchor': points.length === 1 ? 'middle' : i === 0 ? 'start' : i === lastIndex ? 'end' : 'middle'
+
+      if (twoLine) {
+        /* 一行排开，按实际文字宽度留位置，实在挤到放不下的才让掉 */
+        var textHalf = function (i) {
+          /* 日期那行字号小一点，按实际字号折算 */
+          return Math.max(measure(points[i].label), measure(points[i].sub || '') * 0.9) / 2;
+        };
+        /* 第一个贴左边、最后一个贴右边，这两个不是居中锚点 */
+        var leftEdge = function (i) {
+          var half = textHalf(i);
+          if (i === 0) return x(i);
+          if (i === lastIndex) return x(i) - half * 2;
+          return x(i) - half;
+        };
+        var rightEdge = function (i) {
+          var half = textHalf(i);
+          if (i === 0) return x(i) + half * 2;
+          if (i === lastIndex) return x(i);
+          return x(i) + half;
+        };
+        var gap = 4;
+        var lastRight = -Infinity;
+        points.forEach(function (p, i) {
+          if (leftEdge(i) >= lastRight + gap) {
+            chosen.push(i);
+            lastRight = rightEdge(i);
+          }
         });
-        label.textContent = points[i].label;
+        /* 最后一场总要露出来，和谁挤就把谁让掉 */
+        if (chosen.length && chosen[chosen.length - 1] !== lastIndex) {
+          while (chosen.length) {
+            var prev = chosen[chosen.length - 1];
+            if (leftEdge(lastIndex) >= rightEdge(prev) + gap) break;
+            chosen.pop();
+          }
+          chosen.push(lastIndex);
+        }
+      } else {
+        var minGap = W < 520 ? 56 : 68;
+        points.forEach(function (p, i) {
+          if (!chosen.length || x(i) - x(chosen[chosen.length - 1]) >= minGap) chosen.push(i);
+        });
+        if (chosen.length && chosen[chosen.length - 1] !== lastIndex) {
+          if (chosen.length > 1 && x(lastIndex) - x(chosen[chosen.length - 1]) < minGap * 0.72) chosen.pop();
+          chosen.push(lastIndex);
+        }
+      }
+      chosen.forEach(function (i, k) {
+        var anchor = points.length === 1 ? 'middle' : i === 0 ? 'start' : i === lastIndex ? 'end' : 'middle';
+        var yBase = twoLine ? H - 26 : H - 10;
+        var label = el('text', {
+          x: x(i), y: yBase, class: 'axis-x' + (twoLine ? ' axis-x-two' : ''), 'text-anchor': anchor
+        });
+        if (twoLine) {
+          var line1 = el('tspan', { x: x(i) });
+          line1.textContent = points[i].label;
+          var line2 = el('tspan', { x: x(i), dy: 13, class: 'axis-x-sub' });
+          line2.textContent = points[i].sub || '';
+          label.appendChild(line1);
+          label.appendChild(line2);
+        } else {
+          label.textContent = points[i].label;
+        }
         gAxis.appendChild(label);
       });
 
