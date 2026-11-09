@@ -244,8 +244,9 @@
     var classSize = Number(state.config.classSize) || 0;
 
     if (rankGrade) {
-      var gradePct = gradeSize ? Math.min(100, (rankGrade / gradeSize) * 100) : 0;
-      var gradeMark = goalGrade && gradeSize ? Math.min(100, (goalGrade / gradeSize) * 100) : 0;
+      /* 条子画的是「超过多少人」，所以位置越靠前条子越长 */
+      var gradePct = gradeSize ? Math.max(0, Math.min(100, ((gradeSize - rankGrade) / gradeSize) * 100)) : 0;
+      var gradeMark = goalGrade && gradeSize ? Math.max(0, Math.min(100, ((gradeSize - goalGrade) / gradeSize) * 100)) : 0;
       kpiCells.push(
         '<div class="kpi">' +
         '  <span class="kpi-label">年级排名</span>' +
@@ -263,8 +264,8 @@
     }
 
     if (rankClass) {
-      var classPct = classSize ? Math.min(100, (rankClass / classSize) * 100) : 0;
-      var classMark = goalClass && classSize ? Math.min(100, (goalClass / classSize) * 100) : 0;
+      var classPct = classSize ? Math.max(0, Math.min(100, ((classSize - rankClass) / classSize) * 100)) : 0;
+      var classMark = goalClass && classSize ? Math.max(0, Math.min(100, ((classSize - goalClass) / classSize) * 100)) : 0;
       kpiCells.push(
         '<div class="kpi">' +
         '  <span class="kpi-label">班级排名</span>' +
