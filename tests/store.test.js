@@ -401,3 +401,45 @@ test('负数名次会被数据检查抓到', () => {
   assert.ok(issues.some((i) => /班级排名是负数/.test(i.text)));
   assert.ok(issues.some((i) => /年级排名是负数/.test(i.text)));
 });
+
+test('同名同日的多场按顺序对上，不会全指到最后一条', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  state.exams = [
+    { id: 'c', name: '重复', date: '2026-05-01', type: '月考', scores: { math: 80 }, ranks: {}, averages: {} },
+    { id: 'd', name: '重复', date: '2026-05-01', type: '月考', scores: { math: 90 }, ranks: {}, averages: {} }
+  ];
+  const incoming = [
+    { name: '重复', date: '2026-05-01', type: '月考', scores: { math: 85 }, ranks: {}, averages: {} },
+    { name: '重复', date: '2026-05-01', type: '月考', scores: { math: 95 }, ranks: {}, averages: {} }
+  ];
+  const r = S.mergeExams(state, incoming);
+  assert.equal(r.replaced, 2);
+  assert.equal(state.exams[0].scores.math, 85);
+  assert.equal(state.exams[1].scores.math, 95);
+});
+
+test('只导入同名记录的第一行时只改第一条', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  state.exams = [
+    { id: 'c', name: '重复', date: '2026-05-01', type: '月考', scores: { math: 80 }, ranks: {}, averages: {} },
+    { id: 'd', name: '重复', date: '2026-05-01', type: '月考', scores: { math: 90 }, ranks: {}, averages: {} }
+  ];
+  S.mergeExams(state, [
+    { name: '重复', date: '2026-05-01', type: '月考', scores: { math: 85 }, ranks: {}, averages: {} }
+  ]);
+  assert.equal(state.exams[0].scores.math, 85);
+  assert.equal(state.exams[1].scores.math, 90);
+});
+
+test('数据检查不受筛选影响', () => {
+  const state = S.defaultState();
+  state.filter = '期中';
+  state.exams.push({
+    id: 'bad2', name: '筛选外的坏数据', date: '2026-12-05', type: '期末',
+    scores: { math: 999 }, ranks: {}, averages: {}
+  });
+  const issues = S.audit(state);
+  assert.ok(issues.some((i) => /超过满分/.test(i.text)));
+});

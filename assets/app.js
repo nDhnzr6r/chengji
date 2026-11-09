@@ -20,6 +20,7 @@
   var lastShownTotal = null;
   var comparePair = [null, null];
   var pendingFilter = null;
+  var lastSidebarFilter;
 
   /* ---------------- 工具 ---------------- */
 
@@ -61,6 +62,8 @@
     if (storageNote.kind === 'broken') {
       extra = '<button type="button" class="btn btn-sm btn-ghost" data-action="export-broken">下载原始存档</button>' +
         '<button type="button" class="btn btn-sm btn-ghost" data-action="discard-broken">丢弃</button>';
+    } else if (storageNote.kind === 'external') {
+      extra = '<button type="button" class="btn btn-sm btn-primary" data-action="reload-external">载入最新</button>';
     } else if (storageNote.kind === 'save' || storageNote.kind === 'off') {
       extra = '<button type="button" class="btn btn-sm btn-primary" data-action="export-json">导出备份</button>';
     }
@@ -207,6 +210,11 @@
 
     mainEl.innerHTML = html;
     setStorageNote(storageNote);
+    /* 侧栏里的最近分数跟着筛选走，换了筛选要重建 */
+    if (lastSidebarFilter !== picked) {
+      lastSidebarFilter = picked;
+      refreshSidebar();
+    }
     setActive(name);
     if (global.UI) global.UI.mountAll(mainEl);
     initSegs();
@@ -296,7 +304,7 @@
           label: e.label,
           full: e.date + ' · ' + e.name,
           value: e[key],
-          sub: e.name,
+          sub: '',
           ts: e.ts
         };
       });
@@ -903,13 +911,15 @@
     var list = S.allSorted(state);
     if (!list.length) { toast('还没有成绩记录', 'bad'); return; }
     var last = list[list.length - 1];
-    var ins = S.insight(state);
-    var peers = S.examVsPeers(state, last);
-    var spread = S.subjectSpread(state, last);
-    var road = S.pace(state);
-    var term = S.termForecast(state);
-    var prio = S.priority(state, last);
-    var smooth = S.smoothMovers(state);
+    /* 报告里的结论和明细都按全部记录算，不受类型筛选影响 */
+    var plain = Object.assign({}, state, { filter: 'all' });
+    var ins = S.insight(plain);
+    var peers = S.examVsPeers(plain, last);
+    var spread = S.subjectSpread(plain, last);
+    var road = S.pace(plain);
+    var term = S.termForecast(plain);
+    var prio = S.priority(plain, last);
+    var smooth = S.smoothMovers(plain);
     var sub = state.config.subjects;
 
     function row(k, v) {
@@ -1094,9 +1104,15 @@
       var picked = chip.getAttribute('data-exam-filter');
       var cur = parseHash();
       var base = '#/' + cur.name + (cur.param ? '/' + cur.param : '');
-      pendingFilter = picked;
-      global.location.hash = picked === 'all' ? base : base + '?type=' + encodeURIComponent(picked);
-      if (pendingFilter !== null) { render(); }
+      var target = picked === 'all' ? base : base + '?type=' + encodeURIComponent(picked);
+      if (global.location.hash === target) {
+        /* 点的就是当前这个筛选，地址没变不会触发 hashchange，直接重画 */
+        pendingFilter = null;
+        render();
+      } else {
+        pendingFilter = picked;
+        global.location.hash = target;
+      }
       return;
     }
 
@@ -1157,7 +1173,8 @@
             persist();
             closeDialog();
             refreshSidebar();
-            global.location.hash = '#/exams';
+            global.location.hash = '#/exams' + (state.filter && state.filter !== 'all'
+              ? '?type=' + encodeURIComponent(state.filter) : '');
             render();
             toast('已删除');
           });
@@ -1263,6 +1280,14 @@
         else toast('浏览器没有同意，数据仍可能被清理', 'bad');
         if (currentView === 'settings') render();
       });
+    }
+    else if (action === 'reload-external') {
+      state = S.load();
+      setStorageNote(null);
+      lastShownTotal = null;
+      refreshSidebar();
+      render();
+      toast('已载入另一个标签页的内容');
     }
     else if (action === 'confirm-delete') { /* 由对话框内部处理 */ }
   });
@@ -1445,6 +1470,17 @@
 
     render();
     global.scrollTo({ top: 0, behavior: 'auto' });
+  });
+
+  /* 另一个标签页写了数据：这边还是打开时的快照，再保存会把对方的改动盖掉 */
+  global.addEventListener('storage', function (evt) {
+    if (evt.key !== S.STORAGE_KEY || !evt.newValue) return;
+    setStorageNote({
+      tone: 'warn',
+      kind: 'external',
+      title: '另一个标签页改动了数据',
+      text: '这边看到的还是打开时的内容，在这里继续保存会把那边的改动盖掉。先载入最新的再看。'
+    });
   });
 
   boot();

@@ -599,15 +599,27 @@
       (diff >= 0 ? '最近一次高出目标 ' + diff + ' 分。' : '最近一次离目标还差 ' + Math.abs(diff) + ' 分。');
   }
 
-  function buildNote(state, rows, gap) {    var weak = rows.filter(function (r) { return r.gap !== null && r.gap < 0; })
+  function buildNote(state, rows, gap) {
+    var filled = rows.filter(function (r) {
+      return r.score !== null && r.score !== undefined && !isNaN(Number(r.score));
+    });
+    if (!filled.length) return '这一场还没有填分数。';
+
+    /* 没填的科目不算达标，也不该被当成缺口 */
+    var missing = rows.length - filled.length;
+    var lack = missing ? '，另有 ' + missing + ' 科没填' : '';
+    var weak = filled.filter(function (r) { return r.gap !== null && r.gap < 0; })
       .sort(function (a, b) { return a.gap - b.gap; });
-    if (!weak.length) return '六科都已站上目标线，接下来保持。';
+
+    if (!weak.length) {
+      return (missing ? '填了的 ' + filled.length + ' 科都站上目标线' : '六科都已站上目标线') + lack + '。';
+    }
     var top = weak[0];
     var loss = Math.abs(top.gap);
     if (gap > 0) {
-      return '离目标还差 ' + gap + ' 分，其中 ' + esc(top.subject.name) + ' 差 ' + loss + ' 分，是六科里缺口最大的一科。';
+      return '离目标还差 ' + gap + ' 分' + lack + '，其中 ' + esc(top.subject.name) + ' 差 ' + loss + ' 分，是缺口最大的一科。';
     }
-    return '总分已过目标线，' + esc(top.subject.name) + ' 还差 ' + loss + ' 分，是唯一没达标的科目。';
+    return '总分已过目标线，' + esc(top.subject.name) + ' 还差 ' + loss + ' 分，是唯一没达标的科目' + lack + '。';
   }
 
   /* ================= 单科分析 ================= */
@@ -1037,7 +1049,9 @@
     var total = S.examTotal(state, exam);
     var full = S.fullTotal(state);
     var goal = S.targetTotal(state);
-    var diff = S.changeSince(state, exam);
+    /* 详情页不受类型筛选影响，差值和诊断都按全部记录算 */
+    var plain = Object.assign({}, state, { filter: 'all' });
+    var diff = S.changeSince(plain, exam);
     var rows = S.subjectRows(state, exam);
 
     var cards = rows.map(function (r) {
@@ -1089,11 +1103,11 @@
       '<button class="btn btn-ghost" data-action="delete-exam" data-id="' + exam.id + '">删除这次</button></div>' +
       '</header>' +
       detailKpi(state, exam, total, full, goal, diff) +
-      detailPeers(state, exam) +
+      detailPeers(plain, exam) +
       '<p class="statement">' + goalLine + '</p>' +
       '<div class="sub-grid">' + cards + '</div>' +
       positionCard +
-      '<script type="application/json" id="positionData">' + embedJSON({ points: positionPoints, index: idx, bands: S.semesterBands(state) }) + '</script>';
+      '<script type="application/json" id="positionData">' + embedJSON({ points: positionPoints, index: idx, bands: S.semesterBands(plain) }) + '</script>';
   }
 
   /* 详情页 KPI：没填的名次不占位 */
@@ -1133,7 +1147,7 @@
   /* ================= 设置 ================= */
 
   function settings(state) {
-    var issues = S.audit(state);
+    var issues = S.audit(Object.assign({}, state, { filter: 'all' }));
     var goalMate = S.goalCheck(state);
     var c = state.config;
     var subjectRows = c.subjects.map(function (s) {

@@ -599,7 +599,8 @@
     var gradeSize = Number(state.config.gradeSize) || 0;
     var seen = {};
 
-    sorted(state).forEach(function (e) {
+    /* 数据检查要看全部记录，不受类型筛选影响 */
+    allSorted(state).forEach(function (e) {
       var key = e.date + '|' + e.name;
       if (seen[key]) issues.push({ text: e.date + ' 有两场都叫「' + e.name + '」，走势上会重复算一次' });
       seen[key] = true;
@@ -877,7 +878,7 @@
 
   /* ---------- 持久化 ---------- */
 
-  var VERSION = '1.0.2';
+  var VERSION = '1.0.3';
   var BROKEN_KEY = STORAGE_KEY + '.broken';
 
   /* 存储层的真实状况，界面据此提示，不再靠猜 */
@@ -1264,13 +1265,22 @@
   }
 
   function mergeExams(state, incoming) {
-    var existing = {};
-    state.exams.forEach(function (e) { existing[e.date + '|' + e.name] = e; });
+    /* 同名同日可能有好几条，按出现顺序一个一个对，别全指到最后一条 */
+    var buckets = {};
+    state.exams.forEach(function (e) {
+      var key = e.date + '|' + e.name;
+      (buckets[key] = buckets[key] || []).push(e);
+    });
+    var cursor = {};
     var added = 0, replaced = 0;
+
     incoming.forEach(function (e) {
       var key = e.date + '|' + e.name;
-      if (existing[key]) {
-        var target = state.exams.find(function (x) { return x.id === existing[key].id; });
+      var pool = buckets[key];
+      if (pool && pool.length) {
+        var at = cursor[key] || 0;
+        var target = pool[Math.min(at, pool.length - 1)];
+        cursor[key] = at + 1;
         target.scores = Object.assign({}, target.scores, e.scores);
         target.ranks = Object.assign({}, target.ranks, {
           class: e.ranks.class || target.ranks.class,

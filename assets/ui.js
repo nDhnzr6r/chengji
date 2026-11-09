@@ -277,6 +277,8 @@
     if (top + popH > hr.height - 10) {
       var up = br.top - hr.top - popH - 6;
       if (up > 8) top = up;
+      /* 上下都放不下就贴到宿主能容下的最低位置，别让它溢出被裁 */
+      else if (hr.height - popH - 8 > 8) top = hr.height - popH - 8;
     }
     pop.style.left = Math.max(8, left) + 'px';
     pop.style.top = Math.max(8, top) + 'px';
@@ -306,6 +308,14 @@
     }
     root._pop = pop;
 
+    /* 弹层挪出来之后就不是 root 的后代了，键位得在它自己身上接 */
+    pop.addEventListener('keydown', function (evt) {
+      if (evt.key !== 'Escape' || pop.hidden) return;
+      evt.preventDefault();
+      evt.stopPropagation();
+      closeDate(root);
+    });
+
     btn.addEventListener('click', function (evt) {
       evt.stopPropagation();
       if (root.classList.contains('is-open')) closeDate(root);
@@ -315,12 +325,15 @@
     /* 也可以直接把日期敲进来 */
     var typeBox = pop.querySelector('.cal-type');
     if (typeBox) {
-      typeBox.addEventListener('keydown', function (evt) {
-        if (evt.key === 'Escape') { evt.stopPropagation(); typeBox.value = ''; return; }
-        if (evt.key !== 'Enter') return;
-        evt.preventDefault();
-        var iso = global.Store && global.Store.normalizeDate ? global.Store.normalizeDate(typeBox.value) : null;
-        if (!iso) { typeBox.classList.add('is-bad'); setTimeout(function () { typeBox.classList.remove('is-bad'); }, 700); return; }
+      var commitTyped = function () {
+        var text = typeBox.value.trim();
+        if (!text) return false;
+        var iso = global.Store && global.Store.normalizeDate ? global.Store.normalizeDate(text) : null;
+        if (!iso) {
+          typeBox.classList.add('is-bad');
+          setTimeout(function () { typeBox.classList.remove('is-bad'); }, 700);
+          return false;
+        }
         var st0 = calState(root);
         st0.date = parseISO(iso) || st0.date;
         st0.view = 'day';
@@ -328,7 +341,18 @@
         setDate(root, iso);
         renderCal(root, false);
         closeDate(root);
+        return true;
+      };
+
+      typeBox.addEventListener('keydown', function (evt) {
+        if (evt.key === 'Escape') { evt.stopPropagation(); typeBox.value = ''; return; }
+        if (evt.key !== 'Enter') return;
+        evt.preventDefault();
+        commitTyped();
       });
+
+      /* 敲完直接点别处也算数，不用非得按回车 */
+      typeBox.addEventListener('change', commitTyped);
     }
 
     /* 标题：日 → 月 → 年 → 日 */

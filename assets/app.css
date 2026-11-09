@@ -1924,6 +1924,9 @@ button, input, select { font: inherit; color: inherit; }
   position: absolute;
   top: 0;
   left: 0;
+  /* 窗口再矮也不越过对话框，实在放不下就在里面滚 */
+  max-height: calc(100% - 8px);
+  overflow-y: auto;
 }
 
 .cal-head {
