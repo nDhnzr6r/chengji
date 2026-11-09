@@ -21,6 +21,13 @@
     return node;
   }
 
+  /* 悬浮提示里会放考试名称和日期，按文本转义再拼 */
+  function escText(value) {
+    return String(value === null || value === undefined ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   function reduced() {
     return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
@@ -418,9 +425,9 @@
         var p = points[nearest];
         if (nearest !== move._last) {
           move._last = nearest;
-          tip.innerHTML = '<span class="tip-date">' + p.full + '</span><span class="tip-value">' +
+          tip.innerHTML = '<span class="tip-date">' + escText(p.full) + '</span><span class="tip-value">' +
             fmtNumber(p.value, o.digits || 0) + (o.unit || '') + '</span>' +
-            (p.sub ? '<span class="tip-sub">' + p.sub + '</span>' : '');
+            (p.sub ? '<span class="tip-sub">' + escText(p.sub) + '</span>' : '');
           tip.classList.remove('is-updated');
           void tip.offsetWidth;
           tip.classList.add('is-updated');

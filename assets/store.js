@@ -418,12 +418,18 @@
       var b = Number(prev.scores[s.id]);
       per[s.id] = (isNaN(a) || isNaN(b)) ? null : a - b;
     });
+    /* 上一场没填名次就没有可比性，返回 null，不要当成 0 算 */
+    var rankDiff = function (a, b) {
+      var x = Number(a) || 0;
+      var y = Number(b) || 0;
+      return (x && y) ? x - y : null;
+    };
     return {
       exam: prev,
       total: examTotal(state, exam) - examTotal(state, prev),
       per: per,
-      classRank: (Number(exam.ranks.class) || 0) - (Number(prev.ranks.class) || 0),
-      gradeRank: (Number(exam.ranks.grade) || 0) - (Number(prev.ranks.grade) || 0)
+      classRank: rankDiff(exam.ranks.class, prev.ranks.class),
+      gradeRank: rankDiff(exam.ranks.grade, prev.ranks.grade)
     };
   }
 
@@ -516,7 +522,8 @@
 
     /* 每个数字配一句判断 */
     var totalState;
-    if (up >= 3) totalState = { text: '连涨 ' + up + ' 次', tone: 'good' };
+    if (prevTotal === null) totalState = null;
+    else if (up >= 3) totalState = { text: '连涨 ' + up + ' 次', tone: 'good' };
     else if (up === 2) totalState = { text: '连涨 2 次', tone: 'good' };
     else if (up === 1) totalState = { text: '较上次 ' + signed(prevTotal === null ? 0 : total - prevTotal), tone: 'good' };
     else if (down >= 2) totalState = { text: '连跌 ' + down + ' 次', tone: 'bad' };
@@ -609,6 +616,8 @@
 
       var rc = Number(e.ranks.class) || 0;
       var rg = Number(e.ranks.grade) || 0;
+      if (rc < 0) issues.push({ text: e.date + ' 的班级排名是负数' });
+      if (rg < 0) issues.push({ text: e.date + ' 的年级排名是负数' });
       if (rc && classSize && rc > classSize) issues.push({ text: e.date + ' 的班级排名 ' + rc + ' 超过班级人数 ' + classSize });
       if (rg && gradeSize && rg > gradeSize) issues.push({ text: e.date + ' 的年级排名 ' + rg + ' 超过年级人数 ' + gradeSize });
 
@@ -750,10 +759,11 @@
         den += (x.d - md) * (x.d - md);
       });
       var slope = den ? num / den : 0;
-      var curAvg = Number(last.averages && last.averages.class) || md;
-      var curD = base - curAvg;
-      if (slope !== 0 && result.rankBefore) {
-        var est = mr + slope * (curD + delta);
+      var curAvg = Number(last.averages && last.averages.class) || null;
+      var curD = curAvg === null ? null : base - curAvg;
+      /* 分差要减去拟合用的均值再外推，缺班平就算不出来 */
+      if (slope !== 0 && curD !== null && result.rankBefore) {
+        var est = mr + slope * ((curD + delta) - md);
         /* 外推太远就不靠谱，限制在这几次名次的上下界附近 */
         var bounds = pts.map(function (x) { return x.r; });
         var loR = Math.min.apply(null, bounds);
@@ -867,7 +877,7 @@
 
   /* ---------- 持久化 ---------- */
 
-  var VERSION = '1.0.1';
+  var VERSION = '1.0.2';
   var BROKEN_KEY = STORAGE_KEY + '.broken';
 
   /* 存储层的真实状况，界面据此提示，不再靠猜 */
@@ -1087,7 +1097,7 @@
       .concat(subjects.map(function (s) { return s.name + '名次'; }))
       .concat(subjects.map(function (s) { return s.name + '平均'; }))
       .concat(['班级排名', '年级排名', '班级平均', '年级平均', '年级最高']);
-    var rows = sorted(state).map(function (e) {
+    var rows = allSorted(state).map(function (e) {
       var avg = e.averages || {};
       var sr = e.subjectRanks || {};
       var sa = e.subjectAverages || {};
@@ -1179,7 +1189,10 @@
         if (c.idx < 0) return;
         var raw = String(line[c.idx] === undefined ? '' : line[c.idx]).trim();
         if (raw === '') return;
-        var num = Number(raw.replace(/[^\d.\-]/g, ''));
+        /* 「缺考」「—」这类文字剥完是空串，不能当成 0 分 */
+        var cleaned = raw.replace(/[^\d.\-]/g, '');
+        if (!/\d/.test(cleaned)) return;
+        var num = Number(cleaned);
         if (!isNaN(num)) scores[c.id] = num;
       });
       var saOut = {};
@@ -1234,6 +1247,13 @@
     var text = String(value).trim();
     var m = text.match(/^(\d{4})[-/年.](\d{1,2})[-/月.](\d{1,2})/);
     if (m) {
+      var y = Number(m[1]);
+      var mo = Number(m[2]);
+      var d = Number(m[3]);
+      if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+      /* 2 月 30 日这种不存在的日期要被 Date 顺延，用回读比对挡掉 */
+      var probe = new Date(y, mo - 1, d);
+      if (probe.getFullYear() !== y || probe.getMonth() !== mo - 1 || probe.getDate() !== d) return null;
       return m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2);
     }
     var t = Date.parse(text);

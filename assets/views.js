@@ -23,6 +23,21 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  /* 满分可能被导进来的数据设成 0，直接除会得到 NaN */
+  function pctOf(part, whole) {
+    var w = Number(whole) || 0;
+    return w ? ((Number(part) || 0) / w) * 100 : 0;
+  }
+
+  /* 内嵌进 script 标签的 JSON：尖括号转成转义序列，
+     否则名称里的 </script> 会提前结束标签，剩下的内容当成 HTML 解析 */
+  function embedJSON(value) {
+    return JSON.stringify(value)
+      .replace(/</g, '\\u003c')
+      .replace(/>/g, '\\u003e')
+      .replace(/&/g, '\\u0026');
+  }
+
   function pad2(n) { return ('0' + n).slice(-2); }
 
   function cnDate(iso) {
@@ -235,8 +250,8 @@
       stateTag(ins && ins.totalState) +
       '  <span class="kpi-value num" id="kpiTotal">' + total + '</span><span class="kpi-unit">/ ' + full + '</span>' +
       '  <span class="kpi-foot">' + (diff ? '<em class="delta ' + (diff.total > 0 ? 'good' : diff.total < 0 ? 'bad' : 'flat') + ' num">' + signed(diff.total) + '</em> 较 ' + shortMd(prev.date) : '首次记录') +
-      ' · 得分率 ' + ((total / full) * 100).toFixed(1) + '%</span>' +
-      '  <span class="kpi-progress"><span style="width:' + Math.min(100, (total / full) * 100).toFixed(1) + '%"></span></span>' +
+      ' · 得分率 ' + pctOf(total, full).toFixed(1) + '%</span>' +
+      '  <span class="kpi-progress"><span style="width:' + Math.min(100, pctOf(total, full)).toFixed(1) + '%"></span></span>' +
       '</div>'
     );
 
@@ -536,8 +551,8 @@
       '  <div class="col-main">' + typeCard + '</div>' +
       '  <div class="col-rail">' + prioCard + '</div>' +
       '</div>' +
-      '<script type="application/json" id="chartData">' + JSON.stringify(chartSeries(state, list)) + '</script>' +
-      '<script type="application/json" id="bulletData">' + JSON.stringify(bullets) + '</script>';
+      '<script type="application/json" id="chartData">' + embedJSON(chartSeries(state, list)) + '</script>' +
+      '<script type="application/json" id="bulletData">' + embedJSON(bullets) + '</script>';
   }
 
   /* 走势图需要的全部指标，一次算好交给前端 */
@@ -827,7 +842,7 @@
     }).join('');
 
     var chips = '<div class="filter-chips" role="group" aria-label="按考试类型筛选">' +
-      '<button class="chip' + (filter === 'all' ? ' is-on' : '') + '" data-exam-filter="all">全部 <em class="num">' + sortedList.length + '</em></button>' +
+      '<button class="chip' + (filter === 'all' ? ' is-on' : '') + '" data-exam-filter="all">全部 <em class="num">' + S.allSorted(state).length + '</em></button>' +
       facets.map(function (f) {
         return '<button class="chip' + (filter === f.type ? ' is-on' : '') + '" data-exam-filter="' + esc(f.type) + '">' + esc(f.type) + ' <em class="num">' + f.count + '</em></button>';
       }).join('') +
@@ -1004,7 +1019,7 @@
       '  <div class="col-rail">' + radarCard + '</div>' +
       '</div>' +
       semesterCard +
-      '<script type="application/json" id="compareData">' + JSON.stringify({
+      '<script type="application/json" id="compareData">' + embedJSON({
         labels: rows.map(function (r) { return r.name; }),
         a: { values: rows.map(function (r) { return r.aRate === null ? 0 : r.aRate; }) },
         b: { values: rows.map(function (r) { return r.bRate === null ? 0 : r.bRate; }) },
@@ -1078,7 +1093,7 @@
       '<p class="statement">' + goalLine + '</p>' +
       '<div class="sub-grid">' + cards + '</div>' +
       positionCard +
-      '<script type="application/json" id="positionData">' + JSON.stringify({ points: positionPoints, index: idx, bands: S.semesterBands(state) }) + '</script>';
+      '<script type="application/json" id="positionData">' + embedJSON({ points: positionPoints, index: idx, bands: S.semesterBands(state) }) + '</script>';
   }
 
   /* 详情页 KPI：没填的名次不占位 */
@@ -1109,8 +1124,8 @@
         '  <span class="kpi-foot">' + (diff && diff.classRank ? rankWord(diff.classRank).text + ' 名 较上一场' : '—') + '</span></div>');
     }
 
-    cells.push('<div class="kpi"><span class="kpi-label">得分率</span><span class="kpi-value num">' + ((total / full) * 100).toFixed(1) + '</span><span class="kpi-unit">%</span>' +
-      '  <span class="kpi-foot">目标 ' + ((goal / full) * 100).toFixed(1) + '%</span></div>');
+    cells.push('<div class="kpi"><span class="kpi-label">得分率</span><span class="kpi-value num">' + pctOf(total, full).toFixed(1) + '</span><span class="kpi-unit">%</span>' +
+      '  <span class="kpi-foot">目标 ' + pctOf(goal, full).toFixed(1) + '%</span></div>');
 
     return '<div class="kpi-strip" style="--kpi-cols:' + cells.length + '">' + cells.join('') + '</div>';
   }
@@ -1346,8 +1361,8 @@
       '    <button type="submit" class="btn btn-primary">' + (isEdit ? '保存' : '记录') + '</button>' +
       '  </div>' +
       '</form>' +
-      '<script type="application/json" id="formSubjects">' + JSON.stringify(c.subjects) + '</script>' +
-      '<script type="application/json" id="formExamId">' + JSON.stringify(exam ? exam.id : null) + '</script>';
+      '<script type="application/json" id="formSubjects">' + embedJSON(c.subjects) + '</script>' +
+      '<script type="application/json" id="formExamId">' + embedJSON(exam ? exam.id : null) + '</script>';
   }
 
   global.Views = {

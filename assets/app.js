@@ -749,6 +749,8 @@
 
       form.addEventListener('submit', function (evt) {
         evt.preventDefault();
+        /* 关闭动画里再按一次回车，不要重复记一场 */
+        if (dlg.classList.contains('is-closing')) return;
         var name = dlg.querySelector('#fName').value.trim();
         var dateEl = dlg.querySelector('.datep[data-field="date"], #fDate');
         var typeEl = dlg.querySelector('.sel[data-field="type"]');
@@ -760,22 +762,30 @@
 
         var scores = {};
         var filled = 0;
+        var bad = '';
         dlg.querySelectorAll('input[data-subject]').forEach(function (input) {
           var id = input.getAttribute('data-subject');
           var raw = input.value.trim();
           if (raw === '') return;
           var num = Number(raw);
           var subject = subjects.find(function (s) { return s.id === id; });
-          if (isNaN(num) || num < 0 || num > subject.full) return;
+          if (!subject) return;
+          if (isNaN(num) || num < 0) { bad = bad || subject.name + ' 的分数不是有效数字'; return; }
+          if (num > subject.full) { bad = bad || subject.name + ' 超过满分 ' + subject.full + ' 分'; return; }
           scores[id] = num;
           filled++;
         });
 
+        if (bad) { errEl.textContent = bad; return; }
         if (!filled) { errEl.textContent = '至少填一科分数。'; return; }
 
+        var pickRank = function (id) {
+          var n = Number(dlg.querySelector(id).value);
+          return n > 0 ? Math.round(n) : null;
+        };
         var ranks = {
-          class: Number(dlg.querySelector('#fClass').value) || null,
-          grade: Number(dlg.querySelector('#fGrade').value) || null
+          class: pickRank('#fClass'),
+          grade: pickRank('#fGrade')
         };
 
         var averages = {
@@ -914,7 +924,7 @@
       return '<tr>' +
         '<td>' + esc(s.name) + '</td>' +
         '<td class="num">' + (isNaN(v) ? '—' : v + ' / ' + s.full) + '</td>' +
-        '<td class="num">' + (isNaN(v) ? '—' : ((v / s.full) * 100).toFixed(1) + '%') + '</td>' +
+        '<td class="num">' + (isNaN(v) || !Number(s.full) ? '—' : ((v / s.full) * 100).toFixed(1) + '%') + '</td>' +
         '<td class="num">' + (avg === null ? '—' : avg) + '</td>' +
         '<td class="num">' + (rk === null ? '—' : '第 ' + rk + ' 名') + '</td>' +
         '<td class="num">' + (isNaN(v) || !t ? '—' : (v >= t ? '达标' : '差 ' + (t - v))) + '</td>' +
@@ -1014,6 +1024,11 @@
       reader.onload = function (evt) {
         try {
           var parsed = JSON.parse(String(evt.target.result));
+          /* 备份里一定有 exams 数组，结构不对就别动现有数据 */
+          if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.exams)) {
+            toast('这不是成迹的备份文件', 'bad');
+            return;
+          }
           var next = S.normalize(parsed);
           next.sample = false;
           state = next;

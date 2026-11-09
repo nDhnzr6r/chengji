@@ -322,3 +322,82 @@ test('总览用到的各项计算都能跑通', () => {
   assert.ok(S.subjectStats(state, 'math'));
   assert.ok(S.semesterBands(state));
 });
+
+/* ---------------- 审查发现的问题 ---------------- */
+
+test('筛选状态下导出 CSV 仍然带全部记录', () => {
+  const state = S.defaultState();
+  state.filter = '期中';
+  assert.ok(S.sorted(state).length < S.allSorted(state).length);
+
+  const rows = S.parseCSV(S.toCSV(state));
+  assert.equal(rows.length, S.allSorted(state).length + 1);
+});
+
+test('上一场没填名次时不给凭空的进退', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  state.exams = [
+    { id: 'a', name: '第一场', date: '2026-03-01', type: '月考', scores: { math: 100 }, ranks: {}, averages: {} },
+    { id: 'b', name: '第二场', date: '2026-04-01', type: '月考', scores: { math: 110 }, ranks: { grade: 88, class: 10 }, averages: {} }
+  ];
+  const diff = S.changeSince(state, state.exams[1]);
+  assert.equal(diff.gradeRank, null);
+  assert.equal(diff.classRank, null);
+  assert.equal(diff.total, 10);
+});
+
+test('只有一场考试时不说与上次持平', () => {
+  const state = stateWithTotals([520]);
+  const ins = S.insight(state);
+  assert.equal(ins.totalState, null);
+});
+
+test('名次估算把分差减去均值再外推', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  const make = (id, date, total, avg, rank) => {
+    const per = total / state.config.subjects.length;
+    const scores = {};
+    state.config.subjects.forEach((s) => { scores[s.id] = per; });
+    return { id, name: id, date, type: '月考', scores, ranks: { grade: rank }, averages: { class: avg } };
+  };
+  state.exams = [
+    make('a', '2026-03-01', 500, 450, 200),
+    make('b', '2026-04-01', 520, 450, 180),
+    make('c', '2026-05-01', 540, 450, 160)
+  ];
+  /* 分差 50→70→90 对应名次 200→180→160，斜率 -1，多 4 分就该进 4 名 */
+  const r = S.sensitivity(state, 'math', 4);
+  assert.equal(r.rankBefore, 160);
+  assert.equal(r.rankAfter, 156);
+  assert.equal(r.rankDelta, 4);
+});
+
+test('CSV 里的「缺考」不当成 0 分', () => {
+  const state = S.defaultState();
+  const rows = S.parseCSV('考试名称,日期,语文,数学\n测试,2026-03-01,缺考,120');
+  const out = S.tableToExams(state, rows);
+  assert.equal(out.exams.length, 1);
+  assert.equal(out.exams[0].scores.chinese, undefined);
+  assert.equal(out.exams[0].scores.math, 120);
+});
+
+test('不存在的月份和日期被拒', () => {
+  assert.equal(S.normalizeDate('2026-13-01'), null);
+  assert.equal(S.normalizeDate('2026-02-30'), null);
+  assert.equal(S.normalizeDate('2026-00-10'), null);
+  assert.equal(S.normalizeDate('2026-02-28'), '2026-02-28');
+});
+
+test('负数名次会被数据检查抓到', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  state.exams.push({
+    id: 'neg', name: '负数名次', date: '2026-12-02', type: '月考',
+    scores: { math: 100 }, ranks: { class: -3, grade: -5 }, averages: {}
+  });
+  const issues = S.audit(state);
+  assert.ok(issues.some((i) => /班级排名是负数/.test(i.text)));
+  assert.ok(issues.some((i) => /年级排名是负数/.test(i.text)));
+});

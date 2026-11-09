@@ -118,6 +118,8 @@
       } else if (evt.key === 'Escape') {
         if (root.classList.contains('is-open')) {
           evt.preventDefault();
+          /* 收下拉就到此为止，别把整张录入表单一起关掉 */
+          evt.stopPropagation();
           closeSelect(root);
         }
       }
@@ -314,7 +316,7 @@
     var typeBox = pop.querySelector('.cal-type');
     if (typeBox) {
       typeBox.addEventListener('keydown', function (evt) {
-        if (evt.key === 'Escape') { typeBox.value = ''; return; }
+        if (evt.key === 'Escape') { evt.stopPropagation(); typeBox.value = ''; return; }
         if (evt.key !== 'Enter') return;
         evt.preventDefault();
         var iso = global.Store && global.Store.normalizeDate ? global.Store.normalizeDate(typeBox.value) : null;
@@ -400,6 +402,7 @@
     root.addEventListener('keydown', function (evt) {
       if (evt.key === 'Escape' && root.classList.contains('is-open')) {
         evt.preventDefault();
+        evt.stopPropagation();
         closeDate(root);
       }
     });
