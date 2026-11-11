@@ -878,7 +878,7 @@
 
   /* ---------- 持久化 ---------- */
 
-  var VERSION = '1.2.0';
+  var VERSION = '1.2.1';
   var BROKEN_KEY = STORAGE_KEY + '.broken';
 
   /* 存储层的真实状况，界面据此提示，不再靠猜 */

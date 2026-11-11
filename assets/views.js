@@ -173,7 +173,6 @@
   }
 
   function themeToggleHTML() {
-    if (!themeToggleOn()) return '';
     return '  <button type="button" class="theme-toggle" id="themeToggle">' +
       '    <svg class="ico" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
       '      <path class="theme-moon" d="M13.4 9.6A5.6 5.6 0 1 1 6.4 2.6 4.4 4.4 0 0 0 13.4 9.6Z"/>' +
@@ -219,7 +218,7 @@
       '    <div class="goal-track"><div class="goal-fill" style="--pct:' + pct.toFixed(1) + '%"></div></div>' +
       '    <div class="goal-foot num">' + (last ? '最近 ' + total + ' 分' : '还没有记录') + (last && gap > 0 ? ' · 差 ' + gap + ' 分' : last ? ' · 已达标' : '') + '</div>' +
       '  </div>' +
-      themeToggleHTML() +
+      (themeToggleOn() ? themeToggleHTML() : '') +
       '</aside>' +
       '<div class="mobile-bar">' +
       '  <div class="mobile-brand">成迹</div>' +
@@ -1190,7 +1189,7 @@
     try { mode = global.localStorage.getItem('scorebook.theme') || 'auto'; } catch (err) { /* 读不到就按跟随系统 */ }
     if (mode !== 'light' && mode !== 'dark') mode = 'auto';
     var deep = mode === 'auto' ? '跟随系统' : mode === 'dark' ? '深色' : '浅色';
-    return (currentPalette() === 'classic' ? '默认' : '纸与墨') + ' · ' + deep;
+    return (currentPalette() === 'ink' ? '纸与墨' : '默认') + ' · ' + deep;
   }
 
   function settings(state, sec) {
@@ -1210,10 +1209,12 @@
       '<header class="page-head"><div><h1>设置</h1><p class="page-sub">目标、科目和数据都保存在这台电脑的浏览器里</p></div>' +
       '<button class="btn btn-ghost" data-action="replay-tour">看一遍导览</button></header>' +
       '<div class="settings">' +
-      '  <nav class="set-nav" aria-label="设置分区">' + nav + '</nav>' +
+      '  <nav class="set-nav" aria-label="设置分区">' +
+      '    <span class="set-nav-thumb"></span>' + nav +
+      '  </nav>' +
       '  <div class="set-panel" id="settingsPanel">' + settingsPanel(state, cur) + '</div>' +
-      '</div>' +
-      appFooter();
+      '  <div class="set-foot">' + appFooter() + '</div>' +
+      '</div>';
   }
 
   function settingsPanel(state, sec) {
@@ -1406,21 +1407,21 @@
   /* 当前配色，读不到就按纸与墨算 */
   function currentPalette() {
     try {
-      return global.localStorage.getItem('scorebook.palette') === 'classic' ? 'classic' : 'ink';
+      return global.localStorage.getItem('scorebook.palette') === 'ink' ? 'ink' : 'classic';
     } catch (err) {
-      return 'ink';
+      return 'classic';
     }
   }
 
   /* 两套配色各取浅色那一面，画成缩略图 */
   var PALETTES = [
     {
-      id: 'ink', name: '纸与墨', desc: '米白纸面，深墨字色，数据线用墨蓝',
-      shot: { ground: '#f5f5f3', raised: '#e6e6e0', card: '#ffffff', line: '#1e415e' }
-    },
-    {
       id: 'classic', name: '默认', desc: '冷灰底，近黑字色，数据线用亮蓝',
       shot: { ground: '#f2f4f7', raised: '#e2e7ee', card: '#ffffff', line: '#1d5fbf' }
+    },
+    {
+      id: 'ink', name: '纸与墨', desc: '米白纸面，深墨字色，数据线用墨蓝',
+      shot: { ground: '#f5f5f3', raised: '#e6e6e0', card: '#ffffff', line: '#1e415e' }
     }
   ];
 
@@ -1622,6 +1623,7 @@
     settings: settings,
     settingsPanel: settingsPanel,
     appearanceMeta: appearanceMeta,
+    themeToggleHTML: themeToggleHTML,
     examForm: examForm,
     icon: icon,
     esc: esc,

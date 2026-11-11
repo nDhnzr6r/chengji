@@ -270,7 +270,7 @@
     if (name === 'overview') mountOverview();
     else if (name === 'subjects') mountSubjects();
     else if (name === 'compare') mountCompare();
-    else if (name === 'settings') mountSettings();
+    else if (name === 'settings') { mountSettings(); initSettingsNav(); }
     else if (name === 'exams') mountExams();
     else if (name === 'exam') mountDetail();
     firstPaint = false;
@@ -523,29 +523,72 @@
   });
   function bindResize(fn) { resizeHandler = fn; }
 
-  /* 设置页左栏换分区：只换右边这一块，不整页重建 */
+  /* 左栏选中块滑到当前这一项 */
+  function initSettingsNav() {
+    var host = document.querySelector('.set-nav');
+    if (!host) return;
+    var thumb = host.querySelector('.set-nav-thumb');
+    var on = host.querySelector('.set-nav-item.is-on');
+    if (!thumb || !on) return;
+    host.classList.remove('is-ready');
+    thumb.style.height = on.offsetHeight + 'px';
+    thumb.style.transform = 'translateY(' + on.offsetTop + 'px)';
+    void host.offsetWidth;
+    host.classList.add('is-ready');
+  }
+
+  /* 设置页左栏换分区：左栏先滑，右栏淡出再换内容 */
   function openSettingsSection(sec) {
     var route = parseHash();
     if (route.name !== 'settings') return;
     var panel = document.getElementById('settingsPanel');
     if (!panel) return;
     if ((route.query.sec || 'goal') === sec) return;
+    if (panel.classList.contains('is-leaving')) return;
 
     global.history.replaceState(null, '', '#/settings?sec=' + sec);
-    panel.innerHTML = V.settingsPanel(state, sec);
+
     document.querySelectorAll('.set-nav-item').forEach(function (item) {
       var on = item.getAttribute('data-sec') === sec;
       item.classList.toggle('is-on', on);
       if (on) item.setAttribute('aria-current', 'true');
       else item.removeAttribute('aria-current');
     });
-    if (global.UI) global.UI.mountAll(panel);
-    initSegs();
-    mountSettings();
-    global.scrollTo({ top: 0 });
-    panel.classList.remove('swap-in');
-    void panel.offsetWidth;
-    panel.classList.add('swap-in');
+    initSettingsNav();
+
+    if (global.scrollY > 0) global.scrollTo({ top: 0 });
+    panel.classList.add('is-leaving');
+    setTimeout(function () {
+      panel.innerHTML = V.settingsPanel(state, sec);
+      if (global.UI) global.UI.mountAll(panel);
+      initSegs();
+      mountSettings();
+      void panel.offsetWidth;
+      panel.classList.remove('is-leaving');
+    }, 150);
+  }
+
+  /* 侧栏底部的深浅色按钮：收起和展开都不重建侧栏 */
+  function setThemeToggleVisible(show) {
+    var btn = document.getElementById('themeToggle');
+    if (show) {
+      if (btn) { btn.classList.remove('is-away'); return; }
+      var side = document.querySelector('.side');
+      if (!side) return;
+      side.insertAdjacentHTML('beforeend', V.themeToggleHTML());
+      var fresh = document.getElementById('themeToggle');
+      if (!fresh) return;
+      fresh.classList.add('is-away');
+      void fresh.offsetWidth;
+      fresh.classList.remove('is-away');
+      updateThemeButtons();
+      return;
+    }
+    if (!btn) return;
+    btn.classList.add('is-away');
+    setTimeout(function () {
+      if (btn.parentNode) btn.parentNode.removeChild(btn);
+    }, 220);
   }
 
   function mountSettings() {
@@ -1337,7 +1380,7 @@
         });
         moveThumb(swSeg);
       }
-      refreshSidebar();
+      setThemeToggleVisible(wantSwitch === 'on');
     }
     else if (action === 'confirm-delete') { /* 由对话框内部处理 */ }
   });
@@ -1398,12 +1441,12 @@
   }
 
   function paletteName() {
-    try { return global.localStorage.getItem(PALETTE_KEY) === 'classic' ? 'classic' : 'ink'; } catch (err) { return 'ink'; }
+    try { return global.localStorage.getItem(PALETTE_KEY) === 'ink' ? 'ink' : 'classic'; } catch (err) { return 'classic'; }
   }
 
   function applyPalette(name, remember) {
-    var value = name === 'classic' ? 'classic' : 'ink';
-    if (value === 'classic') document.documentElement.setAttribute('data-palette', 'classic');
+    var value = name === 'ink' ? 'ink' : 'classic';
+    if (value === 'ink') document.documentElement.setAttribute('data-palette', 'ink');
     else document.documentElement.removeAttribute('data-palette');
     if (remember) {
       try { global.localStorage.setItem(PALETTE_KEY, value); } catch (err) { /* ignore */ }
@@ -1411,7 +1454,7 @@
   }
 
   function paletteLabel(name) {
-    return name === 'classic' ? '默认' : '纸与墨';
+    return name === 'ink' ? '纸与墨' : '默认';
   }
 
   /* 只换选中态和摘要，不重建页面，颜色才有过渡 */
