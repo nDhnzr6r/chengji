@@ -12,6 +12,7 @@
   <img src="https://img.shields.io/badge/OFFLINE-READY-2f7d4f?style=flat-square&logo=serverless&logoColor=white" alt="断网可用">
   <img src="https://img.shields.io/badge/DATA-LOCAL-1d5fbf?style=flat-square&logo=googlechrome&logoColor=white" alt="数据只存在本地">
   <img src="https://img.shields.io/badge/EXPORT-CSV%20JSON%20XLSX-6b5b95?style=flat-square&logo=libreoffice&logoColor=white" alt="可导出 CSV、JSON、Excel">
+  <img src="https://visitor-badge.laobi.icu/badge?page_id=nDhnzr6r.chengji" alt="访问量">
 </p>
 
 <p align="center">
@@ -175,6 +176,14 @@ npm test
 ## 贡献
 
 这是给自己用的工具，但欢迎提 Issue 说哪里不好用、哪里算错了。改动代码之前先开个 Issue 聊一下，避免做完发现方向不对。手机端排版不在范围内。
+
+## 关注度
+
+<p align="center">
+  <a href="https://star-history.com/#nDhnzr6r/chengji&Date">
+    <img src="https://api.star-history.com/svg?repos=nDhnzr6r/chengji&type=Date" alt="星标变化趋势" width="640">
+  </a>
+</p>
 
 ## 许可证
 
