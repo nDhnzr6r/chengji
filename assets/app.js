@@ -181,7 +181,7 @@
     else if (name === 'compare') { html = V.compare(state, comparePair[0], comparePair[1]); title = '两次考试对比'; }
     else if (name === 'exams') { html = V.exams(state); title = '考试记录'; }
     else if (name === 'exam') { html = V.detail(state, route.param); title = '考试详情'; }
-    else if (name === 'settings') { html = V.settings(state); title = '设置'; }
+    else if (name === 'settings') { html = V.settings(state, route.query.sec); title = '设置'; }
     else { html = V.overview(state); title = '总览'; }
 
     document.title = title + ' · 成迹';
@@ -522,6 +522,31 @@
     }, 150);
   });
   function bindResize(fn) { resizeHandler = fn; }
+
+  /* 设置页左栏换分区：只换右边这一块，不整页重建 */
+  function openSettingsSection(sec) {
+    var route = parseHash();
+    if (route.name !== 'settings') return;
+    var panel = document.getElementById('settingsPanel');
+    if (!panel) return;
+    if ((route.query.sec || 'goal') === sec) return;
+
+    global.history.replaceState(null, '', '#/settings?sec=' + sec);
+    panel.innerHTML = V.settingsPanel(state, sec);
+    document.querySelectorAll('.set-nav-item').forEach(function (item) {
+      var on = item.getAttribute('data-sec') === sec;
+      item.classList.toggle('is-on', on);
+      if (on) item.setAttribute('aria-current', 'true');
+      else item.removeAttribute('aria-current');
+    });
+    if (global.UI) global.UI.mountAll(panel);
+    initSegs();
+    mountSettings();
+    global.scrollTo({ top: 0 });
+    panel.classList.remove('swap-in');
+    void panel.offsetWidth;
+    panel.classList.add('swap-in');
+  }
 
   function mountSettings() {
     var c = state.config;
@@ -1137,13 +1162,9 @@
       return;
     }
 
-    /* 设置页的页内跳转 */
-    var gotoEl = evt.target.closest('[data-goto]');
-    if (gotoEl) {
-      var gotoHost = document.getElementById(gotoEl.getAttribute('data-goto'));
-      if (gotoHost) gotoHost.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
+    /* 设置页左栏换分区 */
+    var secEl = evt.target.closest('[data-sec]');
+    if (secEl) { openSettingsSection(secEl.getAttribute('data-sec')); return; }
 
     var actionEl = evt.target.closest('[data-action]');
     if (!actionEl) return;
@@ -1289,9 +1310,34 @@
     }
     else if (action === 'set-palette') {
       var want = actionEl.getAttribute('data-pick');
-      applyPalette(want, true);
-      if (currentView === 'settings') render();
-      toast(want === 'classic' ? '已换成默认配色' : '已换成纸与墨');
+      if (want === paletteName()) return;
+      revealChange(actionEl, function () {
+        applyPalette(want, true);
+        paintPalette(want);
+      });
+      toast('已换成' + paletteLabel(want));
+    }
+    else if (action === 'set-theme') {
+      var mode = actionEl.getAttribute('data-mode');
+      if (mode === themeMode()) return;
+      revealChange(actionEl, function () {
+        applyTheme(mode, true);
+        paintThemeChoice(mode);
+      });
+    }
+    else if (action === 'set-theme-switch') {
+      var wantSwitch = actionEl.getAttribute('data-switch') === 'off' ? 'off' : 'on';
+      try { global.localStorage.setItem('scorebook.theme.toggle', wantSwitch); } catch (err) { /* 存不了就只在这次生效 */ }
+      var swSeg = document.getElementById('switchSeg');
+      if (swSeg) {
+        swSeg.querySelectorAll('.seg-btn').forEach(function (b) {
+          var on = b.getAttribute('data-switch') === wantSwitch;
+          b.classList.toggle('is-on', on);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        moveThumb(swSeg);
+      }
+      refreshSidebar();
     }
     else if (action === 'confirm-delete') { /* 由对话框内部处理 */ }
   });
@@ -1364,6 +1410,39 @@
     }
   }
 
+  function paletteLabel(name) {
+    return name === 'classic' ? '默认' : '纸与墨';
+  }
+
+  /* 只换选中态和摘要，不重建页面，颜色才有过渡 */
+  function paintPalette(name) {
+    var host = document.querySelector('.palette-pick');
+    if (host) {
+      host.querySelectorAll('.palette-item').forEach(function (el) {
+        var on = el.getAttribute('data-pick') === name;
+        el.classList.toggle('is-on', on);
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+    var meta = document.querySelector('[data-meta-for="appearance"]');
+    if (meta) meta.textContent = V.appearanceMeta();
+  }
+
+  /* 深浅色的三档选中态 */
+  function paintThemeChoice(mode) {
+    var seg = document.getElementById('themeSeg');
+    if (seg) {
+      seg.querySelectorAll('.seg-btn').forEach(function (b) {
+        var on = b.getAttribute('data-mode') === mode;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      moveThumb(seg);
+    }
+    var meta = document.querySelector('[data-meta-for="appearance"]');
+    if (meta) meta.textContent = V.appearanceMeta();
+  }
+
   function applyTheme(mode, remember) {
     var actual = mode === 'dark' ? 'dark' : mode === 'light' ? 'light' : (darkQuery && darkQuery.matches ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', actual);
@@ -1381,18 +1460,54 @@
     btn.setAttribute('aria-label', actual === 'dark' ? '切换到浅色' : '切换到深色');
   }
 
+  /* 换颜色时先让过渡挂上，再改值，否则浏览器会把两步算进同一帧 */
+  var fadeTimer = null;
+
+  function fadeColors(change) {
+    var root = document.documentElement;
+    root.classList.add('is-theme-fading');
+    void root.offsetWidth;
+    change();
+    clearTimeout(fadeTimer);
+    fadeTimer = setTimeout(function () {
+      root.classList.remove('is-theme-fading');
+    }, 320);
+  }
+
+  /* 新的一套颜色从被点的位置以圆形铺开 */
+  function revealChange(originEl, change) {
+    if (typeof document.startViewTransition !== 'function' || (C && C.reduced && C.reduced())) {
+      fadeColors(change);
+      return;
+    }
+    var rect = originEl ? originEl.getBoundingClientRect() : null;
+    var x = rect ? rect.left + rect.width / 2 : global.innerWidth / 2;
+    var y = rect ? rect.top + rect.height / 2 : global.innerHeight / 2;
+    var vw = global.innerWidth;
+    var vh = global.innerHeight;
+    var r = Math.hypot(Math.max(x, vw - x), Math.max(y, vh - y));
+    var rootStyle = document.documentElement.style;
+    rootStyle.setProperty('--tx', x + 'px');
+    rootStyle.setProperty('--ty', y + 'px');
+    rootStyle.setProperty('--tr', Math.ceil(r) + 'px');
+    document.startViewTransition(change);
+  }
+
   function toggleTheme() {
     var actual = document.documentElement.getAttribute('data-theme');
     var next = actual === 'dark' ? 'light' : 'dark';
-    var root = document.documentElement;
-    root.classList.add('is-theme-fading');
-    applyTheme(next, true);
-    setTimeout(function () { root.classList.remove('is-theme-fading'); }, 300);
+    revealChange(document.getElementById('themeToggle'), function () {
+      applyTheme(next, true);
+      paintThemeChoice(next);
+    });
   }
 
+  /* 系统换深色时跟着走，设置页那三档也要跟上 */
   if (darkQuery && darkQuery.addEventListener) {
     darkQuery.addEventListener('change', function () {
-      if (themeMode() === 'auto') applyTheme('auto', false);
+      if (themeMode() !== 'auto') return;
+      applyTheme('auto', false);
+      paintThemeChoice('auto');
     });
   }
 
