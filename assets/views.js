@@ -1226,30 +1226,34 @@
     return goalPanel(state);
   }
 
-  /* 一组设置：小标题加若干行 */
-  function setGroup(title, body, note) {
-    return '<div class="set-group">' +
-      '<h3 class="set-group-title">' + title + '</h3>' +
-      '<div class="set-rows">' + body + '</div>' +
-      (note ? '<p class="set-group-note">' + note + '</p>' : '') +
+  /* 一组设置：几张小卡片横排，卡片数决定列数 */
+  function setCards(cards, cols) {
+    return '<div class="set-cards" style="--cols:' + (cols || cards.length) + '">' + cards.join('') + '</div>';
+  }
+
+  function setCard(title, body, note) {
+    return '<section class="set-card">' +
+      '<h3 class="set-card-title">' + title + '</h3>' +
+      '<div class="set-card-body">' + body + '</div>' +
+      (note ? '<p class="set-card-note">' + note + '</p>' : '') +
+      '</section>';
+  }
+
+  /* 卡片里的一项：名字和控件一行，说明另起一行 */
+  function setField(label, control, hint) {
+    return '<div class="set-field">' +
+      '<span class="set-field-label">' + label + '</span>' +
+      '<span class="set-field-control">' + control + '</span>' +
+      (hint ? '<span class="set-field-hint">' + hint + '</span>' : '') +
       '</div>';
   }
 
-  /* 一行：名称、控件、一句说明 */
-  function setRow(label, control, hint) {
-    return '<div class="set-row">' +
-      '<span class="set-row-label">' + label + '</span>' +
-      '<span class="set-row-control">' + control + '</span>' +
-      (hint ? '<span class="set-row-hint">' + hint + '</span>' : '') +
-      '</div>';
-  }
-
-  /* 一行：名称、说明、右边一个按钮 */
-  function actRow(label, hint, button) {
-    return '<div class="set-row is-act">' +
-      '<span class="set-row-label">' + label + '</span>' +
-      '<span class="set-row-hint">' + hint + '</span>' +
-      '<span class="set-row-control">' + button + '</span>' +
+  /* 带按钮的一项 */
+  function actField(label, button, hint) {
+    return '<div class="set-field">' +
+      '<span class="set-field-label">' + label + '</span>' +
+      '<span class="set-field-control">' + button + '</span>' +
+      (hint ? '<span class="set-field-hint">' + hint + '</span>' : '') +
       '</div>';
   }
 
@@ -1267,7 +1271,7 @@
       '</footer>';
   }
 
-  /* 目标按三组排：分数、班级、分界线 */
+  /* 目标：三张卡片并排，分数、班级、分界线各一张 */
   function goalPanel(state) {
     var c = state.config;
     var goalMate = S.goalCheck(state);
@@ -1275,41 +1279,43 @@
       ? '各科目标加起来是 ' + goalMate.subjectSum + ' 分，和目标总分差 ' + Math.abs(goalMate.mismatch) + ' 分'
       : '填 0 时按各科目标分数相加';
 
-    return setGroup('目标分数',
-      setRow('目标总分',
-        '<input class="input num set-num" id="cfgTargetTotal" type="number" min="0" max="1200" value="' + c.targetTotal + '">',
-        totalHint) +
-      setRow('目标班级排名',
-        '<input class="input num set-num" id="cfgTargetClass" type="number" min="1" value="' + c.targetRankClass + '">',
-        '排名格右上角判断达标与否') +
-      setRow('目标年级排名',
-        '<input class="input num set-num" id="cfgTargetGrade" type="number" min="1" value="' + c.targetRankGrade + '">',
-        '写进走势图的目标名次') +
-      setRow('离目标还剩几场',
-        '<input class="input num set-num" id="cfgRemaining" type="number" min="0" value="' + (c.remainingExams || 0) + '">',
-        '用来算每场需要涨多少分')
-    ) +
-    setGroup('班级与年级',
-      setRow('班级',
-        '<input class="input set-text" id="cfgClassName" type="text" value="' + esc(c.className) + '">') +
-      setRow('班级人数',
-        '<input class="input num set-num" id="cfgClassSize" type="number" min="1" value="' + c.classSize + '">',
-        '用来算班级排名百分比') +
-      setRow('年级人数',
-        '<input class="input num set-num" id="cfgGradeSize" type="number" min="1" value="' + c.gradeSize + '">',
-        '用来算年级排名百分比') +
-      setRow('入学年份',
-        '<input class="input num set-num" id="cfgEnrollYear" type="number" min="2000" max="2100" value="' + (c.enrollYear || '') + '">',
-        '决定 2025 年 9 月算高一上还是别的')
-    ) +
-    setGroup('达标分界',
-      setRow('及格线',
-        '<span class="input-suffix set-num"><input class="input num" id="cfgPassRate" type="number" min="0" max="100" value="' + (c.passRate || 60) + '"><span class="suffix num">%</span></span>',
-        '低于这条线算未达标') +
-      setRow('优秀线',
-        '<span class="input-suffix set-num"><input class="input num" id="cfgGoodRate" type="number" min="0" max="100" value="' + (c.goodRate || 85) + '"><span class="suffix num">%</span></span>',
-        '高于这条线算优秀')
-    );
+    return setCards([
+      setCard('目标分数',
+        setField('目标总分',
+          '<input class="input num set-num" id="cfgTargetTotal" type="number" min="0" max="1200" value="' + c.targetTotal + '">',
+          totalHint) +
+        setField('目标班级排名',
+          '<input class="input num set-num" id="cfgTargetClass" type="number" min="1" value="' + c.targetRankClass + '">',
+          '排名格右上角判断达标与否') +
+        setField('目标年级排名',
+          '<input class="input num set-num" id="cfgTargetGrade" type="number" min="1" value="' + c.targetRankGrade + '">',
+          '写进走势图的目标名次') +
+        setField('离目标还剩几场',
+          '<input class="input num set-num" id="cfgRemaining" type="number" min="0" value="' + (c.remainingExams || 0) + '">',
+          '用来算每场需要涨多少分')
+      ),
+      setCard('班级与年级',
+        setField('班级',
+          '<input class="input set-text" id="cfgClassName" type="text" value="' + esc(c.className) + '">') +
+        setField('班级人数',
+          '<input class="input num set-num" id="cfgClassSize" type="number" min="1" value="' + c.classSize + '">',
+          '用来算班级排名百分比') +
+        setField('年级人数',
+          '<input class="input num set-num" id="cfgGradeSize" type="number" min="1" value="' + c.gradeSize + '">',
+          '用来算年级排名百分比') +
+        setField('入学年份',
+          '<input class="input num set-num" id="cfgEnrollYear" type="number" min="2000" max="2100" value="' + (c.enrollYear || '') + '">',
+          '决定 2025 年 9 月算高一上还是别的')
+      ),
+      setCard('达标分界',
+        setField('及格线',
+          '<span class="input-suffix set-num"><input class="input num" id="cfgPassRate" type="number" min="0" max="100" value="' + (c.passRate || 60) + '"><span class="suffix num">%</span></span>',
+          '低于这条线算未达标') +
+        setField('优秀线',
+          '<span class="input-suffix set-num"><input class="input num" id="cfgGoodRate" type="number" min="0" max="100" value="' + (c.goodRate || 85) + '"><span class="suffix num">%</span></span>',
+          '高于这条线算优秀')
+      )
+    ]);
   }
 
   /* 科目：固定四列，改完立刻重算 */
@@ -1323,17 +1329,17 @@
         '</tr>';
     }).join('');
 
-    return setGroup('六科的满分与目标分',
+    return setCards([setCard('六科的满分与目标分',
       '<table class="table-form">' +
       '<thead><tr><th>科目</th><th class="num">满分</th><th class="num">目标分</th><th class="num">目标得分率</th></tr></thead>' +
       '<tbody>' + rows + '</tbody>' +
       '</table>',
-      '改名字、满分或目标分之后，所有走势和对照会跟着重算。');
+      '改名字、满分或目标分之后，所有走势和对照会跟着重算。')], 1);
   }
 
   function typesPanel(state) {
     var c = state.config;
-    return setGroup('记录考试时能选的类型',
+    return setCards([setCard('记录考试时能选的类型',
       '<div class="type-manage">' +
       '  <div class="type-chips">' + (c.types || []).map(function (t) {
         return '<span class="type-chip">' +
@@ -1346,47 +1352,41 @@
       '    <button type="button" class="btn" data-type-add>添加</button>' +
       '  </div>' +
       '</div>',
-      '点名字可以直接改；改完之后，用过这个类型的考试会一起改成新名字。');
+      '点名字可以直接改；改完之后，用过这个类型的考试会一起改成新名字。')], 1);
   }
 
-  /* 数据：每个格式一行，右边一个按钮 */
+  /* 数据：导出、导入、检查三张卡片并排 */
   function dataPanel(state) {
     var issues = S.audit(Object.assign({}, state, { filter: 'all' }));
 
-    return setGroup('导出',
-      actRow('备份（JSON）', '目标、科目和全部考试都在里面，可以完整还原',
-        '<button class="btn" data-action="export-json">导出</button>') +
-      actRow('表格（Excel）', '六科分数、名次和平均分，每场一行',
-        '<button class="btn" data-action="export-xlsx">导出</button>') +
-      actRow('表格（CSV）', '同样的内容，纯文本，任何表格软件都能打开',
-        '<button class="btn" data-action="export-csv">导出</button>') +
-      actRow('分析报告', '一页纸的图表和结论，可以打印或存成 PDF',
-        '<button class="btn" data-action="export-report">导出</button>')
-    ) +
-    setGroup('导入',
-      actRow('备份（JSON）', '会替换当前的全部内容',
-        '<button class="btn" data-action="import-json">选择文件</button>') +
-      actRow('表格（CSV）', '只含考试记录，按「日期 + 名称」合并',
-        '<button class="btn" data-action="import-csv">选择文件</button>') +
-      actRow('表格（Excel）', '只含考试记录，直接读 xlsx',
-        '<button class="btn" data-action="import-xlsx">选择文件</button>') +
-      actRow('空白模板', '先下载一份照着填，填完再导回来',
-        '<button class="btn" data-action="download-template">下载</button>')
-    ) +
-    setGroup('数据检查',
-      '<div class="set-row is-act">' +
-      '<span class="set-row-label">当前存档</span>' +
-      '<span class="set-row-hint">' + (issues.length ? '下面这些地方需要看看' : '分数、名次、平均分和目标都在合理范围内') + '</span>' +
-      '<span class="set-row-control">' +
-      (issues.length
-        ? '<span class="set-tag set-tag-warn">发现 ' + issues.length + ' 处</span>'
-        : '<span class="set-tag set-tag-ok">没有发现问题</span>') +
-      '</span>' +
-      '</div>' +
-      (issues.length
-        ? '<ul class="issue-list">' + issues.map(function (i) { return '<li>' + esc(i.text) + '</li>'; }).join('') + '</ul>'
-        : '')
-    ) +
+    return setCards([
+      setCard('导出',
+        actField('备份（JSON）', '<button class="btn" data-action="export-json">导出</button>', '目标、科目和全部考试都在里面') +
+        actField('表格（Excel）', '<button class="btn" data-action="export-xlsx">导出</button>', '六科分数、名次和平均分，每场一行') +
+        actField('表格（CSV）', '<button class="btn" data-action="export-csv">导出</button>', '同样的内容，纯文本') +
+        actField('分析报告', '<button class="btn" data-action="export-report">导出</button>', '图表和结论，可以打印或存成 PDF')
+      ),
+      setCard('导入',
+        actField('备份（JSON）', '<button class="btn" data-action="import-json">选择文件</button>', '会替换当前的全部内容') +
+        actField('表格（CSV）', '<button class="btn" data-action="import-csv">选择文件</button>', '按「日期 + 名称」合并') +
+        actField('表格（Excel）', '<button class="btn" data-action="import-xlsx">选择文件</button>', '直接读 xlsx') +
+        actField('空白模板', '<button class="btn" data-action="download-template">下载</button>', '先照着填，填完再导回来')
+      ),
+      setCard('数据检查',
+        '<div class="set-field">' +
+        '<span class="set-field-label">当前存档</span>' +
+        '<span class="set-field-control">' +
+        (issues.length
+          ? '<span class="set-tag set-tag-warn">发现 ' + issues.length + ' 处</span>'
+          : '<span class="set-tag set-tag-ok">没有发现问题</span>') +
+        '</span>' +
+        '<span class="set-field-hint">' + (issues.length ? '下面这些地方需要看看' : '分数、名次、平均分和目标都在合理范围内') + '</span>' +
+        '</div>' +
+        (issues.length
+          ? '<ul class="issue-list">' + issues.map(function (i) { return '<li>' + esc(i.text) + '</li>'; }).join('') + '</ul>'
+          : '')
+      )
+    ], 3) +
     '<details class="danger-fold">' +
     '  <summary>危险操作</summary>' +
     '  <div class="danger-zone">' +
@@ -1471,13 +1471,15 @@
         '</button>';
     }).join('');
 
-    return setGroup('深浅色',
-      setRow('明暗', seg, '选「跟随系统」时，系统换成深色这里也会跟着变') +
-      setRow('侧栏开关', swSeg, '关掉之后，侧栏底部不再显示切换按钮')
-    ) +
-    setGroup('配色',
-      '<div class="palette-pick">' + cards + '</div>',
-      '换的只是颜色，布局和字号不变。');
+    return setCards([
+      setCard('深浅色',
+        setField('明暗', seg, '选「跟随系统」时，系统换成深色这里也会跟着变') +
+        setField('侧栏开关', swSeg, '关掉之后，侧栏底部不再显示切换按钮')
+      ),
+      setCard('配色',
+        '<div class="palette-pick">' + cards + '</div>',
+        '换的只是颜色，布局和字号不变。')
+    ], 2);
   }
 
   /* 存储状况：能不能写、会不会被清、占了多少 */
@@ -1492,37 +1494,40 @@
     var hasBroken = !!st.broken || (S.brokenExists && S.brokenExists());
     var canAsk = persisted !== true && persisted !== 'unsupported';
 
-    return setGroup('这台浏览器',
-      '<div class="set-row is-act">' +
-      '<span class="set-row-label">本地存储</span>' +
-      '<span class="set-row-hint">' + (st.available === false ? '被浏览器禁止，改动关掉页面就没了' : '改动会写进这台电脑') + '</span>' +
-      '<span class="set-row-control">' + (st.available === false
-        ? '<span class="set-tag set-tag-bad">被禁止</span>'
-        : '<span class="set-tag set-tag-ok">可以写入</span>') + '</span>' +
-      '</div>' +
-      '<div class="set-row is-act">' +
-      '<span class="set-row-label">长期保留</span>' +
-      '<span class="set-row-hint">' + esc(persistText) + '</span>' +
-      '<span class="set-row-control">' + (canAsk ? '<button class="btn" data-action="request-persist">申请</button>' : '') + '</span>' +
-      '</div>' +
-      '<div class="set-row is-act">' +
-      '<span class="set-row-label">当前占用</span>' +
-      '<span class="set-row-hint">全部考试和设置加起来</span>' +
-      '<span class="set-row-control"><span class="set-value num">' + kb + ' KB</span></span>' +
-      '</div>',
-      '清理浏览器数据、关掉无痕窗口、换一台电脑，成绩都会不见。隔一段时间在「数据」里导出一份 JSON 放到别处最稳妥。'
-    ) +
-    (hasBroken
-      ? setGroup('读不出来的存档',
-        '<div class="set-row is-act">' +
-        '<span class="set-row-label">留底</span>' +
-        '<span class="set-row-hint">原始内容按原样保存着，可以下载下来自行检查</span>' +
-        '<span class="set-row-control">' +
-        '<button class="btn" data-action="export-broken">下载</button>' +
-        '<button class="btn btn-danger" data-action="discard-broken">丢弃</button>' +
-        '</span>' +
-        '</div>')
-      : '');
+    return setCards([
+      setCard('这台浏览器',
+        '<div class="set-field">' +
+        '<span class="set-field-label">本地存储</span>' +
+        '<span class="set-field-control">' + (st.available === false
+          ? '<span class="set-tag set-tag-bad">被禁止</span>'
+          : '<span class="set-tag set-tag-ok">可以写入</span>') + '</span>' +
+        '<span class="set-field-hint">' + (st.available === false ? '被浏览器禁止，改动关掉页面就没了' : '改动会写进这台电脑') + '</span>' +
+        '</div>' +
+        '<div class="set-field">' +
+        '<span class="set-field-label">长期保留</span>' +
+        '<span class="set-field-control">' + (canAsk ? '<button class="btn" data-action="request-persist">申请</button>' : '') + '</span>' +
+        '<span class="set-field-hint">' + esc(persistText) + '</span>' +
+        '</div>' +
+        '<div class="set-field">' +
+        '<span class="set-field-label">当前占用</span>' +
+        '<span class="set-field-control"><span class="set-value num">' + kb + ' KB</span></span>' +
+        '<span class="set-field-hint">全部考试和设置加起来</span>' +
+        '</div>',
+        '清理浏览器数据、关掉无痕窗口、换一台电脑，成绩都会不见。'
+      ),
+      setCard('备份与留底',
+        hasBroken
+          ? '<div class="set-field">' +
+          '<span class="set-field-label">读不出来的存档</span>' +
+          '<span class="set-field-control">' +
+          '<button class="btn" data-action="export-broken">下载</button>' +
+          '<button class="btn btn-danger" data-action="discard-broken">丢弃</button>' +
+          '</span>' +
+          '<span class="set-field-hint">原始内容按原样保存着，可以下载下来自行检查</span>' +
+          '</div>'
+          : '<p class="set-field-hint">没有读不出来的存档。隔一段时间在「数据」里导出一份 JSON 放到别处。</p>'
+      )
+    ], 2);
   }
 
   /* ================= 录入对话框 ================= */

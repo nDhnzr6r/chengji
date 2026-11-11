@@ -464,7 +464,6 @@ button, input, select { font: inherit; color: inherit; }
   margin: 0 auto;
   width: 100%;
 }
-
 #main.is-enter > * {
   animation: viewIn 360ms var(--ease-out) both;
 }
@@ -1411,7 +1410,6 @@ button, input, select { font: inherit; color: inherit; }
 
 .set-panel {
   min-width: 0;
-  max-width: 640px;
   transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
 }
 
@@ -1422,73 +1420,75 @@ button, input, select { font: inherit; color: inherit; }
 
 .set-foot {
   grid-column: 2;
-  max-width: 640px;
   margin-top: 16px;
 }
 
-.set-group + .set-group { margin-top: 32px; }
+/* 分区里是几张并排的卡片 */
+.set-cards {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
 
-.set-group-title {
-  margin: 0;
-  padding-bottom: 8px;
+.set-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 20px;
+}
+
+.set-card-title {
+  margin: 0 0 16px;
   font-size: 12px;
   font-weight: 500;
   color: var(--muted);
-  border-bottom: 1px solid var(--border);
 }
 
-.set-group-note {
-  margin: 12px 0 0;
+.set-card-body { display: flex; flex-direction: column; gap: 16px; }
+
+.set-card-note {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
   font-size: 12px;
   color: var(--faint);
-  line-height: 1.7;
-  max-width: 58ch;
+  line-height: 1.65;
 }
 
-.set-rows { display: flex; flex-direction: column; }
-
-.set-row {
-  display: flex;
+/* 卡片里的一项：名字和控件一行，说明另起一行 */
+.set-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  padding: 9px 0;
+  gap: 10px;
 }
 
-.set-row + .set-row { border-top: 1px solid var(--rule); }
-
-.set-row-label {
-  flex: none;
-  width: 116px;
+.set-field-label {
   font-size: 13px;
   color: var(--text);
   line-height: 1.5;
+  min-width: 0;
 }
 
-.set-row-control {
-  flex: none;
+.set-field-control {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 8px;
-  width: 124px;
+  justify-content: flex-end;
 }
 
-.set-row.is-act .set-row-control {
-  width: auto;
-  margin-left: auto;
-}
-
-.set-row-hint {
-  flex: 1;
-  min-width: 0;
+.set-field-hint {
+  grid-column: 1 / -1;
+  margin-top: -2px;
   font-size: 12px;
   color: var(--muted);
   line-height: 1.6;
 }
 
-.set-row-control .set-num { width: 88px; flex: none; }
-.set-row-control .set-text { width: 124px; flex: none; }
-.set-row-control input.num { text-align: right; }
+.set-field-control .input { width: 104px; padding: 0 8px; text-align: center; }
+.set-field-control .input-suffix { gap: 4px; }
+.set-field-control .input-suffix .input { width: 84px; }
 
 .set-value { font-size: 13px; color: var(--text); }
 
@@ -1506,7 +1506,6 @@ button, input, select { font: inherit; color: inherit; }
   .set-nav { position: static; flex-direction: row; flex-wrap: wrap; margin: 0; }
   .set-nav-thumb { display: none; }
   .set-nav-meta { display: none; }
-  .set-panel, .set-foot { max-width: none; }
   .set-foot { grid-column: 1; }
   .set-row { flex-wrap: wrap; }
   .set-row-hint { flex-basis: 100%; }
@@ -1895,6 +1894,18 @@ button, input, select { font: inherit; color: inherit; }
 
 .input:hover { border-color: var(--control-hover); }
 
+/* 数字框不要上下箭头 */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 .input:focus {
   outline: none;
   border-color: var(--chart-3);
@@ -1947,9 +1958,12 @@ button, input, select { font: inherit; color: inherit; }
 
 .table-form tr:last-child td { border-bottom: none; }
 
-.table-form td .input { display: block; width: 100%; }
-
-.table-form td.num .input { text-align: right; }
+.table-form td .input {
+  display: block;
+  width: 120px;
+  margin: 0 auto;
+  text-align: center;
+}
 
 .danger-zone {
   margin-top: 24px;
