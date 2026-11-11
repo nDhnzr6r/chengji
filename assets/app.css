@@ -1932,23 +1932,17 @@ input[type="number"] {
 
 .table-form { width: 100%; border-collapse: collapse; table-layout: fixed; }
 
+/* 表头跟内容一起居中，四列等宽，上下对得齐 */
 .table-form th {
   font-size: 12px;
   font-weight: 400;
   color: var(--muted);
-  text-align: left;
+  text-align: center;
   padding: 0 8px 10px;
   border-bottom: 1px solid var(--border);
 }
 
-.table-form th.num, .table-form td.num { text-align: right; }
-
-.table-form th:first-child, .table-form td:first-child { width: 37%; }
-
-.table-form th:nth-child(2), .table-form td:nth-child(2),
-.table-form th:nth-child(3), .table-form td:nth-child(3) { width: 21%; }
-
-.table-form th:nth-child(4), .table-form td:nth-child(4) { width: 21%; }
+.table-form th.num, .table-form td.num { text-align: center; }
 
 .table-form td {
   padding: 6px 8px;

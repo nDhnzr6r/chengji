@@ -568,6 +568,17 @@
     }, 150);
   }
 
+  /* 只重画设置页这一块，不整页重来，也不用重放进入动画 */
+  function refreshSettingsPanel() {
+    var panel = document.getElementById('settingsPanel');
+    if (!panel || currentView !== 'settings') return;
+    var sec = parseHash().query.sec || 'goal';
+    panel.innerHTML = V.settingsPanel(state, sec);
+    if (global.UI) global.UI.mountAll(panel);
+    initSegs();
+    mountSettings();
+  }
+
   /* 侧栏底部的深浅色按钮：收起和展开都不重建侧栏 */
   function setThemeToggleVisible(show) {
     var btn = document.getElementById('themeToggle');
@@ -1333,14 +1344,14 @@
       S.discardBroken();
       if (storageNote && storageNote.kind === 'broken') setStorageNote(null);
       toast('留底的存档已丢弃');
-      if (currentView === 'settings') render();
+      refreshSettingsPanel();
     }
     else if (action === 'request-persist') {
       S.requestPersist().then(function (result) {
         if (result === true) toast('浏览器已同意长期保留这些数据');
         else if (result === 'unsupported') toast('这个浏览器不支持申请长期保留', 'bad');
         else toast('浏览器没有同意，数据仍可能被清理', 'bad');
-        if (currentView === 'settings') render();
+        refreshSettingsPanel();
       });
     }
     else if (action === 'reload-external') {
