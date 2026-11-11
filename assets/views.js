@@ -1170,38 +1170,26 @@
       '<header class="page-head"><div><h1>设置</h1><p class="page-sub">目标、科目和数据都保存在这台电脑的浏览器里</p></div>' +
       '<button class="btn btn-ghost" data-action="replay-tour">看一遍导览</button></header>' +
 
-      '<section class="card card-form">' +
-      '  <div class="card-head"><h2 class="card-title">目标</h2></div>' +
-      '  <div class="field-grid">' +
-      '    <label class="field"><span class="field-label">目标总分</span>' +
-      '      <input class="input" id="cfgTargetTotal" type="number" min="0" max="1200" value="' + c.targetTotal + '">' +
-      '      <span class="field-hint">' + (goalMate.mismatch
-        ? '各科目标加起来是 ' + goalMate.subjectSum + ' 分，和目标总分差 ' + Math.abs(goalMate.mismatch) + ' 分'
-        : '填 0 时按各科目标分数相加') + '</span></label>' +
-      '    <label class="field"><span class="field-label">目标班级排名</span>' +
-      '      <input class="input" id="cfgTargetClass" type="number" min="1" value="' + c.targetRankClass + '"></label>' +
-      '    <label class="field"><span class="field-label">目标年级排名</span>' +
-      '      <input class="input" id="cfgTargetGrade" type="number" min="1" value="' + c.targetRankGrade + '"></label>' +
-      '    <label class="field"><span class="field-label">班级</span>' +
-      '      <input class="input" id="cfgClassName" type="text" value="' + esc(c.className) + '"></label>' +
-      '    <label class="field"><span class="field-label">班级人数</span>' +
-      '      <input class="input" id="cfgClassSize" type="number" min="1" value="' + c.classSize + '"></label>' +
-      '    <label class="field"><span class="field-label">年级人数</span>' +
-      '      <input class="input" id="cfgGradeSize" type="number" min="1" value="' + c.gradeSize + '"></label>' +
-      '    <label class="field"><span class="field-label">入学年份</span>' +
-      '      <input class="input" id="cfgEnrollYear" type="number" min="2000" max="2100" value="' + (c.enrollYear || '') + '">' +
-      '      <span class="field-hint">用来把考试分到高一上、高一下这样的学期里</span></label>' +
-      '    <label class="field"><span class="field-label">离目标还剩几场</span>' +
-      '      <input class="input" id="cfgRemaining" type="number" min="0" value="' + (c.remainingExams || 0) + '">' +
-      '      <span class="field-hint">用来算每场需要涨多少分</span></label>' +
-      '    <label class="field"><span class="field-label">及格线</span>' +
-      '      <span class="input-suffix"><input class="input num" id="cfgPassRate" type="number" min="0" max="100" value="' + (c.passRate || 60) + '"><span class="suffix num">%</span></span></label>' +
-      '    <label class="field"><span class="field-label">优秀线</span>' +
-      '      <span class="input-suffix"><input class="input num" id="cfgGoodRate" type="number" min="0" max="100" value="' + (c.goodRate || 85) + '"><span class="suffix num">%</span></span></label>' +
-      '  </div>' +
+      '<nav class="settings-nav" aria-label="页内跳转">' +
+      '  <button type="button" data-goto="set-goal">目标</button>' +
+      '  <button type="button" data-goto="set-subjects">科目</button>' +
+      '  <button type="button" data-goto="set-types">类型</button>' +
+      '  <button type="button" data-goto="set-palette">配色</button>' +
+      '  <button type="button" data-goto="set-data">数据</button>' +
+      '  <button type="button" data-goto="set-storage">存储</button>' +
+      '</nav>' +
+
+      goalCard(c, goalMate) +
+
+      '<section class="card card-form" id="set-subjects">' +
+      '  <div class="card-head"><div class="card-title-wrap"><h2 class="card-title">科目与满分</h2><p class="card-sub">改名字、满分或目标分之后，所有走势和对照会跟着重算</p></div></div>' +
+      '  <table class="table-form">' +
+      '    <thead><tr><th>科目</th><th class="num">满分</th><th class="num">目标分</th><th class="num">目标得分率</th></tr></thead>' +
+      '    <tbody>' + subjectRows + '</tbody>' +
+      '  </table>' +
       '</section>' +
 
-      '<section class="card card-form">' +
+      '<section class="card card-form" id="set-types">' +
       '  <div class="card-head"><div class="card-title-wrap"><h2 class="card-title">考试类型</h2><p class="card-sub">记录考试时可以从这里选到的类型</p></div></div>' +
       '  <div class="type-manage">' +
       '    <div class="type-chips">' + (c.types || []).map(function (t) {
@@ -1217,52 +1205,122 @@
       '  </div>' +
       '</section>' +
 
-      '<section class="card card-form">' +
-      '  <div class="card-head"><div class="card-title-wrap"><h2 class="card-title">科目与满分</h2><p class="card-sub">改名字、满分或目标分之后，所有走势和对照会跟着重算</p></div></div>' +
-      '  <table class="table-form">' +
-      '    <thead><tr><th>科目</th><th class="num">满分</th><th class="num">目标分</th><th class="num">目标得分率</th></tr></thead>' +
-      '    <tbody>' + subjectRows + '</tbody>' +
-      '  </table>' +
-      '</section>' +
-
-      '<section class="card card-form">' +
-      '  <div class="card-head"><div class="card-title-wrap"><h2 class="card-title">数据</h2><p class="card-sub">共 ' + state.exams.length + ' 次考试记录</p></div></div>' +
-      '  <div class="data-actions">' +
-      '    <button class="btn" data-action="export-json">导出备份（JSON）</button>' +
-      '    <button class="btn" data-action="import-json">导入备份（JSON）</button>' +
-      '    <button class="btn" data-action="export-xlsx">导出表格（Excel）</button>' +
-      '    <button class="btn" data-action="export-report">导出分析报告</button>' +
-      '    <button class="btn" data-action="export-csv">导出表格（CSV）</button>' +
-      '    <button class="btn" data-action="import-csv">导入 CSV</button>' +
-      '    <button class="btn" data-action="import-xlsx">导入 Excel</button>' +
-      '    <button class="btn" data-action="download-template">下载导入模板</button>' +
-      '  </div>' +
-      '  <p class="field-hint data-hint">JSON 备份包含目标、科目和全部考试，导入会替换当前的全部内容。CSV 只含考试记录，按「日期 + 名称」合并。</p>' +
-      '  <div class="danger-zone">' +
-      '    <div><strong>清空全部记录</strong><p>只删考试，保留目标与科目设置。</p></div>' +
-      '    <button class="btn btn-danger" data-action="clear-exams">清空记录</button>' +
-      '  </div>' +
-      '  <div class="danger-zone">' +
-      '    <div><strong>恢复出厂</strong><p>连同目标、科目、人数和类型一起重置，全部记录也会删掉。</p></div>' +
-      '    <button class="btn btn-danger" data-action="reset-all">清空全部数据</button>' +
-      '  </div>' +
-      '  <div class="danger-zone">' +
-      '    <div><strong>填入示例数据</strong><p>把 15 场虚构的考试和默认设置装回来，用来试用功能。会覆盖当前全部内容。</p></div>' +
-      '    <button class="btn" data-action="load-sample">填入示例数据</button>' +
-      '  </div>' +
-      '</section>' +
-
-      '<section class="card card-form">' +
-      '  <div class="card-head"><div class="card-title-wrap"><h2 class="card-title">数据检查</h2>' +
-      '    <p class="card-sub">' + (issues.length ? '发现 ' + issues.length + ' 处对不上的地方，改掉之后判断才准' : '分数、名次、平均分和目标都在合理范围内') + '</p></div></div>' +
-      (issues.length
-        ? '  <ul class="issue-list">' + issues.map(function (i) { return '<li>' + esc(i.text) + '</li>'; }).join('') + '</ul>'
-        : '  <p class="analysis-note issue-ok">没有发现问题。</p>') +
-      '</section>' +
-
       appearanceCard() +
+      dataCard(state, issues) +
       storageCard() +
-      '<p class="app-version">成迹 ' + esc(S.VERSION) + '</p>';
+      appFooter();
+  }
+
+  /* 页脚：版本、作者、仓库、许可证 */
+  function appFooter() {
+    return '<footer class="app-meta">' +
+      '<span class="app-name">成迹</span>' +
+      '<span>v' + esc(S.VERSION) + '</span>' +
+      '<span class="app-dot">·</span>' +
+      '<span>作者 <a href="https://github.com/nDhnzr6r" target="_blank" rel="noopener">nDhnzr6r</a></span>' +
+      '<span class="app-dot">·</span>' +
+      '<a href="https://github.com/nDhnzr6r/chengji" target="_blank" rel="noopener">仓库</a>' +
+      '<span class="app-dot">·</span>' +
+      '<a href="https://github.com/nDhnzr6r/chengji/blob/master/LICENSE" target="_blank" rel="noopener">GPL-3.0</a>' +
+      '</footer>';
+  }
+
+  /* 目标、班级、进度三组合成九格，一行三个不落单 */
+  function goalCard(c, goalMate) {
+    return '<section class="card card-form" id="set-goal">' +
+      '  <div class="card-head"><h2 class="card-title">目标</h2></div>' +
+      '  <div class="field-grid">' +
+      '    <label class="field"><span class="field-label">目标总分</span>' +
+      '      <input class="input" id="cfgTargetTotal" type="number" min="0" max="1200" value="' + c.targetTotal + '">' +
+      '      <span class="field-hint">' + (goalMate.mismatch
+        ? '各科目标加起来是 ' + goalMate.subjectSum + ' 分，和目标总分差 ' + Math.abs(goalMate.mismatch) + ' 分'
+        : '填 0 时按各科目标分数相加') + '</span></label>' +
+      '    <label class="field"><span class="field-label">目标班级排名</span>' +
+      '      <input class="input" id="cfgTargetClass" type="number" min="1" value="' + c.targetRankClass + '">' +
+      '      <span class="field-hint">排名格右上角判断达标与否</span></label>' +
+      '    <label class="field"><span class="field-label">目标年级排名</span>' +
+      '      <input class="input" id="cfgTargetGrade" type="number" min="1" value="' + c.targetRankGrade + '">' +
+      '      <span class="field-hint">写进走势图的目标名次</span></label>' +
+
+      '    <label class="field"><span class="field-label">班级</span>' +
+      '      <input class="input" id="cfgClassName" type="text" value="' + esc(c.className) + '"></label>' +
+      '    <label class="field"><span class="field-label">班级人数</span>' +
+      '      <input class="input" id="cfgClassSize" type="number" min="1" value="' + c.classSize + '">' +
+      '      <span class="field-hint">用来算班级排名百分比</span></label>' +
+      '    <label class="field"><span class="field-label">年级人数</span>' +
+      '      <input class="input" id="cfgGradeSize" type="number" min="1" value="' + c.gradeSize + '">' +
+      '      <span class="field-hint">用来算年级排名百分比</span></label>' +
+
+      '    <label class="field"><span class="field-label">入学年份</span>' +
+      '      <input class="input" id="cfgEnrollYear" type="number" min="2000" max="2100" value="' + (c.enrollYear || '') + '">' +
+      '      <span class="field-hint">决定 2025 年 9 月算高一上还是别的</span></label>' +
+      '    <label class="field"><span class="field-label">离目标还剩几场</span>' +
+      '      <input class="input" id="cfgRemaining" type="number" min="0" value="' + (c.remainingExams || 0) + '">' +
+      '      <span class="field-hint">用来算每场需要涨多少分</span></label>' +
+      '    <div class="field"><span class="field-label">及格线 / 优秀线</span>' +
+      '      <span class="field-pair">' +
+      '        <span class="input-suffix"><input class="input num" id="cfgPassRate" type="number" min="0" max="100" value="' + (c.passRate || 60) + '" aria-label="及格线"><span class="suffix num">%</span></span>' +
+      '        <span class="input-suffix"><input class="input num" id="cfgGoodRate" type="number" min="0" max="100" value="' + (c.goodRate || 85) + '" aria-label="优秀线"><span class="suffix num">%</span></span>' +
+      '      </span>' +
+      '      <span class="field-hint">各科达标统计的分界</span></div>' +
+      '  </div>' +
+      '</section>';
+  }
+
+  /* 数据：导出和导入分开摆，检查和危险操作收在下面 */
+  function dataCard(state, issues) {
+    return '<section class="card card-form" id="set-data">' +
+      '  <div class="card-head"><div class="card-title-wrap"><h2 class="card-title">数据</h2>' +
+      '    <p class="card-sub">共 ' + state.exams.length + ' 次考试记录</p></div></div>' +
+
+      '  <div class="data-block">' +
+      '    <h3 class="data-block-title">导出</h3>' +
+      '    <div class="data-actions">' +
+      '      <button class="btn" data-action="export-json">备份（JSON）</button>' +
+      '      <button class="btn" data-action="export-xlsx">表格（Excel）</button>' +
+      '      <button class="btn" data-action="export-csv">表格（CSV）</button>' +
+      '      <button class="btn" data-action="export-report">分析报告</button>' +
+      '    </div>' +
+      '  </div>' +
+
+      '  <div class="data-block">' +
+      '    <h3 class="data-block-title">导入</h3>' +
+      '    <div class="data-actions">' +
+      '      <button class="btn" data-action="import-json">备份（JSON）</button>' +
+      '      <button class="btn" data-action="import-csv">CSV</button>' +
+      '      <button class="btn" data-action="import-xlsx">Excel</button>' +
+      '      <button class="btn" data-action="download-template">导入模板</button>' +
+      '    </div>' +
+      '    <p class="field-hint data-hint">JSON 备份包含目标、科目和全部考试，导入会替换当前的全部内容。CSV 只含考试记录，按「日期 + 名称」合并。</p>' +
+      '  </div>' +
+
+      '  <div class="data-check">' +
+      '    <div class="data-check-head">数据检查' +
+      (issues.length
+        ? '<span class="data-check-bad">发现 ' + issues.length + ' 处</span>'
+        : '<span class="data-check-ok">没有发现问题</span>') +
+      '</div>' +
+      (issues.length
+        ? '<ul class="issue-list">' + issues.map(function (i) { return '<li>' + esc(i.text) + '</li>'; }).join('') + '</ul>'
+        : '<p class="field-hint">分数、名次、平均分和目标都在合理范围内。</p>') +
+      '  </div>' +
+
+      '  <details class="danger-fold">' +
+      '    <summary>危险操作</summary>' +
+      '    <div class="danger-zone">' +
+      '      <div><strong>清空全部记录</strong><p>只删考试，保留目标与科目设置。</p></div>' +
+      '      <button class="btn btn-danger" data-action="clear-exams">清空记录</button>' +
+      '    </div>' +
+      '    <div class="danger-zone">' +
+      '      <div><strong>恢复出厂</strong><p>连同目标、科目、人数和类型一起重置，全部记录也会删掉。</p></div>' +
+      '      <button class="btn btn-danger" data-action="reset-all">清空全部数据</button>' +
+      '    </div>' +
+      '    <div class="danger-zone">' +
+      '      <div><strong>填入示例数据</strong><p>把 15 场虚构的考试和默认设置装回来，用来试用功能。会覆盖当前全部内容。</p></div>' +
+      '      <button class="btn" data-action="load-sample">填入示例数据</button>' +
+      '    </div>' +
+      '  </details>' +
+      '</section>';
   }
 
   /* 当前配色，读不到就按纸与墨算 */
@@ -1277,16 +1335,16 @@
   function appearanceCard() {
     var now = currentPalette();
     var items = [
-      { id: 'ink', name: '纸与墨', desc: '米白纸面，深墨字色，圆角偏大', colors: ['#f5f5f3', '#191919', '#1e415e'] },
-      { id: 'classic', name: '默认', desc: '冷灰底，蓝色强调，圆角偏小', colors: ['#f2f4f7', '#0b0e14', '#1d5fbf'] }
+      { id: 'ink', name: '纸与墨', desc: '米白纸面，深墨字色，数据线用墨蓝', colors: ['#f5f5f3', '#191919', '#1e415e'] },
+      { id: 'classic', name: '默认', desc: '冷灰底，近黑字色，数据线用亮蓝', colors: ['#f2f4f7', '#0b0e14', '#1d5fbf'] }
     ];
-    return '<section class="card card-form">' +
+    return '<section class="card card-form" id="set-palette">' +
       '  <div class="card-head"><div class="card-title-wrap"><h2 class="card-title">配色</h2>' +
-      '    <p class="card-sub">换的只是颜色和圆角，记录和计算不受影响</p></div></div>' +
+      '    <p class="card-sub">换的只是颜色，布局和字号不变</p></div></div>' +
       '  <div class="palette-pick">' + items.map(function (it) {
         var on = it.id === now;
         return '<button type="button" class="palette-item' + (on ? ' is-on' : '') + '"' +
-          ' data-action="set-palette" data-palette="' + it.id + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+          ' data-action="set-palette" data-pick="' + it.id + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
           '<span class="palette-swatch">' +
           it.colors.map(function (c) { return '<i style="background:' + c + '"></i>'; }).join('') +
           '</span>' +
@@ -1308,7 +1366,7 @@
     var kb = Math.max(1, Math.round((S.footprint ? S.footprint() : 0) / 1024));
     var hasBroken = !!st.broken || (S.brokenExists && S.brokenExists());
 
-    return '<section class="card card-form">' +
+    return '<section class="card card-form" id="set-storage">' +
       '  <div class="card-head"><div class="card-title-wrap"><h2 class="card-title">存储</h2>' +
       '    <p class="card-sub">成绩保存在这台电脑的浏览器里，没有云端副本</p></div></div>' +
       '  <dl class="storage-facts">' +

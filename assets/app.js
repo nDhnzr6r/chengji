@@ -1137,6 +1137,14 @@
       return;
     }
 
+    /* 设置页的页内跳转 */
+    var gotoEl = evt.target.closest('[data-goto]');
+    if (gotoEl) {
+      var gotoHost = document.getElementById(gotoEl.getAttribute('data-goto'));
+      if (gotoHost) gotoHost.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
     var actionEl = evt.target.closest('[data-action]');
     if (!actionEl) return;
     var action = actionEl.getAttribute('data-action');
@@ -1280,7 +1288,7 @@
       toast('已载入另一个标签页的内容');
     }
     else if (action === 'set-palette') {
-      var want = actionEl.getAttribute('data-palette');
+      var want = actionEl.getAttribute('data-pick');
       applyPalette(want, true);
       if (currentView === 'settings') render();
       toast(want === 'classic' ? '已换成默认配色' : '已换成纸与墨');
