@@ -1260,8 +1260,41 @@
         : '  <p class="analysis-note issue-ok">没有发现问题。</p>') +
       '</section>' +
 
+      appearanceCard() +
       storageCard() +
       '<p class="app-version">成迹 ' + esc(S.VERSION) + '</p>';
+  }
+
+  /* 当前配色，读不到就按纸与墨算 */
+  function currentPalette() {
+    try {
+      return global.localStorage.getItem('scorebook.palette') === 'classic' ? 'classic' : 'ink';
+    } catch (err) {
+      return 'ink';
+    }
+  }
+
+  function appearanceCard() {
+    var now = currentPalette();
+    var items = [
+      { id: 'ink', name: '纸与墨', desc: '米白纸面，深墨字色，圆角偏大', colors: ['#f5f5f3', '#191919', '#1e415e'] },
+      { id: 'classic', name: '默认', desc: '冷灰底，蓝色强调，圆角偏小', colors: ['#f2f4f7', '#0b0e14', '#1d5fbf'] }
+    ];
+    return '<section class="card card-form">' +
+      '  <div class="card-head"><div class="card-title-wrap"><h2 class="card-title">配色</h2>' +
+      '    <p class="card-sub">换的只是颜色和圆角，记录和计算不受影响</p></div></div>' +
+      '  <div class="palette-pick">' + items.map(function (it) {
+        var on = it.id === now;
+        return '<button type="button" class="palette-item' + (on ? ' is-on' : '') + '"' +
+          ' data-action="set-palette" data-palette="' + it.id + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+          '<span class="palette-swatch">' +
+          it.colors.map(function (c) { return '<i style="background:' + c + '"></i>'; }).join('') +
+          '</span>' +
+          '<span class="palette-name">' + esc(it.name) + '</span>' +
+          '<span class="palette-desc">' + esc(it.desc) + '</span>' +
+          '</button>';
+      }).join('') + '</div>' +
+      '</section>';
   }
 
   /* 存储状况：能不能写、会不会被清、占了多少 */

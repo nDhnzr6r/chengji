@@ -11,10 +11,15 @@
       try { mode = localStorage.getItem('scorebook.theme') || 'auto'; } catch (e) {}
       var dark = mode === 'dark' || (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
       document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      try {
+        if (localStorage.getItem('scorebook.palette') === 'classic') {
+          document.documentElement.setAttribute('data-palette', 'classic');
+        }
+      } catch (e) {}
     })();
   </script>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=1.1.0">
+  <link rel="stylesheet" href="assets/app.css?v=1.1.0c">
 </head>
 <body>
   <div id="boot" aria-hidden="true">
@@ -38,11 +43,11 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <input type="file" id="fileInput" accept=".csv,text/csv" hidden>
 
-  <script src="assets/store.js?v=1.1.0"></script>
-  <script src="assets/ui.js?v=1.1.0"></script>
-  <script src="assets/charts.js?v=1.1.0"></script>
-  <script src="assets/views.js?v=1.1.0"></script>
-  <script src="assets/tour.js?v=1.1.0"></script>
-  <script src="assets/app.js?v=1.1.0"></script>
+  <script src="assets/store.js?v=1.1.0c"></script>
+  <script src="assets/ui.js?v=1.1.0c"></script>
+  <script src="assets/charts.js?v=1.1.0c"></script>
+  <script src="assets/views.js?v=1.1.0c"></script>
+  <script src="assets/tour.js?v=1.1.0c"></script>
+  <script src="assets/app.js?v=1.1.0c"></script>
 </body>
 </html>

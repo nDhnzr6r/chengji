@@ -1279,6 +1279,12 @@
       render();
       toast('已载入另一个标签页的内容');
     }
+    else if (action === 'set-palette') {
+      var want = actionEl.getAttribute('data-palette');
+      applyPalette(want, true);
+      if (currentView === 'settings') render();
+      toast(want === 'classic' ? '已换成默认配色' : '已换成纸与墨');
+    }
     else if (action === 'confirm-delete') { /* 由对话框内部处理 */ }
   });
 
@@ -1330,10 +1336,24 @@
   /* ---------------- 主题 ---------------- */
 
   var THEME_KEY = 'scorebook.theme';
+  var PALETTE_KEY = 'scorebook.palette';
   var darkQuery = global.matchMedia ? global.matchMedia('(prefers-color-scheme: dark)') : null;
 
   function themeMode() {
     try { return global.localStorage.getItem(THEME_KEY) || 'auto'; } catch (err) { return 'auto'; }
+  }
+
+  function paletteName() {
+    try { return global.localStorage.getItem(PALETTE_KEY) === 'classic' ? 'classic' : 'ink'; } catch (err) { return 'ink'; }
+  }
+
+  function applyPalette(name, remember) {
+    var value = name === 'classic' ? 'classic' : 'ink';
+    if (value === 'classic') document.documentElement.setAttribute('data-palette', 'classic');
+    else document.documentElement.removeAttribute('data-palette');
+    if (remember) {
+      try { global.localStorage.setItem(PALETTE_KEY, value); } catch (err) { /* ignore */ }
+    }
   }
 
   function applyTheme(mode, remember) {
@@ -1372,6 +1392,7 @@
 
   function boot() {
     applyTheme(themeMode(), false);
+    applyPalette(paletteName(), false);
     checkStorage();
     S.requestPersist();
     var route = parseHash();
