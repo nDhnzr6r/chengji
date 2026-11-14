@@ -13,6 +13,11 @@
   var SUBJECT_FULL_MAX = 300;
   var PASS_RATE_DEFAULT = 60;
   var GOOD_RATE_DEFAULT = 85;
+  var ABSENT_TEXT = '缺考';
+
+  /* 分数和名次对不上时用的两条界线：过了一半算靠后，进了前十分之一算靠前 */
+  var BACK_SHARE = 50;
+  var TOP_SHARE = 10;
 
   var DEFAULT_CONFIG = {
     className: '高二（7）班',
@@ -49,9 +54,7 @@
     { id: 'f10', name: '高一下 · 期末考试', date: '2026-07-08', type: '期末', scores: { chinese: 117, math: 122, english: 122, physics: 73, chemistry: 76, biology: 75 }, ranks: { class: 6, grade: 121 }, averages: { class: 460, grade: 455, top: 692 }, subjectRanks: { chinese: 12, math: 10, english: 10, physics: 15, chemistry: 13, biology: 14 }, subjectAverages: { chinese: 96, math: 97, english: 97, physics: 64, chemistry: 64, biology: 64 } },
     { id: 'f11', name: '高二上 · 第一次月考', date: '2026-09-11', type: '月考', scores: { chinese: 114, math: 113, english: 121, physics: 66, chemistry: 72, biology: 80 }, ranks: { class: 10, grade: 160 }, averages: { class: 437, grade: 432, top: 668 }, subjectRanks: { chinese: 13, math: 14, english: 11, physics: 19, chemistry: 16, biology: 11 }, subjectAverages: { chinese: 91, math: 91, english: 92, physics: 60, chemistry: 60, biology: 61 } },
     { id: 'f12', name: '高二上 · 期中考试', date: '2026-10-23', type: '期中', scores: { chinese: 118, math: 125, english: 124, physics: 70, chemistry: 76, biology: 81 }, ranks: { class: 7, grade: 118 }, averages: { class: 452, grade: 447, top: 684 }, subjectRanks: { chinese: 12, math: 9, english: 10, physics: 17, chemistry: 13, biology: 11 }, subjectAverages: { chinese: 95, math: 95, english: 95, physics: 62, chemistry: 63, biology: 63 } },
-    { id: 'f13', name: '高二上 · 六校联考', date: '2026-11-07', type: '联考', scores: { chinese: 119, math: 127, english: 125, physics: 71, chemistry: 78, biology: 81 }, ranks: { class: 6, grade: 108 }, averages: { class: 458, grade: 453, top: 688 }, subjectRanks: { chinese: 12, math: 9, english: 9, physics: 16, chemistry: 12, biology: 11 }, subjectAverages: { chinese: 96, math: 97, english: 96, physics: 63, chemistry: 64, biology: 64 } },
-    { id: 'f14', name: '高二上 · 第二次月考', date: '2026-11-20', type: '月考', scores: { chinese: 120, math: 130, english: 126, physics: 73, chemistry: 80, biology: 83 }, ranks: { class: 5, grade: 96 }, averages: { class: 449, grade: 444, top: 680 }, subjectRanks: { chinese: 11, math: 7, english: 9, physics: 15, chemistry: 11, biology: 10 }, subjectAverages: { chinese: 94, math: 95, english: 95, physics: 62, chemistry: 63, biology: 63 } },
-    { id: 'f15', name: '高二上 · 期末考试', date: '2026-12-18', type: '期末', scores: { chinese: 122, math: 132, english: 128, physics: 75, chemistry: 82, biology: 84 }, ranks: { class: 4, grade: 88 }, averages: { class: 451, grade: 446, top: 683 }, subjectRanks: { chinese: 10, math: 7, english: 8, physics: 14, chemistry: 10, biology: 9 }, subjectAverages: { chinese: 95, math: 96, english: 95, physics: 63, chemistry: 63, biology: 63 } }
+    { id: 'f13', name: '高二上 · 六校联考', date: '2026-11-07', type: '联考', scores: { chinese: 119, math: 127, english: 125, physics: 71, chemistry: 78, biology: 81 }, ranks: { class: 6, grade: 108 }, averages: { class: 458, grade: 453, top: 688 }, subjectRanks: { chinese: 12, math: 9, english: 9, physics: 16, chemistry: 12, biology: 11 }, subjectAverages: { chinese: 96, math: 97, english: 96, physics: 63, chemistry: 64, biology: 64 } }
   ];
 
   var SEED_COUNT = SEED_EXAMS.length;
@@ -178,6 +181,11 @@
       sum += Number(exam.scores[s.id]) || 0;
     });
     return sum;
+  }
+
+  /* 这一科是记下的缺考，还是单纯没填 */
+  function isAbsent(exam, subjectId) {
+    return !!(exam && Array.isArray(exam.absent) && exam.absent.indexOf(subjectId) >= 0);
   }
 
   function fullTotal(state) {
@@ -482,6 +490,7 @@
       return {
         subject: subject,
         score: has ? score : null,
+        absent: isAbsent(exam, subject.id),
         full: full,
         target: target,
         rate: has ? rate(score, full) : null,
@@ -660,12 +669,31 @@
     };
   }
 
+  /* 得分率和班内位次明显反着：分数不低却排到后面，或者分数不高却排在最前 */
+  function pushIssue(issues, text) {
+    if (text) issues.push({ text: text });
+  }
+
+  function clashText(label, date, score, ratePct, rank, size, pass, good) {
+    if (ratePct === null || !size || !rank || rank < 1) return null;
+    var pos = (rank / size) * 100;
+    var tone;
+    if (ratePct >= good && pos > BACK_SHARE) tone = '分数不低，名次却靠后';
+    else if (ratePct < pass && pos <= TOP_SHARE) tone = '分数不高，名次却靠前';
+    else return null;
+    return date + ' 的' + label + ' ' + score + ' 分（' + ratePct.toFixed(0) + '%），班级名次第 ' +
+      rank + ' / ' + size + '，' + tone;
+  }
+
   /* 把明显不对的数据挑出来，让人能去改 */
   function audit(state) {
     var issues = [];
     var full = fullTotal(state);
     var classSize = Number(state.config.classSize) || 0;
     var gradeSize = Number(state.config.gradeSize) || 0;
+    var pass = Number(state.config.passRate) || PASS_RATE_DEFAULT;
+    var good = Number(state.config.goodRate) || GOOD_RATE_DEFAULT;
+    var today = toISO(new Date());
     var seen = {};
 
     /* 数据检查要看全部记录，不受类型筛选影响 */
@@ -674,13 +702,9 @@
       if (seen[key]) issues.push({ text: e.date + ' 有两场都叫「' + e.name + '」，走势上会重复算一次' });
       seen[key] = true;
 
-      state.config.subjects.forEach(function (sub) {
-        var v = Number(e.scores[sub.id]);
-        if (isNaN(v)) return;
-        if (v < 0) issues.push({ text: e.date + ' 的' + sub.name + '是负分' });
-        else if (v > Number(sub.full)) issues.push({ text: e.date + ' 的' + sub.name + ' ' + v + ' 分超过满分 ' + sub.full });
-      });
+      if (e.date > today) issues.push({ text: e.date + ' 还没到，日期填成以后了' });
 
+      var absent = e.absent || [];
       var t = examTotal(state, e);
       if (t > full) issues.push({ text: e.date + ' 的总分 ' + t + ' 超过满分合计 ' + full });
 
@@ -690,6 +714,32 @@
       if (rg < 0) issues.push({ text: e.date + ' 的年级排名是负数' });
       if (rc && classSize && rc > classSize) issues.push({ text: e.date + ' 的班级排名 ' + rc + ' 超过班级人数 ' + classSize });
       if (rg && gradeSize && rg > gradeSize) issues.push({ text: e.date + ' 的年级排名 ' + rg + ' 超过年级人数 ' + gradeSize });
+
+      /* 有科目缺考时总分本来就不全，只拿单科比，不比总分 */
+      if (!absent.length) {
+        pushIssue(issues, clashText('总分', e.date, t, full ? rate(t, full) * 100 : null, rc, classSize, pass, good));
+      }
+
+      state.config.subjects.forEach(function (sub) {
+        var subFull = Number(sub.full) || 0;
+        var v = Number(e.scores[sub.id]);
+        if (!isNaN(v)) {
+          if (v < 0) issues.push({ text: e.date + ' 的' + sub.name + '是负分' });
+          else if (v > subFull) issues.push({ text: e.date + ' 的' + sub.name + ' ' + v + ' 分超过满分 ' + sub.full });
+          else {
+            var srk = Number((e.subjectRanks || {})[sub.id]) || 0;
+            pushIssue(issues, clashText(sub.name, e.date, v, subFull ? rate(v, subFull) * 100 : null, srk, classSize, pass, good));
+          }
+        }
+
+        var sr = Number((e.subjectRanks || {})[sub.id]) || 0;
+        if (sr < 0) issues.push({ text: e.date + ' 的' + sub.name + '班级名次是负数' });
+        else if (sr && classSize && sr > classSize) issues.push({ text: e.date + ' 的' + sub.name + '班级名次 ' + sr + ' 超过班级人数 ' + classSize });
+
+        var sa = Number((e.subjectAverages || {})[sub.id]) || 0;
+        if (sa < 0) issues.push({ text: e.date + ' 的' + sub.name + '班级平均是负数' });
+        else if (sa && subFull && sa > subFull) issues.push({ text: e.date + ' 的' + sub.name + '班级平均 ' + sa + ' 超过该科满分 ' + sub.full });
+      });
 
       var avg = e.averages || {};
       if (Number(avg.class) > full) issues.push({ text: e.date + ' 的班级平均 ' + avg.class + ' 超过满分 ' + full });
@@ -1021,7 +1071,7 @@
   /* 这些 id 会拼进 HTML 属性，带引号尖括号空格的一律重生成 */
   function safeId(value, prefix) {
     var text = String(value === null || value === undefined ? '' : value).trim();
-    if (text && text.length <= 64 && !/["'<>\s`\/=&]/.test(text)) return text;
+    if (text && text.length <= 64 && !/["'<>\s`/=&]/.test(text)) return text;
     return (prefix || 'x') + '_' + Math.random().toString(36).slice(2, 10);
   }
 
@@ -1035,7 +1085,7 @@
     var out = {};
     if (!src || typeof src !== 'object' || Array.isArray(src)) return out;
     Object.keys(src).forEach(function (key) {
-      if (!key || key.length > 64 || /["'<>\s`\/=&]/.test(key)) return;
+      if (!key || key.length > 64 || /["'<>\s`/=&]/.test(key)) return;
       var n = Number(src[key]);
       if (isFinite(n)) out[key] = n;
     });
@@ -1045,6 +1095,19 @@
   function plainText(value, fallback, max) {
     var text = String(value === null || value === undefined ? '' : value).slice(0, max || 64).trim();
     return text || fallback;
+  }
+
+  /* 只留配置里还在的科目，重复的去掉 */
+  function idList(src, subjects) {
+    var out = [];
+    if (!Array.isArray(src)) return out;
+    src.forEach(function (id) {
+      var key = String(id === null || id === undefined ? '' : id);
+      if (!key || out.indexOf(key) >= 0) return;
+      if (!subjects.some(function (s) { return s.id === key; })) return;
+      out.push(key);
+    });
+    return out;
   }
 
   function normalize(input) {
@@ -1100,6 +1163,7 @@
           scores: numberMap(e.scores),
           ranks: numberMap(e.ranks),
           averages: numberMap(e.averages),
+          absent: idList(e.absent, state.config.subjects),
           subjectAverages: numberMap(e.subjectAverages),
           subjectRanks: numberMap(e.subjectRanks)
         });
@@ -1278,7 +1342,10 @@
       var sr = e.subjectRanks || {};
       var sa = e.subjectAverages || {};
       return [e.name, e.date, e.type || '']
-        .concat(subjects.map(function (s) { return e.scores[s.id] === undefined ? '' : e.scores[s.id]; }))
+        .concat(subjects.map(function (s) {
+          if (e.scores[s.id] !== undefined) return e.scores[s.id];
+          return isAbsent(e, s.id) ? ABSENT_TEXT : '';
+        }))
         .concat(subjects.map(function (s) { return sr[s.id] || ''; }))
         .concat(subjects.map(function (s) { return sa[s.id] || ''; }))
         .concat([e.ranks.class || '', e.ranks.grade || '', avg.class || '', avg.grade || '', avg.top || '']);
@@ -1366,12 +1433,15 @@
       var date = normalizeDate(line[iDate]);
       if (!date) { errors.push('第 ' + (r + 1) + ' 行日期无法识别'); continue; }
       var scores = {};
+      var absent = [];
       subjectCols.forEach(function (c) {
         if (c.idx < 0) return;
         var raw = String(line[c.idx] === undefined ? '' : line[c.idx]).trim();
         if (raw === '') return;
-        /* 「缺考」「—」这类文字剥完是空串，不能当成 0 分 */
-        var cleaned = raw.replace(/[^\d.\-]/g, '');
+        /* 「缺考」是记下来的缺考，和空着没填不是一回事 */
+        if (ABSENT_WORDS.test(raw.replace(/\s/g, ''))) { absent.push(c.id); return; }
+        /* 「—」这类符号剥完是空串，同样不当成 0 分 */
+        var cleaned = raw.replace(/[^\d.-]/g, '');
         if (!/\d/.test(cleaned)) return;
         var num = Number(cleaned);
         if (!isNaN(num)) scores[c.id] = num;
@@ -1408,11 +1478,15 @@
           top: iAvgTop >= 0 ? (Number(String(line[iAvgTop]).replace(/[^\d.]/g, '')) || null) : null
         },
         subjectAverages: saOut,
-        subjectRanks: srOut
+        subjectRanks: srOut,
+        absent: absent
       });
     }
     return { exams: exams, errors: errors };
   }
+
+  /* 把表格里认作缺考的字眼；其余写法当没填 */
+  var ABSENT_WORDS = /^(缺考|未考|免考|缺席)$/;
 
   function normalizeDate(value) {
     if (value === null || value === undefined || value === '') return null;
@@ -1430,11 +1504,11 @@
     if (m) {
       var y = Number(m[1]);
       var mo = Number(m[2]);
-      var d = Number(m[3]);
-      if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+      var day = Number(m[3]);
+      if (mo < 1 || mo > 12 || day < 1 || day > 31) return null;
       /* 2 月 30 日这种不存在的日期要被 Date 顺延，用回读比对挡掉 */
-      var probe = new Date(y, mo - 1, d);
-      if (probe.getFullYear() !== y || probe.getMonth() !== mo - 1 || probe.getDate() !== d) return null;
+      var probe = new Date(y, mo - 1, day);
+      if (probe.getFullYear() !== y || probe.getMonth() !== mo - 1 || probe.getDate() !== day) return null;
       return m[1] + '-' + pad2(m[2]) + '-' + pad2(m[3]);
     }
     var t = Date.parse(text);
@@ -1444,7 +1518,8 @@
     return null;
   }
 
-  function mergeExams(state, incoming) {
+  /* 把导入的行对到已有记录上：同日期同名称的算更新，其余算新增。只对位，不动数据 */
+  function matchExams(state, incoming) {
     /* 同名同日可能有好几条，按出现顺序一个一个对，别全指到最后一条 */
     var buckets = {};
     state.exams.forEach(function (e) {
@@ -1452,35 +1527,67 @@
       (buckets[key] = buckets[key] || []).push(e);
     });
     var cursor = {};
-    var added = 0, replaced = 0;
-
-    incoming.forEach(function (e) {
+    return incoming.map(function (e) {
       var key = e.date + '|' + e.name;
       var pool = buckets[key];
-      if (pool && pool.length) {
-        var at = cursor[key] || 0;
-        var target = pool[Math.min(at, pool.length - 1)];
-        cursor[key] = at + 1;
-        target.scores = Object.assign({}, target.scores, e.scores);
-        target.ranks = Object.assign({}, target.ranks, {
-          class: e.ranks.class || target.ranks.class,
-          grade: e.ranks.grade || target.ranks.grade
-        });
-        target.averages = Object.assign({}, target.averages || {}, {
-          class: e.averages.class || (target.averages && target.averages.class),
-          grade: e.averages.grade || (target.averages && target.averages.grade),
-          top: e.averages.top || (target.averages && target.averages.top)
-        });
-        target.subjectRanks = Object.assign({}, target.subjectRanks || {}, e.subjectRanks || {});
-        target.subjectAverages = Object.assign({}, target.subjectAverages || {}, e.subjectAverages || {});
-        if (e.type) target.type = e.type;
-        replaced++;
-      } else {
+      if (!pool || !pool.length) return { incoming: e, target: null };
+      var at = cursor[key] || 0;
+      cursor[key] = at + 1;
+      return { incoming: e, target: pool[Math.min(at, pool.length - 1)] };
+    });
+  }
+
+  /* 一次导入会新增几条、更新几条，导入前先给人看 */
+  function planImport(state, incoming) {
+    var pairs = matchExams(state, incoming);
+    return {
+      pairs: pairs,
+      added: pairs.filter(function (p) { return !p.target; }),
+      replaced: pairs.filter(function (p) { return !!p.target; })
+    };
+  }
+
+  function applyImport(state, pairs) {
+    var added = 0, replaced = 0;
+    pairs.forEach(function (pair) {
+      var e = pair.incoming;
+      var target = pair.target;
+      if (!target) {
         state.exams.push(e);
         added++;
+        return;
       }
+      /* 表格里标的缺考要盖掉原来的分数，反过来也一样 */
+      var absent = (target.absent || []).slice();
+      (e.absent || []).forEach(function (id) {
+        if (absent.indexOf(id) < 0) absent.push(id);
+        delete target.scores[id];
+      });
+      Object.keys(e.scores || {}).forEach(function (id) {
+        var at = absent.indexOf(id);
+        if (at >= 0) absent.splice(at, 1);
+      });
+      target.absent = absent;
+      target.scores = Object.assign({}, target.scores, e.scores);
+      target.ranks = Object.assign({}, target.ranks, {
+        class: e.ranks.class || target.ranks.class,
+        grade: e.ranks.grade || target.ranks.grade
+      });
+      target.averages = Object.assign({}, target.averages || {}, {
+        class: e.averages.class || (target.averages && target.averages.class),
+        grade: e.averages.grade || (target.averages && target.averages.grade),
+        top: e.averages.top || (target.averages && target.averages.top)
+      });
+      target.subjectRanks = Object.assign({}, target.subjectRanks || {}, e.subjectRanks || {});
+      target.subjectAverages = Object.assign({}, target.subjectAverages || {}, e.subjectAverages || {});
+      if (e.type) target.type = e.type;
+      replaced++;
     });
     return { added: added, replaced: replaced };
+  }
+
+  function mergeExams(state, incoming) {
+    return applyImport(state, matchExams(state, incoming));
   }
 
   global.Store = {
@@ -1495,6 +1602,7 @@
     SUBJECT_FULL_MAX: SUBJECT_FULL_MAX,
     PASS_RATE_DEFAULT: PASS_RATE_DEFAULT,
     GOOD_RATE_DEFAULT: GOOD_RATE_DEFAULT,
+    ABSENT_TEXT: ABSENT_TEXT,
     SEED_COUNT: SEED_COUNT,
     storage: storage,
     DEFAULT_CONFIG: DEFAULT_CONFIG,
@@ -1516,6 +1624,7 @@
     sorted: sorted,
     allSorted: allSorted,
     examTotal: examTotal,
+    isAbsent: isAbsent,
     fullTotal: fullTotal,
     targetTotal: targetTotal,
     rate: rate,
@@ -1564,6 +1673,8 @@
     toCSV: toCSV,
     parseCSV: parseCSV,
     tableToExams: tableToExams,
+    planImport: planImport,
+    applyImport: applyImport,
     mergeExams: mergeExams,
     normalizeDate: normalizeDate,
     normalize: normalize,

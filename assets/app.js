@@ -7,7 +7,6 @@
   var C = global.Charts;
 
   var state = S.load();
-  var appEl = document.getElementById('app');
   var sideHost = document.getElementById('sideHost');
   var mainEl = document.getElementById('main');
   var dialogRoot = document.getElementById('dialogRoot');
@@ -41,13 +40,17 @@
     return { name: parts[0] || 'overview', param: parts[1] || null, query: query };
   }
 
-  function toast(message, tone) {
-    toastEl.textContent = message;
+  /* 提示条；带上动作时会多一个按钮，停留时间也更长 */
+  function toast(message, tone, action) {
+    toastEl.innerHTML = S.esc(message) + (action
+      ? '<button type="button" class="toast-act" data-action="' + action.id + '">' + S.esc(action.label) + '</button>'
+      : '');
     toastEl.className = 'toast is-on' + (tone ? ' toast-' + tone : '');
     clearTimeout(toast._t);
     toast._t = setTimeout(function () {
       toastEl.className = 'toast';
-    }, 2600);
+      toastEl.innerHTML = '';
+    }, action ? 7000 : 2600);
   }
 
   /* ---------------- 存储状态 ---------------- */
@@ -101,6 +104,29 @@
     var ok = S.save(state);
     noteStorageOutcome();
     return ok;
+  }
+
+  /* ---------------- 最近一步可撤销 ---------------- */
+
+  /* 只留一步，够把刚做掉的删除或覆盖退回去 */
+  var undoStep = null;
+  var UNDO = { id: 'undo', label: '撤销' };
+
+  function pushUndo() {
+    undoStep = JSON.stringify(state);
+  }
+
+  function undoLast() {
+    if (!undoStep) return;
+    var back = S.normalize(JSON.parse(undoStep));
+    undoStep = null;
+    back.filter = state.filter;
+    state = back;
+    persist();
+    lastShownTotal = null;
+    refreshSidebar();
+    render();
+    toast('已撤销');
   }
 
   /* 打开时检查存储状况，把异常一次说清 */
@@ -165,8 +191,8 @@
       picked = 'all';
     }
     state.filter = picked;
-    var html = '';
-    var title = '总览';
+    var html;
+    var title;
 
     if (name === 'overview') { html = V.overview(state); title = '总览'; }
     else if (name === 'subjects') {
@@ -219,7 +245,7 @@
     void mainEl.offsetWidth;
     mainEl.classList.add('is-enter');
 
-    requestAnimationFrame(function () { mount(name, route.param); });
+    requestAnimationFrame(function () { mount(name); });
   }
 
   /* 分段控件的白色滑块：点在哪个上就滑到哪 */
@@ -263,7 +289,7 @@
 
   /* ---------------- 挂载 ---------------- */
 
-  function mount(name, param) {
+  function mount(name) {
     if (name === 'overview') mountOverview();
     else if (name === 'subjects') mountSubjects();
     else if (name === 'compare') mountCompare();
@@ -815,6 +841,22 @@
       });
       recalc();
 
+      /* 缺考和空着是两回事，点一下把这一科标下来 */
+      dlg.querySelectorAll('.absent-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function (evt) {
+          evt.preventDefault();
+          var field = btn.closest('.field-score');
+          var input = field.querySelector('input[data-subject]');
+          var on = btn.getAttribute('aria-pressed') !== 'true';
+          btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+          field.classList.toggle('is-absent', on);
+          input.disabled = on;
+          if (on) input.value = '';
+          input.placeholder = on ? S.ABSENT_TEXT : '—';
+          recalc();
+        });
+      });
+
       form.addEventListener('submit', function (evt) {
         evt.preventDefault();
         /* 关闭动画里再按一次回车，不要重复记一场 */
@@ -845,7 +887,12 @@
         });
 
         if (bad) { errEl.textContent = bad; return; }
-        if (!filled) { errEl.textContent = '至少填一科分数。'; return; }
+
+        var absent = [];
+        dlg.querySelectorAll('.absent-toggle').forEach(function (btn) {
+          if (btn.getAttribute('aria-pressed') === 'true') absent.push(btn.getAttribute('data-absent'));
+        });
+        if (!filled && !absent.length) { errEl.textContent = '至少填一科分数。'; return; }
 
         var pickRank = function (id) {
           var n = Number(dlg.querySelector(id).value);
@@ -881,6 +928,7 @@
           exam.scores = scores;
           exam.ranks = ranks;
           exam.averages = averages;
+          exam.absent = absent;
           exam.subjectRanks = subjectRanks;
           exam.subjectAverages = subjectAverages;
           state.sample = false;
@@ -888,7 +936,7 @@
         } else {
           state.exams.push({
             id: S.uid(), name: name, date: date, type: type,
-            scores: scores, ranks: ranks, averages: averages,
+            scores: scores, ranks: ranks, averages: averages, absent: absent,
             subjectRanks: subjectRanks, subjectAverages: subjectAverages
           });
           toast('已记录「' + name + '」');
@@ -1078,12 +1126,13 @@
           }
           var next = S.normalize(parsed);
           next.sample = false;
+          pushUndo();
           state = next;
           persist();
           lastShownTotal = null;
           refreshSidebar();
           render();
-          toast('备份已恢复：' + state.exams.length + ' 次考试');
+          toast('备份已恢复：' + state.exams.length + ' 次考试', null, UNDO);
         } catch (err) {
           toast('这个备份文件读不出来', 'bad');
         }
@@ -1116,21 +1165,67 @@
     }
   }
 
+  /* 先看会改哪几条，确认之后再写进去 */
+  function previewImport(rows, errors) {
+    var plan = S.planImport(state, rows);
+
+    function facts() {
+      var out = [];
+      if (plan.replaced.length) out.push('<div class="import-fact"><b class="num">' + plan.replaced.length + '</b><span>次会被覆盖</span></div>');
+      if (plan.added.length) out.push('<div class="import-fact"><b class="num">' + plan.added.length + '</b><span>次会新增</span></div>');
+      if (errors.length) out.push('<div class="import-fact"><b class="num">' + errors.length + '</b><span>行会被跳过</span></div>');
+      return out.join('');
+    }
+
+    function block(title, list) {
+      var head = list.slice(0, 6).map(function (p) {
+        var e = p.incoming || p;
+        return '<li>' + S.esc(e.date) + ' · ' + S.esc(e.name) + '</li>';
+      }).join('');
+      var rest = list.length - 6;
+      return '<div class="import-block"><div class="import-title">' + title + '</div>' +
+        '<ul class="import-list">' + head + (rest > 0 ? '<li class="muted">还有 ' + rest + ' 次</li>' : '') + '</ul></div>';
+    }
+
+    openDialog('<dialog class="dialog dialog-import">' +
+      '<div class="form-head"><h2>导入预览</h2></div>' +
+      '<div class="form-body">' +
+      '  <div class="import-facts">' + facts() + '</div>' +
+      (plan.replaced.length ? block('按「日期 + 名称」找到的记录，会被这次的内容盖掉', plan.replaced) : '') +
+      (plan.added.length ? block('这些会加进来', plan.added) : '') +
+      (errors.length ? block('这些行读不出来，会跳过', errors) : '') +
+      '</div>' +
+      '<div class="form-foot">' +
+      '  <button type="button" class="btn btn-ghost" data-action="close-dialog">取消</button>' +
+      '  <button type="button" class="btn btn-primary" data-action="do-import">导入</button>' +
+      '</div>' +
+      '</dialog>', function (dlg) {
+      dlg.querySelector('[data-action="do-import"]').addEventListener('click', function () {
+        doImport(plan);
+      });
+    });
+  }
+
+  function doImport(plan) {
+    pushUndo();
+    var merged = S.applyImport(state, plan.pairs);
+    state.sample = false;
+    persist();
+    closeDialog();
+    refreshSidebar();
+    render();
+    var parts = ['新增 ' + merged.added + ' 次'];
+    if (merged.replaced) parts.push('更新 ' + merged.replaced + ' 次');
+    toast('导入完成：' + parts.join('，'), null, UNDO);
+  }
+
   function ingest(rows) {
     var result = S.tableToExams(state, rows);
     if (!result.exams.length) {
       toast(result.errors[0] || '没有读到可用数据', 'bad');
       return;
     }
-    var merged = S.mergeExams(state, result.exams);
-    state.sample = false;
-    persist();
-    refreshSidebar();
-    render();
-    var parts = ['新增 ' + merged.added + ' 次'];
-    if (merged.replaced) parts.push('更新 ' + merged.replaced + ' 次');
-    if (result.errors.length) parts.push(result.errors.length + ' 行跳过');
-    toast('导入完成：' + parts.join('，'));
+    previewImport(result.exams, result.errors);
   }
 
   /* ---------------- 事件委托 ---------------- */
@@ -1195,8 +1290,8 @@
     if (action === 'new-exam') { openExamForm(null); }
     else if (action === 'edit-exam') {
       var editId = actionEl.getAttribute('data-id');
-      var target = state.exams.find(function (e) { return e.id === editId; });
-      if (target) openExamForm(target);
+      var editing = state.exams.find(function (e) { return e.id === editId; });
+      if (editing) openExamForm(editing);
     }
     else if (action === 'close-dialog') { closeDialog(); }
     else if (action === 'delete-exam') {
@@ -1209,6 +1304,7 @@
         label: '删除',
         danger: true,
         onConfirm: function () {
+          pushUndo();
           state.exams = state.exams.filter(function (e) { return e.id !== exam.id; });
           persist();
           closeDialog();
@@ -1216,11 +1312,12 @@
           global.location.hash = '#/exams' + (state.filter && state.filter !== 'all'
             ? '?type=' + encodeURIComponent(state.filter) : '');
           render();
-          toast('已删除');
+          toast('已删除', null, UNDO);
         }
       });
     }
     else if (action === 'export-json') { exportJSON(); }
+    else if (action === 'undo') { undoLast(); }
     else if (action === 'import-json') {
       confirmDialog({
         title: '导入备份？',
@@ -1254,12 +1351,13 @@
         label: '全部清空',
         danger: true,
         onConfirm: function () {
+          pushUndo();
           state = S.clearExams();
           noteStorageOutcome();
           closeDialog();
           refreshSidebar();
           render();
-          toast('记录已清空');
+          toast('记录已清空', null, UNDO);
         }
       });
     }
@@ -1270,12 +1368,13 @@
         label: '全部清掉',
         danger: true,
         onConfirm: function () {
+          pushUndo();
           state = S.resetAll();
           noteStorageOutcome();
           closeDialog();
           refreshSidebar();
           render();
-          toast('已经恢复出厂');
+          toast('已经恢复出厂', null, UNDO);
         }
       });
     }
@@ -1285,12 +1384,13 @@
         text: '当前的 ' + state.exams.length + ' 次记录和全部设置会被 ' + S.SEED_COUNT + ' 场示例考试和默认设置替换。想留住现在的内容，先导出备份。',
         label: '填入',
         onConfirm: function () {
+          pushUndo();
           state = S.loadSample();
           noteStorageOutcome();
           closeDialog();
           refreshSidebar();
           render();
-          toast('示例数据已经装回来了');
+          toast('示例数据已经装回来了', null, UNDO);
         }
       });
     }

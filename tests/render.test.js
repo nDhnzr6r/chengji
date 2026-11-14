@@ -203,6 +203,25 @@ test('录入表单在新建和修改两种情况下都能生成', () => {
   assertClean(V.examForm(state, exam), '修改表单');
 });
 
+test('每一科都能在表单里标缺考', () => {
+  const state = freshState();
+  const form = V.examForm(state, null);
+  assert.equal((form.match(/data-absent="/g) || []).length, state.config.subjects.length);
+  assert.ok(form.includes('缺考'));
+});
+
+test('缺考的那一科在详情页写成缺考，没填的仍然是横线', () => {
+  const state = freshState();
+  state.exams = [{
+    id: 'a', name: '甲', date: '2026-03-01', type: '月考',
+    scores: { math: 100 }, ranks: {}, averages: {}, absent: ['chinese']
+  }];
+  const html = V.detail(state, 'a');
+  assertClean(html, '缺考详情');
+  assert.ok(html.includes(S.ABSENT_TEXT), '缺考的科目要写缺考');
+  assert.equal((html.match(/缺考/g) || []).length, 1);
+});
+
 test('单科拆件返回的每一块都能用', () => {
   const state = freshState();
   const parts = V.subjectParts(state, state.config.subjects[0]);

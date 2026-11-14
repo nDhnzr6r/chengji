@@ -3,7 +3,6 @@
   'use strict';
 
   var S = global.Store;
-  var C = global.Charts;
 
   /* 下拉箭头在几个控件里出现，形状只写一份 */
   var CHEVRON = '<svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.4 3.8L5 6.4l2.6-2.6"/></svg>';
@@ -333,7 +332,7 @@
 
     /* 右栏：考试记录 */
     var recent = list.slice(-4).reverse();
-    function recordRow(exam, i) {
+    function recordRow(exam) {
       var t = S.examTotal(state, exam);
       var idx = list.findIndex(function (e) { return e.id === exam.id; });
       var before = idx > 0 ? S.examTotal(state, list[idx - 1]) : null;
@@ -356,7 +355,7 @@
       var hit = r.score !== null && r.target ? r.score >= r.target : false;
       return {
         label: r.subject.name,
-        valueText: r.score === null ? '—' : r.score + ' / ' + r.full,
+        valueText: r.absent ? S.ABSENT_TEXT : r.score === null ? '—' : r.score + ' / ' + r.full,
         rate: r.rate === null ? 0 : r.rate,
         targetRate: r.targetRate,
         hit: hit,
@@ -1067,7 +1066,8 @@
       var hit = r.score !== null && r.target ? r.score >= r.target : false;
       return '<div class="sub-card">' +
         '<div class="sub-card-top"><span class="sub-name">' + S.esc(r.subject.name) + '</span>' +
-        '<span class="sub-score num">' + (r.score === null ? '—' : r.score) + '<span class="sub-full">/ ' + r.full + '</span></span></div>' +
+        '<span class="sub-score num">' + (r.absent ? S.ABSENT_TEXT : r.score === null ? '—' : r.score) +
+        (r.absent ? '' : '<span class="sub-full">/ ' + r.full + '</span>') + '</span></div>' +
         '<div class="sub-track"><div class="sub-fill' + (hit ? ' is-hit' : '') + '" style="--pct:' + S.pctText(pct) + '"></div>' +
         (r.targetRate ? '<div class="sub-tick" style="left:' + S.pctText(r.targetRate) + '"></div>' : '') + '</div>' +
         '<div class="sub-foot"><span class="num">' + (r.rate === null ? '—' : S.pctText(r.rate)) + '</span>' +
@@ -1556,13 +1556,17 @@
     var averages = (exam && exam.averages) || {};
     var subjectRanks = (exam && exam.subjectRanks) || {};
     var subjectAverages = (exam && exam.subjectAverages) || {};
+    var absent = (exam && exam.absent) || [];
 
     var fields = c.subjects.map(function (s) {
       var v = scores[s.id];
-      return '<label class="field field-score">' +
-        '<span class="field-label">' + S.esc(s.name) + '</span>' +
+      var off = absent.indexOf(s.id) >= 0;
+      return '<label class="field field-score' + (off ? ' is-absent' : '') + '">' +
+        '<span class="field-label">' + S.esc(s.name) +
+        '<button type="button" class="absent-toggle" data-absent="' + S.esc(s.id) + '" aria-pressed="' + (off ? 'true' : 'false') + '">缺考</button></span>' +
         '<span class="input-suffix">' +
-        '  <input class="input num" type="number" min="0" max="' + S.esc(s.full) + '" step="1" data-subject="' + S.esc(s.id) + '" value="' + (v === undefined || v === null ? '' : v) + '" placeholder="—">' +
+        '  <input class="input num" type="number" min="0" max="' + S.esc(s.full) + '" step="1" data-subject="' + S.esc(s.id) + '"' +
+        ' value="' + (off || v === undefined || v === null ? '' : v) + '" placeholder="' + (off ? S.ABSENT_TEXT : '—') + '"' + (off ? ' disabled' : '') + '>' +
         '  <span class="suffix num">/ ' + S.esc(s.full) + '</span>' +
         '</span></label>';
     }).join('');

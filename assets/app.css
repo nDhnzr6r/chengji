@@ -2086,7 +2086,29 @@ input[type="number"] {
   gap: 16px;
 }
 
-.field-score .field-label { display: block; }
+.field-score .field-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.absent-toggle {
+  font-size: var(--fs-11);
+  line-height: 1;
+  color: var(--faint);
+  background: transparent;
+  border: 0;
+  padding: 3px 6px;
+  border-radius: var(--radius-chip);
+  cursor: pointer;
+  transition: color 150ms var(--ease-soft), background 150ms var(--ease-soft);
+}
+
+.absent-toggle:hover { color: var(--text); background: var(--hover); }
+.absent-toggle[aria-pressed="true"] { color: var(--warn); background: var(--hover-strong); }
+
+.field-score.is-absent .input { background: var(--raised); color: var(--faint); }
 
 .input-suffix { display: flex; align-items: center; gap: 8px; }
 
@@ -2150,6 +2172,42 @@ input[type="number"] {
 .toast.is-on { opacity: 1; transform: translate(-50%, 0); }
 
 .toast-bad { background: var(--negative); }
+
+.toast-act {
+  margin-left: 12px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  pointer-events: auto;
+}
+
+/* ---------------- 导入预览 ---------------- */
+
+.dialog-import { width: min(560px, calc(100vw - 32px)); }
+
+.import-facts { display: flex; flex-wrap: wrap; gap: 28px; }
+
+.import-fact { display: flex; align-items: baseline; gap: 6px; }
+.import-fact b { font-size: var(--fs-22); font-weight: 500; }
+.import-fact span { font-size: var(--fs-12); color: var(--muted); }
+
+.import-block { display: flex; flex-direction: column; gap: 6px; }
+
+.import-title { font-size: var(--fs-12); color: var(--muted); }
+
+.import-list { display: flex; flex-direction: column; font-size: var(--fs-13); }
+
+.import-list li {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.import-list li:last-child { border-bottom: 0; }
 
 /* ---------------- 图表脚注 ---------------- */
 

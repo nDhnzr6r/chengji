@@ -378,7 +378,7 @@
           chosen.push(lastIndex);
         }
       }
-      chosen.forEach(function (i, k) {
+      chosen.forEach(function (i) {
         var anchor = points.length === 1 ? 'middle' : i === 0 ? 'start' : i === lastIndex ? 'end' : 'middle';
         var yBase = twoLine ? H - LAYOUT.axisGapTwoLine : H - LAYOUT.axisGap;
         var label = el('text', {
@@ -413,7 +413,7 @@
       }
 
       if (o.target && o.showGap !== false) {
-        var gap = points[lastIndex].value - o.target;
+        var toTarget = points[lastIndex].value - o.target;
         var gy1 = coords[lastIndex][1];
         var gy2 = y(o.target);
         if (Math.abs(gy2 - gy1) > 12) {
@@ -423,7 +423,7 @@
           brace.appendChild(el('line', { x1: gx - 3.5, x2: gx + 3.5, y1: gy1, y2: gy1, class: 'gap-tick' }));
           brace.appendChild(el('line', { x1: gx - 3.5, x2: gx + 3.5, y1: gy2, y2: gy2, class: 'gap-tick' }));
           var gtext = el('text', { x: gx - 8, y: (gy1 + gy2) / 2 + 4, class: 'gap-label', 'text-anchor': 'end' });
-          gtext.textContent = (gap > 0 ? '+' : '−') + fmtNumber(Math.abs(gap), o.digits || 0);
+          gtext.textContent = (toTarget > 0 ? '+' : '−') + fmtNumber(Math.abs(toTarget), o.digits || 0);
           brace.appendChild(gtext);
           gTarget.appendChild(brace);
         }
