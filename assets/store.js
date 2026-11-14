@@ -42,19 +42,149 @@
   };
 
   var SEED_EXAMS = [
-    { id: 'f01', name: '高一上 · 第一次月考', date: '2025-09-26', type: '月考', scores: { chinese: 104, math: 98, english: 110, physics: 60, chemistry: 63, biology: 65 }, ranks: { class: 20, grade: 280 }, averages: { class: 455, grade: 450, top: 688 }, subjectRanks: { chinese: 17, math: 20, english: 15, physics: 23, chemistry: 21, biology: 20 }, subjectAverages: { chinese: 94, math: 93, english: 94, physics: 62, chemistry: 62, biology: 62 } },
-    { id: 'f02', name: '高一上 · 第二次月考', date: '2025-10-17', type: '月考', scores: { chinese: 106, math: 102, english: 112, physics: 61, chemistry: 65, biology: 66 }, ranks: { class: 18, grade: 256 }, averages: { class: 458, grade: 452, top: 690 }, subjectRanks: { chinese: 17, math: 18, english: 14, physics: 22, chemistry: 20, biology: 19 }, subjectAverages: { chinese: 95, math: 94, english: 95, physics: 62, chemistry: 63, biology: 63 } },
-    { id: 'f03', name: '高一上 · 期中考试', date: '2025-11-14', type: '期中', scores: { chinese: 110, math: 105, english: 114, physics: 64, chemistry: 67, biology: 68 }, ranks: { class: 15, grade: 231 }, averages: { class: 449, grade: 444, top: 678 }, subjectRanks: { chinese: 15, math: 17, english: 13, physics: 20, chemistry: 19, biology: 18 }, subjectAverages: { chinese: 93, math: 93, english: 94, physics: 61, chemistry: 61, biology: 62 } },
-    { id: 'f04', name: '高一上 · 第三次月考', date: '2025-12-12', type: '月考', scores: { chinese: 107, math: 100, english: 113, physics: 63, chemistry: 68, biology: 70 }, ranks: { class: 17, grade: 248 }, averages: { class: 463, grade: 458, top: 692 }, subjectRanks: { chinese: 16, math: 19, english: 14, physics: 21, chemistry: 18, biology: 17 }, subjectAverages: { chinese: 96, math: 95, english: 96, physics: 63, chemistry: 64, biology: 64 } },
-    { id: 'f05', name: '高一上 · 期末考试', date: '2026-01-21', type: '期末', scores: { chinese: 112, math: 110, english: 116, physics: 66, chemistry: 70, biology: 71 }, ranks: { class: 12, grade: 198 }, averages: { class: 456, grade: 451, top: 686 }, subjectRanks: { chinese: 14, math: 15, english: 13, physics: 19, chemistry: 17, biology: 16 }, subjectAverages: { chinese: 95, math: 95, english: 95, physics: 62, chemistry: 63, biology: 63 } },
-    { id: 'f06', name: '高一下 · 第一次月考', date: '2026-03-06', type: '月考', scores: { chinese: 109, math: 104, english: 115, physics: 63, chemistry: 69, biology: 73 }, ranks: { class: 14, grade: 226 }, averages: { class: 442, grade: 437, top: 671 }, subjectRanks: { chinese: 15, math: 17, english: 13, physics: 21, chemistry: 17, biology: 15 }, subjectAverages: { chinese: 92, math: 91, english: 92, physics: 60, chemistry: 61, biology: 61 } },
-    { id: 'f07', name: '高一下 · 期中考试', date: '2026-04-24', type: '期中', scores: { chinese: 114, math: 116, english: 118, physics: 68, chemistry: 72, biology: 73 }, ranks: { class: 9, grade: 156 }, averages: { class: 459, grade: 454, top: 691 }, subjectRanks: { chinese: 13, math: 13, english: 12, physics: 18, chemistry: 16, biology: 15 }, subjectAverages: { chinese: 96, math: 96, english: 96, physics: 63, chemistry: 63, biology: 63 } },
-    { id: 'f08', name: '高一下 · 第二次月考', date: '2026-05-22', type: '月考', scores: { chinese: 113, math: 121, english: 120, physics: 70, chemistry: 74, biology: 74 }, ranks: { class: 8, grade: 140 }, averages: { class: 466, grade: 460, top: 695 }, subjectRanks: { chinese: 14, math: 11, english: 11, physics: 17, chemistry: 15, biology: 15 }, subjectAverages: { chinese: 97, math: 98, english: 98, physics: 64, chemistry: 65, biology: 65 } },
-    { id: 'f09', name: '高一下 · 六校联考', date: '2026-06-19', type: '联考', scores: { chinese: 112, math: 114, english: 119, physics: 66, chemistry: 73, biology: 74 }, ranks: { class: 11, grade: 172 }, averages: { class: 448, grade: 443, top: 676 }, subjectRanks: { chinese: 14, math: 13, english: 12, physics: 19, chemistry: 15, biology: 15 }, subjectAverages: { chinese: 93, math: 93, english: 94, physics: 61, chemistry: 62, biology: 62 } },
-    { id: 'f10', name: '高一下 · 期末考试', date: '2026-07-08', type: '期末', scores: { chinese: 117, math: 122, english: 122, physics: 73, chemistry: 76, biology: 75 }, ranks: { class: 6, grade: 121 }, averages: { class: 460, grade: 455, top: 692 }, subjectRanks: { chinese: 12, math: 10, english: 10, physics: 15, chemistry: 13, biology: 14 }, subjectAverages: { chinese: 96, math: 97, english: 97, physics: 64, chemistry: 64, biology: 64 } },
-    { id: 'f11', name: '高二上 · 第一次月考', date: '2026-09-11', type: '月考', scores: { chinese: 114, math: 113, english: 121, physics: 66, chemistry: 72, biology: 80 }, ranks: { class: 10, grade: 160 }, averages: { class: 437, grade: 432, top: 668 }, subjectRanks: { chinese: 13, math: 14, english: 11, physics: 19, chemistry: 16, biology: 11 }, subjectAverages: { chinese: 91, math: 91, english: 92, physics: 60, chemistry: 60, biology: 61 } },
-    { id: 'f12', name: '高二上 · 期中考试', date: '2026-10-23', type: '期中', scores: { chinese: 118, math: 125, english: 124, physics: 70, chemistry: 76, biology: 81 }, ranks: { class: 7, grade: 118 }, averages: { class: 452, grade: 447, top: 684 }, subjectRanks: { chinese: 12, math: 9, english: 10, physics: 17, chemistry: 13, biology: 11 }, subjectAverages: { chinese: 95, math: 95, english: 95, physics: 62, chemistry: 63, biology: 63 } },
-    { id: 'f13', name: '高二上 · 六校联考', date: '2026-11-07', type: '联考', scores: { chinese: 119, math: 127, english: 125, physics: 71, chemistry: 78, biology: 81 }, ranks: { class: 6, grade: 108 }, averages: { class: 458, grade: 453, top: 688 }, subjectRanks: { chinese: 12, math: 9, english: 9, physics: 16, chemistry: 12, biology: 11 }, subjectAverages: { chinese: 96, math: 97, english: 96, physics: 63, chemistry: 64, biology: 64 } }
+    {
+      id: 'f01',
+      name: '高一上 · 第一次月考',
+      date: '2025-09-26',
+      type: '月考',
+      scores: { chinese: 104, math: 98, english: 110, physics: 60, chemistry: 63, biology: 65 },
+      ranks: { class: 20, grade: 280 },
+      averages: { class: 455, grade: 450, top: 688 },
+      subjectRanks: { chinese: 17, math: 20, english: 15, physics: 23, chemistry: 21, biology: 20 },
+      subjectAverages: { chinese: 94, math: 93, english: 94, physics: 62, chemistry: 62, biology: 62 }
+    },
+    {
+      id: 'f02',
+      name: '高一上 · 第二次月考',
+      date: '2025-10-17',
+      type: '月考',
+      scores: { chinese: 106, math: 102, english: 112, physics: 61, chemistry: 65, biology: 66 },
+      ranks: { class: 18, grade: 256 },
+      averages: { class: 458, grade: 452, top: 690 },
+      subjectRanks: { chinese: 17, math: 18, english: 14, physics: 22, chemistry: 20, biology: 19 },
+      subjectAverages: { chinese: 95, math: 94, english: 95, physics: 62, chemistry: 63, biology: 63 }
+    },
+    {
+      id: 'f03',
+      name: '高一上 · 期中考试',
+      date: '2025-11-14',
+      type: '期中',
+      scores: { chinese: 110, math: 105, english: 114, physics: 64, chemistry: 67, biology: 68 },
+      ranks: { class: 15, grade: 231 },
+      averages: { class: 449, grade: 444, top: 678 },
+      subjectRanks: { chinese: 15, math: 17, english: 13, physics: 20, chemistry: 19, biology: 18 },
+      subjectAverages: { chinese: 93, math: 93, english: 94, physics: 61, chemistry: 61, biology: 62 }
+    },
+    {
+      id: 'f04',
+      name: '高一上 · 第三次月考',
+      date: '2025-12-12',
+      type: '月考',
+      scores: { chinese: 107, math: 100, english: 113, physics: 63, chemistry: 68, biology: 70 },
+      ranks: { class: 17, grade: 248 },
+      averages: { class: 463, grade: 458, top: 692 },
+      subjectRanks: { chinese: 16, math: 19, english: 14, physics: 21, chemistry: 18, biology: 17 },
+      subjectAverages: { chinese: 96, math: 95, english: 96, physics: 63, chemistry: 64, biology: 64 }
+    },
+    {
+      id: 'f05',
+      name: '高一上 · 期末考试',
+      date: '2026-01-21',
+      type: '期末',
+      scores: { chinese: 112, math: 110, english: 116, physics: 66, chemistry: 70, biology: 71 },
+      ranks: { class: 12, grade: 198 },
+      averages: { class: 456, grade: 451, top: 686 },
+      subjectRanks: { chinese: 14, math: 15, english: 13, physics: 19, chemistry: 17, biology: 16 },
+      subjectAverages: { chinese: 95, math: 95, english: 95, physics: 62, chemistry: 63, biology: 63 }
+    },
+    {
+      id: 'f06',
+      name: '高一下 · 第一次月考',
+      date: '2026-03-06',
+      type: '月考',
+      scores: { chinese: 109, math: 104, english: 115, physics: 63, chemistry: 69, biology: 73 },
+      ranks: { class: 14, grade: 226 },
+      averages: { class: 442, grade: 437, top: 671 },
+      subjectRanks: { chinese: 15, math: 17, english: 13, physics: 21, chemistry: 17, biology: 15 },
+      subjectAverages: { chinese: 92, math: 91, english: 92, physics: 60, chemistry: 61, biology: 61 }
+    },
+    {
+      id: 'f07',
+      name: '高一下 · 期中考试',
+      date: '2026-04-24',
+      type: '期中',
+      scores: { chinese: 114, math: 116, english: 118, physics: 68, chemistry: 72, biology: 73 },
+      ranks: { class: 9, grade: 156 },
+      averages: { class: 459, grade: 454, top: 691 },
+      subjectRanks: { chinese: 13, math: 13, english: 12, physics: 18, chemistry: 16, biology: 15 },
+      subjectAverages: { chinese: 96, math: 96, english: 96, physics: 63, chemistry: 63, biology: 63 }
+    },
+    {
+      id: 'f08',
+      name: '高一下 · 第二次月考',
+      date: '2026-05-22',
+      type: '月考',
+      scores: { chinese: 113, math: 121, english: 120, physics: 70, chemistry: 74, biology: 74 },
+      ranks: { class: 8, grade: 140 },
+      averages: { class: 466, grade: 460, top: 695 },
+      subjectRanks: { chinese: 14, math: 11, english: 11, physics: 17, chemistry: 15, biology: 15 },
+      subjectAverages: { chinese: 97, math: 98, english: 98, physics: 64, chemistry: 65, biology: 65 }
+    },
+    {
+      id: 'f09',
+      name: '高一下 · 六校联考',
+      date: '2026-06-19',
+      type: '联考',
+      scores: { chinese: 112, math: 114, english: 119, physics: 66, chemistry: 73, biology: 74 },
+      ranks: { class: 11, grade: 172 },
+      averages: { class: 448, grade: 443, top: 676 },
+      subjectRanks: { chinese: 14, math: 13, english: 12, physics: 19, chemistry: 15, biology: 15 },
+      subjectAverages: { chinese: 93, math: 93, english: 94, physics: 61, chemistry: 62, biology: 62 }
+    },
+    {
+      id: 'f10',
+      name: '高一下 · 期末考试',
+      date: '2026-07-08',
+      type: '期末',
+      scores: { chinese: 117, math: 122, english: 122, physics: 73, chemistry: 76, biology: 75 },
+      ranks: { class: 6, grade: 121 },
+      averages: { class: 460, grade: 455, top: 692 },
+      subjectRanks: { chinese: 12, math: 10, english: 10, physics: 15, chemistry: 13, biology: 14 },
+      subjectAverages: { chinese: 96, math: 97, english: 97, physics: 64, chemistry: 64, biology: 64 }
+    },
+    {
+      id: 'f11',
+      name: '高二上 · 第一次月考',
+      date: '2026-09-11',
+      type: '月考',
+      scores: { chinese: 114, math: 113, english: 121, physics: 66, chemistry: 72, biology: 80 },
+      ranks: { class: 10, grade: 160 },
+      averages: { class: 437, grade: 432, top: 668 },
+      subjectRanks: { chinese: 13, math: 14, english: 11, physics: 19, chemistry: 16, biology: 11 },
+      subjectAverages: { chinese: 91, math: 91, english: 92, physics: 60, chemistry: 60, biology: 61 }
+    },
+    {
+      id: 'f12',
+      name: '高二上 · 期中考试',
+      date: '2026-10-23',
+      type: '期中',
+      scores: { chinese: 118, math: 125, english: 124, physics: 70, chemistry: 76, biology: 81 },
+      ranks: { class: 7, grade: 118 },
+      averages: { class: 452, grade: 447, top: 684 },
+      subjectRanks: { chinese: 12, math: 9, english: 10, physics: 17, chemistry: 13, biology: 11 },
+      subjectAverages: { chinese: 95, math: 95, english: 95, physics: 62, chemistry: 63, biology: 63 }
+    },
+    {
+      id: 'f13',
+      name: '高二上 · 六校联考',
+      date: '2026-11-07',
+      type: '联考',
+      scores: { chinese: 119, math: 127, english: 125, physics: 71, chemistry: 78, biology: 81 },
+      ranks: { class: 6, grade: 108 },
+      averages: { class: 458, grade: 453, top: 688 },
+      subjectRanks: { chinese: 12, math: 9, english: 9, physics: 16, chemistry: 12, biology: 11 },
+      subjectAverages: { chinese: 96, math: 97, english: 96, physics: 63, chemistry: 64, biology: 64 }
+    }
   ];
 
   var SEED_COUNT = SEED_EXAMS.length;
@@ -74,7 +204,8 @@
     var p = s.split('-');
     var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
     /* 2 月 30 日这种会被 Date 顺延，回读比对挡掉 */
-    if (d.getFullYear() !== Number(p[0]) || d.getMonth() !== Number(p[1]) - 1 || d.getDate() !== Number(p[2])) return null;
+    if (d.getFullYear() !== Number(p[0]) || d.getMonth() !== Number(p[1]) - 1 || d.getDate() !== Number(p[2]))
+      return null;
     return d;
   }
 
@@ -95,8 +226,11 @@
 
   function esc(value) {
     return String(value === null || value === undefined ? '' : value)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function signed(n, digits) {
@@ -137,7 +271,9 @@
 
   /* 一条记录的前一场；找不到就是空 */
   function prevExamOf(list, exam) {
-    var i = list.findIndex(function (e) { return e.id === exam.id; });
+    var i = list.findIndex(function (e) {
+      return e.id === exam.id;
+    });
     return i > 0 ? list[i - 1] : null;
   }
 
@@ -172,7 +308,9 @@
     var list = allSorted(state);
     var f = state.filter || 'all';
     if (f === 'all') return list;
-    return list.filter(function (e) { return (e.type || DEFAULT_TYPE) === f; });
+    return list.filter(function (e) {
+      return (e.type || DEFAULT_TYPE) === f;
+    });
   }
 
   function examTotal(state, exam) {
@@ -189,13 +327,17 @@
   }
 
   function fullTotal(state) {
-    return state.config.subjects.reduce(function (acc, s) { return acc + Number(s.full || 0); }, 0);
+    return state.config.subjects.reduce(function (acc, s) {
+      return acc + Number(s.full || 0);
+    }, 0);
   }
 
   function targetTotal(state) {
     var explicit = Number(state.config.targetTotal) || 0;
     if (explicit > 0) return explicit;
-    return state.config.subjects.reduce(function (acc, s) { return acc + (Number(s.target) || 0); }, 0);
+    return state.config.subjects.reduce(function (acc, s) {
+      return acc + (Number(s.target) || 0);
+    }, 0);
   }
 
   function rate(score, full) {
@@ -205,13 +347,21 @@
 
   function mean(list) {
     if (!list.length) return 0;
-    return list.reduce(function (a, b) { return a + b; }, 0) / list.length;
+    return (
+      list.reduce(function (a, b) {
+        return a + b;
+      }, 0) / list.length
+    );
   }
 
   function stdev(list) {
     if (list.length < 2) return 0;
     var m = mean(list);
-    var v = list.reduce(function (acc, x) { return acc + (x - m) * (x - m); }, 0) / (list.length - 1);
+    var v =
+      list.reduce(function (acc, x) {
+        return acc + (x - m) * (x - m);
+      }, 0) /
+      (list.length - 1);
     return Math.sqrt(v);
   }
 
@@ -223,9 +373,13 @@
       var t = e.type || DEFAULT_TYPE;
       map[t] = (map[t] || 0) + 1;
     });
-    return Object.keys(map).map(function (t) {
-      return { type: t, count: map[t] };
-    }).sort(function (a, b) { return b.count - a.count || a.type.localeCompare(b.type); });
+    return Object.keys(map)
+      .map(function (t) {
+        return { type: t, count: map[t] };
+      })
+      .sort(function (a, b) {
+        return b.count - a.count || a.type.localeCompare(b.type);
+      });
   }
 
   /* ---------- 参照与诊断 ---------- */
@@ -256,7 +410,7 @@
       var prevClass = Number(prev.averages.class);
       var dSelf = total - prevTotal;
       var dAvg = classAvg - prevClass;
-      var dGap = (total - classAvg) - (prevTotal - prevClass);
+      var dGap = total - classAvg - (prevTotal - prevClass);
 
       if (dSelf < 0 && dGap > 0) {
         result.diagnosis = { tone: 'flat', text: '平均分也降了，题目偏难，位次其实在往前' };
@@ -302,10 +456,20 @@
     });
     if (items.length < 2) return null;
 
-    var rates = items.map(function (i) { return i.rate; });
+    var rates = items.map(function (i) {
+      return i.rate;
+    });
     var avg = mean(rates);
-    var sd = Math.sqrt(mean(rates.map(function (r) { return (r - avg) * (r - avg); })));
-    var ordered = items.slice().sort(function (a, b) { return a.rate - b.rate; });
+    var sd = Math.sqrt(
+      mean(
+        rates.map(function (r) {
+          return (r - avg) * (r - avg);
+        })
+      )
+    );
+    var ordered = items.slice().sort(function (a, b) {
+      return a.rate - b.rate;
+    });
     var pass = Number(state.config.passRate) || PASS_RATE_DEFAULT;
     var good = Number(state.config.goodRate) || GOOD_RATE_DEFAULT;
 
@@ -321,8 +485,12 @@
       spread: ordered[ordered.length - 1].rate - ordered[0].rate,
       weakest: ordered[0],
       strongest: ordered[ordered.length - 1],
-      pass: items.filter(function (i) { return i.rate >= pass; }).length,
-      good: items.filter(function (i) { return i.rate >= good; }).length,
+      pass: items.filter(function (i) {
+        return i.rate >= pass;
+      }).length,
+      good: items.filter(function (i) {
+        return i.rate >= good;
+      }).length,
       count: items.length,
       level: level
     };
@@ -335,7 +503,9 @@
     var goal = targetTotal(state);
     if (!list.length) return null;
 
-    var totals = list.map(function (e) { return examTotal(state, e); });
+    var totals = list.map(function (e) {
+      return examTotal(state, e);
+    });
     var current = totals[totals.length - 1];
     var goalGap = goal - current;
     var remaining = Number(state.config.remainingExams) || 0;
@@ -410,7 +580,7 @@
     var grade = start - enrollYear(state) + 1;
     if (grade < 1) grade = 1;
     /* 9 月到次年 1 月是上学期，2 月到 7 月是下学期 */
-    var half = (m >= 9 || m <= 1) ? '上' : '下';
+    var half = m >= 9 || m <= 1 ? '上' : '下';
     return {
       key: start + '-' + half,
       grade: grade,
@@ -433,9 +603,16 @@
       map[s.key].exams.push(exam);
     });
     return groups.map(function (g) {
-      var totals = g.exams.map(function (e) { return examTotal(state, e); });
-      var ranks = g.exams.map(function (e) { return Number(e.ranks.grade) || null; })
-        .filter(function (v) { return v !== null; });
+      var totals = g.exams.map(function (e) {
+        return examTotal(state, e);
+      });
+      var ranks = g.exams
+        .map(function (e) {
+          return Number(e.ranks.grade) || null;
+        })
+        .filter(function (v) {
+          return v !== null;
+        });
       return {
         key: g.key,
         label: g.label,
@@ -467,7 +644,9 @@
 
   /* 每科的完整序列，按时间升序 */
   function subjectSeries(state, subjectId) {
-    var subject = state.config.subjects.find(function (s) { return s.id === subjectId; });
+    var subject = state.config.subjects.find(function (s) {
+      return s.id === subjectId;
+    });
     if (!subject) return [];
     return sorted(state).map(function (exam) {
       var score = Number(exam.scores[subjectId]);
@@ -509,13 +688,13 @@
     state.config.subjects.forEach(function (s) {
       var a = Number(exam.scores[s.id]);
       var b = Number(prev.scores[s.id]);
-      per[s.id] = (isNaN(a) || isNaN(b)) ? null : a - b;
+      per[s.id] = isNaN(a) || isNaN(b) ? null : a - b;
     });
     /* 上一场没填名次就没有可比性，返回 null，不要当成 0 算 */
     var rankDiff = function (a, b) {
       var x = Number(a) || 0;
       var y = Number(b) || 0;
-      return (x && y) ? x - y : null;
+      return x && y ? x - y : null;
     };
     return {
       exam: prev,
@@ -528,11 +707,21 @@
 
   /* 单科统计：均值、波动、最高、最低、趋势斜率 */
   function subjectStats(state, subjectId) {
-    var series = subjectSeries(state, subjectId).filter(function (p) { return p.score !== null; });
-    var scores = series.map(function (p) { return p.score; });
-    var rates = series.map(function (p) { return p.rate; });
-    var best = series.reduce(function (a, b) { return (!a || b.score > a.score) ? b : a; }, null);
-    var worst = series.reduce(function (a, b) { return (!a || b.score < a.score) ? b : a; }, null);
+    var series = subjectSeries(state, subjectId).filter(function (p) {
+      return p.score !== null;
+    });
+    var scores = series.map(function (p) {
+      return p.score;
+    });
+    var rates = series.map(function (p) {
+      return p.rate;
+    });
+    var best = series.reduce(function (a, b) {
+      return !a || b.score > a.score ? b : a;
+    }, null);
+    var worst = series.reduce(function (a, b) {
+      return !a || b.score < a.score ? b : a;
+    }, null);
     var slope = indexSlope(rates) * 100;
     /* 方向翻转了几次：标准差一样的两种曲线，来回跳的那种翻转更多 */
     var flips = 0;
@@ -540,7 +729,7 @@
       var a = scores[k - 1] - scores[k - 2];
       var b = scores[k] - scores[k - 1];
       if (a === 0 || b === 0) continue;
-      if ((a > 0) !== (b > 0)) flips++;
+      if (a > 0 !== b > 0) flips++;
     }
 
     return {
@@ -593,59 +782,71 @@
       else break;
     }
 
-    var gradeDelta = (prevTotal !== null && rankGrade && Number(prev.ranks.grade))
-      ? Number(prev.ranks.grade) - rankGrade : null;
-    var classDelta = (prevTotal !== null && rankClass && Number(prev.ranks.class))
-      ? Number(prev.ranks.class) - rankClass : null;
+    var gradeDelta =
+      prevTotal !== null && rankGrade && Number(prev.ranks.grade) ? Number(prev.ranks.grade) - rankGrade : null;
+    var classDelta =
+      prevTotal !== null && rankClass && Number(prev.ranks.class) ? Number(prev.ranks.class) - rankClass : null;
 
     /* 每个数字配一句判断 */
     var totalState;
     if (prevTotal === null) totalState = null;
     else if (up >= 3) totalState = { text: '连涨 ' + up + ' 次', tone: 'good' };
     else if (up === 2) totalState = { text: '连涨 2 次', tone: 'good' };
-    else if (up === 1) totalState = { text: '较上次 ' + signed(prevTotal === null ? 0 : total - prevTotal), tone: 'good' };
+    else if (up === 1)
+      totalState = { text: '较上次 ' + signed(prevTotal === null ? 0 : total - prevTotal), tone: 'good' };
     else if (down >= 2) totalState = { text: '连跌 ' + down + ' 次', tone: 'bad' };
     else if (down === 1) totalState = { text: '较上次 ' + signed(total - prevTotal), tone: 'bad' };
     else totalState = { text: '与上次持平', tone: 'flat' };
 
     var gradeState = null;
     if (rankGrade && goalGrade) {
-      gradeState = rankGrade <= goalGrade
-        ? { text: '已进前 ' + goalGrade, tone: 'good' }
-        : { text: '距前 ' + goalGrade + ' 还差 ' + (rankGrade - goalGrade) + ' 名', tone: 'warn' };
+      gradeState =
+        rankGrade <= goalGrade
+          ? { text: '已进前 ' + goalGrade, tone: 'good' }
+          : { text: '距前 ' + goalGrade + ' 还差 ' + (rankGrade - goalGrade) + ' 名', tone: 'warn' };
     } else if (rankGrade) {
       gradeState = { text: '第 ' + rankGrade + ' 名', tone: 'flat' };
     }
 
     var classState = null;
     if (rankClass && goalClass) {
-      classState = rankClass <= goalClass
-        ? { text: '已进前 ' + goalClass, tone: 'good' }
-        : { text: '距前 ' + goalClass + ' 还差 ' + (rankClass - goalClass) + ' 名', tone: 'warn' };
+      classState =
+        rankClass <= goalClass
+          ? { text: '已进前 ' + goalClass, tone: 'good' }
+          : { text: '距前 ' + goalClass + ' 还差 ' + (rankClass - goalClass) + ' 名', tone: 'warn' };
     }
 
-    var gapState = gap > 0
-      ? { text: '还差 ' + gap + ' 分', tone: 'warn' }
-      : { text: '已超 ' + Math.abs(gap) + ' 分', tone: 'good' };
+    var gapState =
+      gap > 0 ? { text: '还差 ' + gap + ' 分', tone: 'warn' } : { text: '已超 ' + Math.abs(gap) + ' 分', tone: 'good' };
 
     /* 各科达标情况 */
-    var hit = 0, miss = 0;
+    var hit = 0,
+      miss = 0;
     state.config.subjects.forEach(function (s) {
       var v = Number(last.scores[s.id]);
       var t = Number(s.target) || 0;
       if (isNaN(v) || !t) return;
-      if (v >= t) hit++; else miss++;
+      if (v >= t) hit++;
+      else miss++;
     });
 
-    var subjectState = miss === 0 && hit > 0
-      ? { text: hit + ' 科全部达标', tone: 'good' }
-      : { text: hit + ' 科达标 · ' + miss + ' 科没到', tone: miss >= 3 ? 'bad' : 'warn' };
+    var subjectState =
+      miss === 0 && hit > 0
+        ? { text: hit + ' 科全部达标', tone: 'good' }
+        : { text: hit + ' 科达标 · ' + miss + ' 科没到', tone: miss >= 3 ? 'bad' : 'warn' };
 
     /* 一句话结论：先说往哪走，再说差多远 */
     var parts = [];
     if (up >= 2) parts.push('总分连涨 ' + up + ' 次');
     else if (down >= 2) parts.push('总分连跌 ' + down + ' 次');
-    else if (prevTotal !== null) parts.push('总分较上次' + (total > prevTotal ? '涨' : total < prevTotal ? '跌' : '持平') + ' ' + Math.abs(total - prevTotal) + ' 分');
+    else if (prevTotal !== null)
+      parts.push(
+        '总分较上次' +
+          (total > prevTotal ? '涨' : total < prevTotal ? '跌' : '持平') +
+          ' ' +
+          Math.abs(total - prevTotal) +
+          ' 分'
+      );
 
     if (gradeDelta !== null && gradeDelta > 0) parts.push('年级前进 ' + gradeDelta + ' 名');
     else if (gradeDelta !== null && gradeDelta < 0) parts.push('年级后退 ' + Math.abs(gradeDelta) + ' 名');
@@ -681,8 +882,21 @@
     if (ratePct >= good && pos > BACK_SHARE) tone = '分数不低，名次却靠后';
     else if (ratePct < pass && pos <= TOP_SHARE) tone = '分数不高，名次却靠前';
     else return null;
-    return date + ' 的' + label + ' ' + score + ' 分（' + ratePct.toFixed(0) + '%），班级名次第 ' +
-      rank + ' / ' + size + '，' + tone;
+    return (
+      date +
+      ' 的' +
+      label +
+      ' ' +
+      score +
+      ' 分（' +
+      ratePct.toFixed(0) +
+      '%），班级名次第 ' +
+      rank +
+      ' / ' +
+      size +
+      '，' +
+      tone
+    );
   }
 
   /* 把明显不对的数据挑出来，让人能去改 */
@@ -712,8 +926,10 @@
       var rg = Number(e.ranks.grade) || 0;
       if (rc < 0) issues.push({ text: e.date + ' 的班级排名是负数' });
       if (rg < 0) issues.push({ text: e.date + ' 的年级排名是负数' });
-      if (rc && classSize && rc > classSize) issues.push({ text: e.date + ' 的班级排名 ' + rc + ' 超过班级人数 ' + classSize });
-      if (rg && gradeSize && rg > gradeSize) issues.push({ text: e.date + ' 的年级排名 ' + rg + ' 超过年级人数 ' + gradeSize });
+      if (rc && classSize && rc > classSize)
+        issues.push({ text: e.date + ' 的班级排名 ' + rc + ' 超过班级人数 ' + classSize });
+      if (rg && gradeSize && rg > gradeSize)
+        issues.push({ text: e.date + ' 的年级排名 ' + rg + ' 超过年级人数 ' + gradeSize });
 
       /* 有科目缺考时总分本来就不全，只拿单科比，不比总分 */
       if (!absent.length) {
@@ -728,17 +944,22 @@
           else if (v > subFull) issues.push({ text: e.date + ' 的' + sub.name + ' ' + v + ' 分超过满分 ' + sub.full });
           else {
             var srk = Number((e.subjectRanks || {})[sub.id]) || 0;
-            pushIssue(issues, clashText(sub.name, e.date, v, subFull ? rate(v, subFull) * 100 : null, srk, classSize, pass, good));
+            pushIssue(
+              issues,
+              clashText(sub.name, e.date, v, subFull ? rate(v, subFull) * 100 : null, srk, classSize, pass, good)
+            );
           }
         }
 
         var sr = Number((e.subjectRanks || {})[sub.id]) || 0;
         if (sr < 0) issues.push({ text: e.date + ' 的' + sub.name + '班级名次是负数' });
-        else if (sr && classSize && sr > classSize) issues.push({ text: e.date + ' 的' + sub.name + '班级名次 ' + sr + ' 超过班级人数 ' + classSize });
+        else if (sr && classSize && sr > classSize)
+          issues.push({ text: e.date + ' 的' + sub.name + '班级名次 ' + sr + ' 超过班级人数 ' + classSize });
 
         var sa = Number((e.subjectAverages || {})[sub.id]) || 0;
         if (sa < 0) issues.push({ text: e.date + ' 的' + sub.name + '班级平均是负数' });
-        else if (sa && subFull && sa > subFull) issues.push({ text: e.date + ' 的' + sub.name + '班级平均 ' + sa + ' 超过该科满分 ' + sub.full });
+        else if (sa && subFull && sa > subFull)
+          issues.push({ text: e.date + ' 的' + sub.name + '班级平均 ' + sa + ' 超过该科满分 ' + sub.full });
       });
 
       var avg = e.averages || {};
@@ -759,7 +980,6 @@
     return issues;
   }
 
-
   /* ---------- 平滑进退、分布、贡献、投入排序 ---------- */
 
   /* 最近三次的平均变化，避免一次波动就上榜 */
@@ -770,8 +990,12 @@
     var out = [];
     state.config.subjects.forEach(function (sub) {
       var series = list
-        .map(function (e) { return Number(e.scores[sub.id]); })
-        .filter(function (v) { return !isNaN(v); });
+        .map(function (e) {
+          return Number(e.scores[sub.id]);
+        })
+        .filter(function (v) {
+          return !isNaN(v);
+        });
       if (series.length < 2) return;
       var tail = series.slice(-span - 1);
       var first = tail[0];
@@ -779,10 +1003,21 @@
       var per = (last - first) / Math.max(1, tail.length - 1);
       out.push({ subject: sub, first: first, last: last, delta: last - first, per: per });
     });
-    out.sort(function (a, b) { return b.per - a.per; });
+    out.sort(function (a, b) {
+      return b.per - a.per;
+    });
     return {
-      up: out.filter(function (x) { return x.per > 0.4; }).slice(0, 3),
-      down: out.filter(function (x) { return x.per < -0.4; }).slice(-3).reverse()
+      up: out
+        .filter(function (x) {
+          return x.per > 0.4;
+        })
+        .slice(0, 3),
+      down: out
+        .filter(function (x) {
+          return x.per < -0.4;
+        })
+        .slice(-3)
+        .reverse()
     };
   }
 
@@ -796,7 +1031,9 @@
       if (isNaN(v)) return;
       rows.push({ subject: sub, value: v, share: v / total });
     });
-    return rows.sort(function (a, b) { return b.share - a.share; });
+    return rows.sort(function (a, b) {
+      return b.share - a.share;
+    });
   }
 
   /* 总分的分布：分成若干段，看每次落在哪 */
@@ -804,7 +1041,9 @@
     buckets = buckets || 6;
     var list = sorted(state);
     if (!list.length) return null;
-    var totals = list.map(function (e) { return examTotal(state, e); });
+    var totals = list.map(function (e) {
+      return examTotal(state, e);
+    });
     var lo = Math.min.apply(null, totals);
     var hi = Math.max.apply(null, totals);
     if (hi - lo < 1) hi = lo + 1;
@@ -837,7 +1076,9 @@
         gapRate: gap / f
       });
     });
-    return rows.sort(function (a, b) { return (b.gapRate - a.gapRate) || (b.gap - a.gap); });
+    return rows.sort(function (a, b) {
+      return b.gapRate - a.gapRate || b.gap - a.gap;
+    });
   }
 
   /* 一科多考几分，总分和名次会怎么动 */
@@ -846,7 +1087,9 @@
     var list = sorted(state);
     if (!list.length) return null;
     var last = list[list.length - 1];
-    var subject = state.config.subjects.find(function (s) { return s.id === subjectId; });
+    var subject = state.config.subjects.find(function (s) {
+      return s.id === subjectId;
+    });
     if (!subject) return null;
 
     var base = examTotal(state, last);
@@ -871,19 +1114,33 @@
     /* 只取最近四次，早期的关系放到现在已经不准了 */
     pts = pts.slice(-4);
     if (pts.length >= 2) {
-      var md = mean(pts.map(function (x) { return x.d; }));
-      var mr = mean(pts.map(function (x) { return x.r; }));
+      var md = mean(
+        pts.map(function (x) {
+          return x.d;
+        })
+      );
+      var mr = mean(
+        pts.map(function (x) {
+          return x.r;
+        })
+      );
       var slope = slopeOf(
-        pts.map(function (x) { return x.d; }),
-        pts.map(function (x) { return x.r; })
+        pts.map(function (x) {
+          return x.d;
+        }),
+        pts.map(function (x) {
+          return x.r;
+        })
       );
       var curAvg = Number(last.averages && last.averages.class) || null;
       var curD = curAvg === null ? null : base - curAvg;
       /* 分差要减去拟合用的均值再外推，缺班平就算不出来 */
       if (slope !== 0 && curD !== null && result.rankBefore) {
-        var est = mr + slope * ((curD + delta) - md);
+        var est = mr + slope * (curD + delta - md);
         /* 外推太远就不靠谱，限制在这几次名次的上下界附近 */
-        var bounds = pts.map(function (x) { return x.r; });
+        var bounds = pts.map(function (x) {
+          return x.r;
+        });
         var loR = Math.min.apply(null, bounds);
         var hiR = Math.max.apply(null, bounds);
         est = Math.min(hiR + (hiR - loR) * 0.2, Math.max(loR - (hiR - loR) * 0.2, est));
@@ -904,11 +1161,15 @@
     var bands = semesterBands(state);
     var lastBand = bands.length ? bands[bands.length - 1] : null;
     var inTerm = lastBand
-      ? list.filter(function (e) { return dateTs(e.date) >= lastBand.startTs; })
+      ? list.filter(function (e) {
+          return dateTs(e.date) >= lastBand.startTs;
+        })
       : list;
     if (inTerm.length < 2) return null;
 
-    var totals = inTerm.map(function (e) { return examTotal(state, e); });
+    var totals = inTerm.map(function (e) {
+      return examTotal(state, e);
+    });
     var n = totals.length;
     var slope = indexSlope(totals);
     var now = totals[n - 1];
@@ -937,7 +1198,9 @@
 
   /* 各科目标加起来和目标总分对不对得上 */
   function goalCheck(state) {
-    var sum = state.config.subjects.reduce(function (acc, s) { return acc + (Number(s.target) || 0); }, 0);
+    var sum = state.config.subjects.reduce(function (acc, s) {
+      return acc + (Number(s.target) || 0);
+    }, 0);
     var goal = targetTotal(state);
     var explicit = Number(state.config.targetTotal) || 0;
     return {
@@ -960,10 +1223,14 @@
       map[t].best = Math.max(map[t].best, v);
       map[t].worst = Math.min(map[t].worst, v);
     });
-    return Object.keys(map).map(function (t) {
-      var g = map[t];
-      return { type: t, count: g.count, avg: g.sum / g.count, best: g.best, worst: g.worst };
-    }).sort(function (a, b) { return b.avg - a.avg; });
+    return Object.keys(map)
+      .map(function (t) {
+        var g = map[t];
+        return { type: t, count: g.count, avg: g.sum / g.count, best: g.best, worst: g.worst };
+      })
+      .sort(function (a, b) {
+        return b.avg - a.avg;
+      });
   }
 
   function movers(state) {
@@ -971,18 +1238,24 @@
     if (list.length < 2) return { up: [], down: [] };
     var last = list[list.length - 1];
     var prev = list[list.length - 2];
-    var rows = state.config.subjects.map(function (s) {
-      var a = Number(last.scores[s.id]);
-      var b = Number(prev.scores[s.id]);
-      var full = Number(s.full) || 0;
-      return {
-        subject: s,
-        delta: (isNaN(a) || isNaN(b)) ? null : a - b,
-        deltaRate: (isNaN(a) || isNaN(b) || !full) ? null : (a - b) / full,
-        score: isNaN(a) ? null : a
-      };
-    }).filter(function (r) { return r.delta !== null; });
-    rows.sort(function (a, b) { return b.deltaRate - a.deltaRate; });
+    var rows = state.config.subjects
+      .map(function (s) {
+        var a = Number(last.scores[s.id]);
+        var b = Number(prev.scores[s.id]);
+        var full = Number(s.full) || 0;
+        return {
+          subject: s,
+          delta: isNaN(a) || isNaN(b) ? null : a - b,
+          deltaRate: isNaN(a) || isNaN(b) || !full ? null : (a - b) / full,
+          score: isNaN(a) ? null : a
+        };
+      })
+      .filter(function (r) {
+        return r.delta !== null;
+      });
+    rows.sort(function (a, b) {
+      return b.deltaRate - a.deltaRate;
+    });
     return { up: rows.slice(0, 2), down: rows.slice(-2).reverse() };
   }
 
@@ -1065,8 +1338,17 @@
 
   /* ---------- 输入收敛 ---------- */
 
-  var CONFIG_NUMERIC = ['classSize', 'gradeSize', 'enrollYear', 'targetTotal',
-    'targetRankClass', 'targetRankGrade', 'remainingExams', 'passRate', 'goodRate'];
+  var CONFIG_NUMERIC = [
+    'classSize',
+    'gradeSize',
+    'enrollYear',
+    'targetTotal',
+    'targetRankClass',
+    'targetRankGrade',
+    'remainingExams',
+    'passRate',
+    'goodRate'
+  ];
 
   /* 这些 id 会拼进 HTML 属性，带引号尖括号空格的一律重生成 */
   function safeId(value, prefix) {
@@ -1093,7 +1375,9 @@
   }
 
   function plainText(value, fallback, max) {
-    var text = String(value === null || value === undefined ? '' : value).slice(0, max || 64).trim();
+    var text = String(value === null || value === undefined ? '' : value)
+      .slice(0, max || 64)
+      .trim();
     return text || fallback;
   }
 
@@ -1104,7 +1388,12 @@
     src.forEach(function (id) {
       var key = String(id === null || id === undefined ? '' : id);
       if (!key || out.indexOf(key) >= 0) return;
-      if (!subjects.some(function (s) { return s.id === key; })) return;
+      if (
+        !subjects.some(function (s) {
+          return s.id === key;
+        })
+      )
+        return;
       out.push(key);
     });
     return out;
@@ -1220,7 +1509,7 @@
 
   function themeMode() {
     var mode = readKey(THEME_KEY, 'auto');
-    return (mode === 'light' || mode === 'dark') ? mode : 'auto';
+    return mode === 'light' || mode === 'dark' ? mode : 'auto';
   }
 
   function paletteName() {
@@ -1276,7 +1565,9 @@
       return Promise.resolve('unsupported');
     }
     return Promise.resolve()
-      .then(function () { return api.persisted(); })
+      .then(function () {
+        return api.persisted();
+      })
       .then(function (already) {
         if (already) {
           storage.persisted = true;
@@ -1328,9 +1619,21 @@
   /* 表格的表头：导出 CSV、Excel 和模板都从这里取 */
   function examHeader(subjects) {
     return ['考试名称', '日期', '类型']
-      .concat(subjects.map(function (s) { return s.name; }))
-      .concat(subjects.map(function (s) { return s.name + '名次'; }))
-      .concat(subjects.map(function (s) { return s.name + '平均'; }))
+      .concat(
+        subjects.map(function (s) {
+          return s.name;
+        })
+      )
+      .concat(
+        subjects.map(function (s) {
+          return s.name + '名次';
+        })
+      )
+      .concat(
+        subjects.map(function (s) {
+          return s.name + '平均';
+        })
+      )
       .concat(['班级排名', '年级排名', '班级平均', '年级平均', '年级最高']);
   }
 
@@ -1342,12 +1645,22 @@
       var sr = e.subjectRanks || {};
       var sa = e.subjectAverages || {};
       return [e.name, e.date, e.type || '']
-        .concat(subjects.map(function (s) {
-          if (e.scores[s.id] !== undefined) return e.scores[s.id];
-          return isAbsent(e, s.id) ? ABSENT_TEXT : '';
-        }))
-        .concat(subjects.map(function (s) { return sr[s.id] || ''; }))
-        .concat(subjects.map(function (s) { return sa[s.id] || ''; }))
+        .concat(
+          subjects.map(function (s) {
+            if (e.scores[s.id] !== undefined) return e.scores[s.id];
+            return isAbsent(e, s.id) ? ABSENT_TEXT : '';
+          })
+        )
+        .concat(
+          subjects.map(function (s) {
+            return sr[s.id] || '';
+          })
+        )
+        .concat(
+          subjects.map(function (s) {
+            return sa[s.id] || '';
+          })
+        )
         .concat([e.ranks.class || '', e.ranks.grade || '', avg.class || '', avg.grade || '', avg.top || '']);
     });
   }
@@ -1355,9 +1668,12 @@
   function toCSV(state) {
     var head = examHeader(state.config.subjects);
     var rows = examRows(state);
-    return [head].concat(rows).map(function (row) {
-      return row.map(csvEscape).join(',');
-    }).join('\r\n');
+    return [head]
+      .concat(rows)
+      .map(function (row) {
+        return row.map(csvEscape).join(',');
+      })
+      .join('\r\n');
   }
 
   function parseCSV(text) {
@@ -1370,29 +1686,44 @@
       var ch = text[i];
       if (quoted) {
         if (ch === '"') {
-          if (text[i + 1] === '"') { field += '"'; i++; }
-          else quoted = false;
+          if (text[i + 1] === '"') {
+            field += '"';
+            i++;
+          } else quoted = false;
         } else field += ch;
       } else if (ch === '"') {
         quoted = true;
       } else if (ch === ',') {
-        row.push(field); field = '';
+        row.push(field);
+        field = '';
       } else if (ch === '\n') {
-        row.push(field); field = ''; rows.push(row); row = [];
+        row.push(field);
+        field = '';
+        rows.push(row);
+        row = [];
       } else if (ch === '\r') {
         /* 跳过 */
       } else {
         field += ch;
       }
     }
-    if (field !== '' || row.length) { row.push(field); rows.push(row); }
-    return rows.filter(function (r) { return r.some(function (c) { return String(c).trim() !== ''; }); });
+    if (field !== '' || row.length) {
+      row.push(field);
+      rows.push(row);
+    }
+    return rows.filter(function (r) {
+      return r.some(function (c) {
+        return String(c).trim() !== '';
+      });
+    });
   }
 
   /* 把表格行转成考试记录；按科目名匹配，允许列顺序不同 */
   function tableToExams(state, rows) {
     if (!rows.length) return { exams: [], errors: ['文件里没有可用的行'] };
-    var head = rows[0].map(function (h) { return String(h).trim(); });
+    var head = rows[0].map(function (h) {
+      return String(h).trim();
+    });
     var find = function (names) {
       for (var i = 0; i < names.length; i++) {
         var idx = head.indexOf(names[i]);
@@ -1415,15 +1746,33 @@
     var subjectAvgCols = [];
     state.config.subjects.forEach(function (s) {
       var idx = head.indexOf(s.name);
-      if (idx < 0) idx = head.findIndex(function (h) { return h.replace(/\s/g, '') === s.name; });
+      if (idx < 0)
+        idx = head.findIndex(function (h) {
+          return h.replace(/\s/g, '') === s.name;
+        });
       subjectCols.push({ id: s.id, idx: idx });
       var rIdx = find([s.name + '名次', s.name + '排名', s.name + '班名次']);
       subjectRankCols.push({ id: s.id, idx: rIdx });
       var aIdx = find([s.name + '平均', s.name + '班平均']);
       subjectAvgCols.push({ id: s.id, idx: aIdx });
     });
-    if (subjectCols.every(function (c) { return c.idx < 0; })) {
-      return { exams: [], errors: ['没有找到任何科目列（' + state.config.subjects.map(function (s) { return s.name; }).join('、') + '）'] };
+    if (
+      subjectCols.every(function (c) {
+        return c.idx < 0;
+      })
+    ) {
+      return {
+        exams: [],
+        errors: [
+          '没有找到任何科目列（' +
+            state.config.subjects
+              .map(function (s) {
+                return s.name;
+              })
+              .join('、') +
+            '）'
+        ]
+      };
     }
 
     var errors = [];
@@ -1431,7 +1780,10 @@
     for (var r = 1; r < rows.length; r++) {
       var line = rows[r];
       var date = normalizeDate(line[iDate]);
-      if (!date) { errors.push('第 ' + (r + 1) + ' 行日期无法识别'); continue; }
+      if (!date) {
+        errors.push('第 ' + (r + 1) + ' 行日期无法识别');
+        continue;
+      }
       var scores = {};
       var absent = [];
       subjectCols.forEach(function (c) {
@@ -1439,7 +1791,10 @@
         var raw = String(line[c.idx] === undefined ? '' : line[c.idx]).trim();
         if (raw === '') return;
         /* 「缺考」是记下来的缺考，和空着没填不是一回事 */
-        if (ABSENT_WORDS.test(raw.replace(/\s/g, ''))) { absent.push(c.id); return; }
+        if (ABSENT_WORDS.test(raw.replace(/\s/g, ''))) {
+          absent.push(c.id);
+          return;
+        }
         /* 「—」这类符号剥完是空串，同样不当成 0 分 */
         var cleaned = raw.replace(/[^\d.-]/g, '');
         if (!/\d/.test(cleaned)) return;
@@ -1469,13 +1824,13 @@
         type: iType >= 0 ? String(line[iType] || '').trim() || DEFAULT_TYPE : DEFAULT_TYPE,
         scores: scores,
         ranks: {
-          class: iClass >= 0 ? (Number(String(line[iClass]).replace(/[^\d]/g, '')) || null) : null,
-          grade: iGrade >= 0 ? (Number(String(line[iGrade]).replace(/[^\d]/g, '')) || null) : null
+          class: iClass >= 0 ? Number(String(line[iClass]).replace(/[^\d]/g, '')) || null : null,
+          grade: iGrade >= 0 ? Number(String(line[iGrade]).replace(/[^\d]/g, '')) || null : null
         },
         averages: {
-          class: iAvgClass >= 0 ? (Number(String(line[iAvgClass]).replace(/[^\d.]/g, '')) || null) : null,
-          grade: iAvgGrade >= 0 ? (Number(String(line[iAvgGrade]).replace(/[^\d.]/g, '')) || null) : null,
-          top: iAvgTop >= 0 ? (Number(String(line[iAvgTop]).replace(/[^\d.]/g, '')) || null) : null
+          class: iAvgClass >= 0 ? Number(String(line[iAvgClass]).replace(/[^\d.]/g, '')) || null : null,
+          grade: iAvgGrade >= 0 ? Number(String(line[iAvgGrade]).replace(/[^\d.]/g, '')) || null : null,
+          top: iAvgTop >= 0 ? Number(String(line[iAvgTop]).replace(/[^\d.]/g, '')) || null : null
         },
         subjectAverages: saOut,
         subjectRanks: srOut,
@@ -1542,13 +1897,18 @@
     var pairs = matchExams(state, incoming);
     return {
       pairs: pairs,
-      added: pairs.filter(function (p) { return !p.target; }),
-      replaced: pairs.filter(function (p) { return !!p.target; })
+      added: pairs.filter(function (p) {
+        return !p.target;
+      }),
+      replaced: pairs.filter(function (p) {
+        return !!p.target;
+      })
     };
   }
 
   function applyImport(state, pairs) {
-    var added = 0, replaced = 0;
+    var added = 0,
+      replaced = 0;
     pairs.forEach(function (pair) {
       var e = pair.incoming;
       var target = pair.target;

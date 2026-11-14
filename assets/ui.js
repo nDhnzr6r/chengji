@@ -35,10 +35,12 @@
     var text = root.querySelector('.sel-text');
     if (text && found) text.textContent = found.getAttribute('data-label') || found.textContent.trim();
     if (!silent) {
-      root.dispatchEvent(new CustomEvent('selchange', {
-        bubbles: true,
-        detail: { value: root.getAttribute('data-value') }
-      }));
+      root.dispatchEvent(
+        new CustomEvent('selchange', {
+          bubbles: true,
+          detail: { value: root.getAttribute('data-value') }
+        })
+      );
     }
   }
 
@@ -86,11 +88,17 @@
       var idx = opts.indexOf(document.activeElement);
       if (evt.key === 'ArrowDown') {
         evt.preventDefault();
-        if (!root.classList.contains('is-open')) { openSelect(root); return; }
+        if (!root.classList.contains('is-open')) {
+          openSelect(root);
+          return;
+        }
         opts[Math.min(opts.length - 1, idx + 1)].focus();
       } else if (evt.key === 'ArrowUp') {
         evt.preventDefault();
-        if (!root.classList.contains('is-open')) { openSelect(root); return; }
+        if (!root.classList.contains('is-open')) {
+          openSelect(root);
+          return;
+        }
         opts[Math.max(0, idx - 1)].focus();
       } else if (evt.key === 'Enter' || evt.key === ' ') {
         if (root.classList.contains('is-open') && idx >= 0) {
@@ -173,7 +181,11 @@
 
     var cells = [];
     for (var i = startOffset - 1; i >= 0; i--) {
-      cells.push({ day: prevDays - i, outside: true, date: new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, prevDays - i) });
+      cells.push({
+        day: prevDays - i,
+        outside: true,
+        date: new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, prevDays - i)
+      });
     }
     for (var d = 1; d <= daysInMonth; d++) {
       cells.push({ day: d, outside: false, date: new Date(viewDate.getFullYear(), viewDate.getMonth(), d) });
@@ -203,7 +215,7 @@
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'cal-month' + (m === date.getMonth() ? ' is-selected' : '');
-      btn.textContent = (m + 1) + ' 月';
+      btn.textContent = m + 1 + ' 月';
       btn.setAttribute('data-month', m);
       box.appendChild(btn);
     }
@@ -314,7 +326,9 @@
         var iso = S.normalizeDate(text);
         if (!iso) {
           typeBox.classList.add('is-bad');
-          setTimeout(function () { typeBox.classList.remove('is-bad'); }, 700);
+          setTimeout(function () {
+            typeBox.classList.remove('is-bad');
+          }, 700);
           return false;
         }
         var st0 = calState(root);
@@ -328,7 +342,11 @@
       };
 
       typeBox.addEventListener('keydown', function (evt) {
-        if (evt.key === 'Escape') { evt.stopPropagation(); typeBox.value = ''; return; }
+        if (evt.key === 'Escape') {
+          evt.stopPropagation();
+          typeBox.value = '';
+          return;
+        }
         if (evt.key !== 'Enter') return;
         evt.preventDefault();
         commitTyped();

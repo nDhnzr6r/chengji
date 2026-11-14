@@ -49,7 +49,9 @@
   }
 
   function nextFrame(fn) {
-    requestAnimationFrame(function () { requestAnimationFrame(fn); });
+    requestAnimationFrame(function () {
+      requestAnimationFrame(fn);
+    });
   }
 
   /* 整齐的刻度：4 到 6 条 */
@@ -121,7 +123,14 @@
       var nextCount = (points || []).filter(function (p) {
         return p.value !== null && p.value !== undefined && !isNaN(p.value);
       }).length;
-      var canMorph = !!(prev && prev.coords && prev.coords.length === nextCount && nextCount > 0 && !reduced() && o.animate !== false);
+      var canMorph = !!(
+        prev &&
+        prev.coords &&
+        prev.coords.length === nextCount &&
+        nextCount > 0 &&
+        !reduced() &&
+        o.animate !== false
+      );
       var buildOpts = Object.assign({}, o, { animate: o.animate !== false && !canMorph });
       var built = build(points, buildOpts);
       instance.current = built;
@@ -150,7 +159,11 @@
       var H = o.height || LAYOUT.height;
       var showBands = !!(o.bands && o.bands.length > 1 && o.xMode === 'time');
       /* 只有明确要求时才把横轴写成两行，别的图 sub 是给悬浮提示用的 */
-      var twoLine = !!o.stackAxis && points.some(function (p) { return p.sub; });
+      var twoLine =
+        !!o.stackAxis &&
+        points.some(function (p) {
+          return p.sub;
+        });
       var pad = {
         t: showBands ? LAYOUT.padTopBanded : LAYOUT.padTop,
         r: o.padRight === undefined ? LAYOUT.padRight : o.padRight,
@@ -160,7 +173,9 @@
       var plotW = W - pad.l - pad.r;
       var plotH = H - pad.t - pad.b;
 
-      var values = points.map(function (p) { return p.value; });
+      var values = points.map(function (p) {
+        return p.value;
+      });
       var dataMin = Math.min.apply(null, values);
       var dataMax = Math.max.apply(null, values);
       var rawSpan = Math.max(dataMax - dataMin, o.minPad || LAYOUT.minPad);
@@ -185,13 +200,31 @@
       }
       var scale = niceScale(lo0, hi0, o.ticks || 5);
 
-      var useTime = o.xMode === 'time' && points.every(function (p) { return typeof p.ts === 'number'; });
-      var tsMin = useTime ? Math.min.apply(null, points.map(function (p) { return p.ts; })) : 0;
-      var tsMax = useTime ? Math.max.apply(null, points.map(function (p) { return p.ts; })) : 0;
+      var useTime =
+        o.xMode === 'time' &&
+        points.every(function (p) {
+          return typeof p.ts === 'number';
+        });
+      var tsMin = useTime
+        ? Math.min.apply(
+            null,
+            points.map(function (p) {
+              return p.ts;
+            })
+          )
+        : 0;
+      var tsMax = useTime
+        ? Math.max.apply(
+            null,
+            points.map(function (p) {
+              return p.ts;
+            })
+          )
+        : 0;
 
       /* 给预测点留出右侧一段空位 */
       var hasForecast = !!(o.forecast && typeof o.forecast.value === 'number');
-      var xSpan = useTime ? (tsMax - tsMin) : Math.max(points.length - 1, 1);
+      var xSpan = useTime ? tsMax - tsMin : Math.max(points.length - 1, 1);
       var lead = hasForecast ? xSpan * LAYOUT.edgeRatio : 0;
 
       var x = function (i) {
@@ -230,9 +263,15 @@
           if (b.dividerTs) {
             var dx = tsToX(b.dividerTs);
             if (dx > pad.l + 8 && dx < W - pad.r - 8) {
-              gBands.appendChild(el('line', {
-                x1: dx, x2: dx, y1: pad.t - 10, y2: pad.t + plotH, class: 'band-divider'
-              }));
+              gBands.appendChild(
+                el('line', {
+                  x1: dx,
+                  x2: dx,
+                  y1: pad.t - 10,
+                  y2: pad.t + plotH,
+                  class: 'band-divider'
+                })
+              );
             }
           }
           var mid = (Math.max(sx, pad.l) + Math.min(ex, W - pad.r)) / 2;
@@ -249,10 +288,15 @@
 
       scale.ticks.forEach(function (v) {
         var yy = y(v);
-        gGrid.appendChild(el('line', {
-          x1: pad.l, x2: W - pad.r, y1: yy, y2: yy,
-          class: v === 0 ? 'grid-base' : 'grid-line'
-        }));
+        gGrid.appendChild(
+          el('line', {
+            x1: pad.l,
+            x2: W - pad.r,
+            y1: yy,
+            y2: yy,
+            class: v === 0 ? 'grid-base' : 'grid-line'
+          })
+        );
         var label = el('text', { x: pad.l - 10, y: yy + 3.5, class: 'axis-y', 'text-anchor': 'end' });
         label.textContent = fmtNumber(v, o.yDigits || 0);
         gGrid.appendChild(label);
@@ -268,10 +312,26 @@
         gTarget.appendChild(tlabel);
       }
 
-      var coords = points.map(function (p, i) { return [x(i), y(p.value)]; });
-      var d = coords.map(function (c, i) { return (i ? 'L' : 'M') + c[0].toFixed(2) + ' ' + c[1].toFixed(2); }).join(' ');
+      var coords = points.map(function (p, i) {
+        return [x(i), y(p.value)];
+      });
+      var d = coords
+        .map(function (c, i) {
+          return (i ? 'L' : 'M') + c[0].toFixed(2) + ' ' + c[1].toFixed(2);
+        })
+        .join(' ');
       var baseY = o.invert ? pad.t : pad.t + plotH;
-      var areaD = d + ' L' + coords[coords.length - 1][0].toFixed(2) + ' ' + baseY + ' L' + coords[0][0].toFixed(2) + ' ' + baseY + ' Z';
+      var areaD =
+        d +
+        ' L' +
+        coords[coords.length - 1][0].toFixed(2) +
+        ' ' +
+        baseY +
+        ' L' +
+        coords[0][0].toFixed(2) +
+        ' ' +
+        baseY +
+        ' Z';
 
       var showArea = o.area !== false;
       var area = showArea ? el('path', { d: areaD, class: 'chart-area' }) : null;
@@ -295,7 +355,12 @@
       });
 
       var lastIndex = coords.length - 1;
-      var lastDot = el('circle', { cx: coords[lastIndex][0], cy: coords[lastIndex][1], r: 4.6, class: 'chart-dot-last' });
+      var lastDot = el('circle', {
+        cx: coords[lastIndex][0],
+        cy: coords[lastIndex][1],
+        r: 4.6,
+        class: 'chart-dot-last'
+      });
       gMarks.appendChild(lastDot);
 
       /* 往右延伸一段虚线，落一个空心点，标出下次大概多少 */
@@ -306,15 +371,21 @@
         var fx1 = pad.l + plotW - 6;
         var fy1 = y(o.forecast.value);
         var gForecast = el('g', { class: 'chart-forecast' });
-        gForecast.appendChild(el('line', {
-          x1: fx0, y1: fy0, x2: fx1, y2: fy1,
-          class: 'forecast-line'
-        }));
+        gForecast.appendChild(
+          el('line', {
+            x1: fx0,
+            y1: fy0,
+            x2: fx1,
+            y2: fy1,
+            class: 'forecast-line'
+          })
+        );
         forecastMark = el('circle', { cx: fx1, cy: fy1, r: 4, class: 'forecast-dot' });
         gForecast.appendChild(forecastMark);
         if (o.forecast.label) {
           var lb = el('text', {
-            x: fx1, y: fy1 + 17,
+            x: fx1,
+            y: fy1 + 17,
             'text-anchor': 'end',
             class: 'forecast-label'
           });
@@ -325,11 +396,15 @@
       }
 
       var gAxis = el('g', { class: 'chart-axis' });
-      var measure = twoLine ? (function () {
-        var ctx = document.createElement('canvas').getContext('2d');
-        ctx.font = '10px "Geist", "PingFang SC", "Microsoft YaHei", sans-serif';
-        return function (t) { return ctx.measureText(String(t || '')).width; };
-      })() : null;
+      var measure = twoLine
+        ? (function () {
+            var ctx = document.createElement('canvas').getContext('2d');
+            ctx.font = '10px "Geist", "PingFang SC", "Microsoft YaHei", sans-serif';
+            return function (t) {
+              return ctx.measureText(String(t || '')).width;
+            };
+          })()
+        : null;
       var chosen = [];
 
       if (twoLine) {
@@ -382,7 +457,10 @@
         var anchor = points.length === 1 ? 'middle' : i === 0 ? 'start' : i === lastIndex ? 'end' : 'middle';
         var yBase = twoLine ? H - LAYOUT.axisGapTwoLine : H - LAYOUT.axisGap;
         var label = el('text', {
-          x: x(i), y: yBase, class: 'axis-x' + (twoLine ? ' axis-x-two' : ''), 'text-anchor': anchor
+          x: x(i),
+          y: yBase,
+          class: 'axis-x' + (twoLine ? ' axis-x-two' : ''),
+          'text-anchor': anchor
         });
         if (twoLine) {
           var line1 = el('tspan', { x: x(i) });
@@ -446,7 +524,9 @@
         if (area) area.style.opacity = '0';
         gGrid.style.opacity = '0';
         gTarget.style.opacity = '0';
-        dots.forEach(function (dt) { dt.style.opacity = '0'; });
+        dots.forEach(function (dt) {
+          dt.style.opacity = '0';
+        });
         lastDot.style.opacity = '0';
 
         nextFrame(function () {
@@ -490,10 +570,14 @@
       function move(evt) {
         var rect = svg.getBoundingClientRect();
         var px = (evt.clientX - rect.left) * (W / rect.width);
-        var nearest = 0, best = Infinity;
+        var nearest = 0,
+          best = Infinity;
         coords.forEach(function (c, i) {
           var dx = Math.abs(c[0] - px);
-          if (dx < best) { best = dx; nearest = i; }
+          if (dx < best) {
+            best = dx;
+            nearest = i;
+          }
         });
         var c = coords[nearest];
         hoverLine.style.transform = 'translateX(' + c[0].toFixed(1) + 'px)';
@@ -504,8 +588,13 @@
         var p = points[nearest];
         if (nearest !== move._last) {
           move._last = nearest;
-          tip.innerHTML = '<span class="tip-date">' + S.esc(p.full) + '</span><span class="tip-value">' +
-            fmtNumber(p.value, o.digits || 0) + (o.unit || '') + '</span>' +
+          tip.innerHTML =
+            '<span class="tip-date">' +
+            S.esc(p.full) +
+            '</span><span class="tip-value">' +
+            fmtNumber(p.value, o.digits || 0) +
+            (o.unit || '') +
+            '</span>' +
             (p.sub ? '<span class="tip-sub">' + S.esc(p.sub) + '</span>' : '');
           tip.classList.remove('is-updated');
           void tip.offsetWidth;
@@ -514,7 +603,10 @@
         var left = (c[0] / W) * host.clientWidth;
         tip.classList.add('is-on');
         var tw = tip.offsetWidth;
-        tip.style.setProperty('--tx', Math.max(4, Math.min(left - tw / 2, host.clientWidth - tw - 4)).toFixed(1) + 'px');
+        tip.style.setProperty(
+          '--tx',
+          Math.max(4, Math.min(left - tw / 2, host.clientWidth - tw - 4)).toFixed(1) + 'px'
+        );
         tip.style.setProperty('--ty', (c[1] - 12).toFixed(1) + 'px');
       }
 
@@ -550,10 +642,17 @@
       line.style.strokeDashoffset = '';
       if (area) area.style.opacity = '1';
 
-      var pathFrom = from.map(function (c, i) { return (i ? 'L' : 'M') + c[0].toFixed(2) + ' ' + c[1].toFixed(2); }).join(' ');
+      var pathFrom = from
+        .map(function (c, i) {
+          return (i ? 'L' : 'M') + c[0].toFixed(2) + ' ' + c[1].toFixed(2);
+        })
+        .join(' ');
       line.setAttribute('d', pathFrom);
 
-      built.dots.forEach(function (dt, i) { dt.setAttribute('cx', from[i][0]); dt.setAttribute('cy', from[i][1]); });
+      built.dots.forEach(function (dt, i) {
+        dt.setAttribute('cx', from[i][0]);
+        dt.setAttribute('cy', from[i][1]);
+      });
       built.lastDot.setAttribute('cx', from[n - 1][0]);
       built.lastDot.setAttribute('cy', from[n - 1][1]);
 
@@ -574,9 +673,19 @@
         built.lastDot.setAttribute('cx', to[n - 1][0]);
         built.lastDot.setAttribute('cy', to[n - 1][1]);
         if (area && areaBase !== undefined) {
-          area.setAttribute('d', seg.join(' ') +
-            ' L' + to[n - 1][0].toFixed(2) + ' ' + areaBase +
-            ' L' + to[0][0].toFixed(2) + ' ' + areaBase + ' Z');
+          area.setAttribute(
+            'd',
+            seg.join(' ') +
+              ' L' +
+              to[n - 1][0].toFixed(2) +
+              ' ' +
+              areaBase +
+              ' L' +
+              to[0][0].toFixed(2) +
+              ' ' +
+              areaBase +
+              ' Z'
+          );
         }
         if (p < 1) requestAnimationFrame(frame);
       }
@@ -596,7 +705,8 @@
           grid.style.transition = 'opacity 240ms linear';
           grid.style.opacity = '1';
           texts.forEach(function (t, i) {
-            t.style.transition = 'opacity 240ms linear ' + (i * 36) + 'ms, transform 320ms cubic-bezier(0.22, 1, 0.36, 1) ' + (i * 36) + 'ms';
+            t.style.transition =
+              'opacity 240ms linear ' + i * 36 + 'ms, transform 320ms cubic-bezier(0.22, 1, 0.36, 1) ' + i * 36 + 'ms';
             t.style.opacity = '1';
             t.style.transform = 'none';
           });
@@ -605,7 +715,9 @@
       if (target) {
         target.style.opacity = '0';
         target.style.transition = 'opacity 300ms linear 180ms';
-        requestAnimationFrame(function () { target.style.opacity = '1'; });
+        requestAnimationFrame(function () {
+          target.style.opacity = '1';
+        });
       }
     }
 
@@ -684,7 +796,11 @@
       var p = pt(i, 1.16);
       var anchor = Math.abs(p[0] - cx) < 6 ? 'middle' : p[0] > cx ? 'start' : 'end';
       var t = el('text', {
-        x: p[0], y: p[1], class: 'radar-label', 'text-anchor': anchor, 'dominant-baseline': 'middle'
+        x: p[0],
+        y: p[1],
+        class: 'radar-label',
+        'text-anchor': anchor,
+        'dominant-baseline': 'middle'
       });
       t.textContent = label;
       gLabels.appendChild(t);
@@ -697,7 +813,8 @@
         path.style.transform = 'scale(0.02)';
         path.style.opacity = '0';
         requestAnimationFrame(function () {
-          path.style.transition = 'transform 720ms ' + EASE.out + ' ' + (idx * 90) + 'ms, opacity 420ms linear ' + (idx * 90) + 'ms';
+          path.style.transition =
+            'transform 720ms ' + EASE.out + ' ' + idx * 90 + 'ms, opacity 420ms linear ' + idx * 90 + 'ms';
           path.style.transform = 'scale(1)';
           path.style.opacity = '1';
         });
@@ -759,7 +876,7 @@
     if (!reduced() && opts.animate !== false) {
       nextFrame(function () {
         list.querySelectorAll('.bullet-fill').forEach(function (fill, i) {
-          fill.style.transition = 'transform 640ms ' + EASE.out + ' ' + (i * 60) + 'ms';
+          fill.style.transition = 'transform 640ms ' + EASE.out + ' ' + i * 60 + 'ms';
           fill.style.transform = 'scaleX(' + fill.getAttribute('data-w') + ')';
         });
       });

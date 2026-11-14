@@ -44,7 +44,9 @@ function stateWithTotals(totals) {
   state.exams = totals.map((total, i) => {
     const per = total / state.config.subjects.length;
     const scores = {};
-    state.config.subjects.forEach((s) => { scores[s.id] = per; });
+    state.config.subjects.forEach((s) => {
+      scores[s.id] = per;
+    });
     return {
       id: 'e' + i,
       name: '第 ' + (i + 1) + ' 次',
@@ -62,10 +64,7 @@ function stateWithTotals(totals) {
 
 test('缺字段的记录被补齐，没有日期的行被丢掉', () => {
   const state = S.normalize({
-    exams: [
-      { date: '2026-03-01', name: '有日期', scores: { math: 100 } },
-      { name: '没有日期' }
-    ]
+    exams: [{ date: '2026-03-01', name: '有日期', scores: { math: 100 } }, { name: '没有日期' }]
   });
   assert.equal(state.exams.length, 1);
   assert.equal(state.exams[0].name, '有日期');
@@ -93,10 +92,16 @@ test('按日期升序，筛选只留指定类型', () => {
     { id: 'b', name: '后', date: '2026-05-01', type: '期中', scores: {} },
     { id: 'a', name: '前', date: '2026-03-01', type: '月考', scores: {} }
   ];
-  assert.deepEqual(S.allSorted(state).map((e) => e.id), ['a', 'b']);
+  assert.deepEqual(
+    S.allSorted(state).map((e) => e.id),
+    ['a', 'b']
+  );
 
   state.filter = '期中';
-  assert.deepEqual(S.sorted(state).map((e) => e.id), ['b']);
+  assert.deepEqual(
+    S.sorted(state).map((e) => e.id),
+    ['b']
+  );
   assert.equal(S.allSorted(state).length, 2);
 });
 
@@ -104,7 +109,9 @@ test('按日期升序，筛选只留指定类型', () => {
 
 test('总分只累加配置里的科目', () => {
   const state = S.defaultState();
-  const exam = { scores: { chinese: 100, math: 120, english: 110, physics: 70, chemistry: 80, biology: 90, 别的科目: 999 } };
+  const exam = {
+    scores: { chinese: 100, math: 120, english: 110, physics: 70, chemistry: 80, biology: 90, 别的科目: 999 }
+  };
   assert.equal(S.examTotal(state, exam), 570);
   assert.equal(S.fullTotal(state), 750);
 });
@@ -214,7 +221,10 @@ test('导出再导入，记录不丢也不串', () => {
 
 test('缺日期列的表格直接报错', () => {
   const state = S.defaultState();
-  const result = S.tableToExams(state, [['考试名称', '语文'], ['没有日期', 100]]);
+  const result = S.tableToExams(state, [
+    ['考试名称', '语文'],
+    ['没有日期', 100]
+  ]);
   assert.equal(result.exams.length, 0);
   assert.match(result.errors[0], /日期/);
 });
@@ -235,8 +245,13 @@ test('数据检查能发现超满分和名次越界', () => {
   const state = S.defaultState();
   state.filter = 'all';
   state.exams.push({
-    id: 'bad', name: '坏数据', date: '2026-12-01', type: '月考',
-    scores: { math: 999 }, ranks: { class: 99 }, averages: {}
+    id: 'bad',
+    name: '坏数据',
+    date: '2026-12-01',
+    type: '月考',
+    scores: { math: 999 },
+    ranks: { class: 99 },
+    averages: {}
   });
   const issues = S.audit(state);
   assert.ok(issues.some((i) => /超过满分/.test(i.text)));
@@ -339,7 +354,15 @@ test('上一场没填名次时不给凭空的进退', () => {
   state.filter = 'all';
   state.exams = [
     { id: 'a', name: '第一场', date: '2026-03-01', type: '月考', scores: { math: 100 }, ranks: {}, averages: {} },
-    { id: 'b', name: '第二场', date: '2026-04-01', type: '月考', scores: { math: 110 }, ranks: { grade: 88, class: 10 }, averages: {} }
+    {
+      id: 'b',
+      name: '第二场',
+      date: '2026-04-01',
+      type: '月考',
+      scores: { math: 110 },
+      ranks: { grade: 88, class: 10 },
+      averages: {}
+    }
   ];
   const diff = S.changeSince(state, state.exams[1]);
   assert.equal(diff.gradeRank, null);
@@ -359,7 +382,9 @@ test('名次估算把分差减去均值再外推', () => {
   const make = (id, date, total, avg, rank) => {
     const per = total / state.config.subjects.length;
     const scores = {};
-    state.config.subjects.forEach((s) => { scores[s.id] = per; });
+    state.config.subjects.forEach((s) => {
+      scores[s.id] = per;
+    });
     return { id, name: id, date, type: '月考', scores, ranks: { grade: rank }, averages: { class: avg } };
   };
   state.exams = [
@@ -394,8 +419,13 @@ test('负数名次会被数据检查抓到', () => {
   const state = S.defaultState();
   state.filter = 'all';
   state.exams.push({
-    id: 'neg', name: '负数名次', date: '2026-12-02', type: '月考',
-    scores: { math: 100 }, ranks: { class: -3, grade: -5 }, averages: {}
+    id: 'neg',
+    name: '负数名次',
+    date: '2026-12-02',
+    type: '月考',
+    scores: { math: 100 },
+    ranks: { class: -3, grade: -5 },
+    averages: {}
   });
   const issues = S.audit(state);
   assert.ok(issues.some((i) => /班级排名是负数/.test(i.text)));
@@ -437,8 +467,13 @@ test('数据检查不受筛选影响', () => {
   const state = S.defaultState();
   state.filter = '期中';
   state.exams.push({
-    id: 'bad2', name: '筛选外的坏数据', date: '2026-12-05', type: '期末',
-    scores: { math: 999 }, ranks: {}, averages: {}
+    id: 'bad2',
+    name: '筛选外的坏数据',
+    date: '2026-12-05',
+    type: '期末',
+    scores: { math: 999 },
+    ranks: {},
+    averages: {}
   });
   const issues = S.audit(state);
   assert.ok(issues.some((i) => /超过满分/.test(i.text)));
@@ -466,10 +501,17 @@ test('备份里的数值字段写成标签会被挡回默认值', () => {
       targetTotal: EVIL,
       subjects: [{ id: 'math', name: '数学', full: EVIL, target: EVIL }]
     },
-    exams: [{
-      id: 'e1', name: '考试', date: '2026-03-01', type: '月考',
-      scores: { math: EVIL }, ranks: { grade: EVIL }, averages: { class: EVIL }
-    }]
+    exams: [
+      {
+        id: 'e1',
+        name: '考试',
+        date: '2026-03-01',
+        type: '月考',
+        scores: { math: EVIL },
+        ranks: { grade: EVIL },
+        averages: { class: EVIL }
+      }
+    ]
   });
   assert.equal(state.config.gradeSize, 620);
   assert.equal(state.config.classSize, 45);
@@ -513,10 +555,17 @@ test('同名 id 的重复记录会被分开', () => {
 test('导出 CSV 时公式开头的名字会被标成文本', () => {
   const state = S.defaultState();
   state.filter = 'all';
-  state.exams = [{
-    id: 'f', name: '=HYPERLINK("http://x")', date: '2026-03-01', type: '月考',
-    scores: { math: 100 }, ranks: {}, averages: {}
-  }];
+  state.exams = [
+    {
+      id: 'f',
+      name: '=HYPERLINK("http://x")',
+      date: '2026-03-01',
+      type: '月考',
+      scores: { math: 100 },
+      ranks: {},
+      averages: {}
+    }
+  ];
   const csv = S.toCSV(state);
   assert.ok(csv.indexOf("'=HYPERLINK") >= 0);
 });
@@ -533,57 +582,98 @@ function auditOne(exam, config) {
 
 test('单科名次超过班级人数会被抓到', () => {
   const texts = auditOne({
-    id: 'a', name: '甲', date: '2026-03-01', type: '月考',
-    scores: { math: 100 }, ranks: {}, averages: {}, subjectRanks: { math: 60 }
+    id: 'a',
+    name: '甲',
+    date: '2026-03-01',
+    type: '月考',
+    scores: { math: 100 },
+    ranks: {},
+    averages: {},
+    subjectRanks: { math: 60 }
   });
   assert.ok(texts.some((t) => /数学班级名次 60 超过班级人数 45/.test(t)));
 });
 
 test('单科班级平均超过该科满分会被抓到', () => {
   const texts = auditOne({
-    id: 'a', name: '甲', date: '2026-03-01', type: '月考',
-    scores: { math: 100 }, ranks: {}, averages: {}, subjectAverages: { math: 160 }
+    id: 'a',
+    name: '甲',
+    date: '2026-03-01',
+    type: '月考',
+    scores: { math: 100 },
+    ranks: {},
+    averages: {},
+    subjectAverages: { math: 160 }
   });
   assert.ok(texts.some((t) => /数学班级平均 160 超过该科满分 150/.test(t)));
 });
 
 test('分数不低却排在后面会被抓到', () => {
   const texts = auditOne({
-    id: 'a', name: '甲', date: '2026-03-01', type: '月考',
-    scores: { chinese: 140 }, ranks: {}, averages: {}, subjectRanks: { chinese: 40 }
+    id: 'a',
+    name: '甲',
+    date: '2026-03-01',
+    type: '月考',
+    scores: { chinese: 140 },
+    ranks: {},
+    averages: {},
+    subjectRanks: { chinese: 40 }
   });
   assert.ok(texts.some((t) => /分数不低，名次却靠后/.test(t)));
 });
 
 test('分数不高却排在前面会被抓到', () => {
   const texts = auditOne({
-    id: 'a', name: '甲', date: '2026-03-01', type: '月考',
-    scores: { chinese: 60 }, ranks: {}, averages: {}, subjectRanks: { chinese: 1 }
+    id: 'a',
+    name: '甲',
+    date: '2026-03-01',
+    type: '月考',
+    scores: { chinese: 60 },
+    ranks: {},
+    averages: {},
+    subjectRanks: { chinese: 1 }
   });
   assert.ok(texts.some((t) => /分数不高，名次却靠前/.test(t)));
 });
 
 test('分数和名次对得上时不报', () => {
   const texts = auditOne({
-    id: 'a', name: '甲', date: '2026-03-01', type: '月考',
-    scores: { chinese: 140 }, ranks: { class: 40 }, averages: {},
-    subjectRanks: { chinese: 3 }, subjectAverages: { chinese: 95 }
+    id: 'a',
+    name: '甲',
+    date: '2026-03-01',
+    type: '月考',
+    scores: { chinese: 140 },
+    ranks: { class: 40 },
+    averages: {},
+    subjectRanks: { chinese: 3 },
+    subjectAverages: { chinese: 95 }
   });
   assert.deepEqual(texts, []);
 });
 
 test('日期填成以后会被抓到', () => {
   const texts = auditOne({
-    id: 'a', name: '甲', date: '2099-01-01', type: '月考',
-    scores: { math: 100 }, ranks: {}, averages: {}
+    id: 'a',
+    name: '甲',
+    date: '2099-01-01',
+    type: '月考',
+    scores: { math: 100 },
+    ranks: {},
+    averages: {}
   });
   assert.ok(texts.some((t) => /还没到/.test(t)));
 });
 
 test('有科目缺考时不拿总分去比名次', () => {
   const texts = auditOne({
-    id: 'a', name: '甲', date: '2026-03-01', type: '月考',
-    scores: { math: 20 }, ranks: { class: 2 }, averages: {}, absent: ['chinese']
+    id: 'a',
+    name: '甲',
+    date: '2026-03-01',
+    type: '月考',
+    scores: { math: 20 },
+    ranks: { class: 2 },
+    averages: {},
+    absent: ['chinese']
   });
   assert.ok(!texts.some((t) => /总分/.test(t)));
 });
@@ -594,7 +684,16 @@ test('缺考导出成「缺考」，没填仍然是空', () => {
   const state = S.defaultState();
   state.filter = 'all';
   state.exams = [
-    { id: 'a', name: '缺考', date: '2026-03-01', type: '月考', scores: { math: 100 }, ranks: {}, averages: {}, absent: ['chinese'] },
+    {
+      id: 'a',
+      name: '缺考',
+      date: '2026-03-01',
+      type: '月考',
+      scores: { math: 100 },
+      ranks: {},
+      averages: {},
+      absent: ['chinese']
+    },
     { id: 'b', name: '没填', date: '2026-04-01', type: '月考', scores: { math: 100 }, ranks: {}, averages: {} }
   ];
   const rows = S.examRows(state);
@@ -607,7 +706,16 @@ test('缺考写进表格再读回来还是缺考', () => {
   const state = S.defaultState();
   state.filter = 'all';
   state.exams = [
-    { id: 'a', name: '甲', date: '2026-03-01', type: '月考', scores: { math: 110 }, ranks: {}, averages: {}, absent: ['chinese'] }
+    {
+      id: 'a',
+      name: '甲',
+      date: '2026-03-01',
+      type: '月考',
+      scores: { math: 110 },
+      ranks: {},
+      averages: {},
+      absent: ['chinese']
+    }
   ];
   const back = S.tableToExams(state, S.parseCSV(S.toCSV(state)));
   assert.deepEqual(back.exams[0].absent, ['chinese']);
@@ -619,7 +727,15 @@ test('导入缺考会盖掉原来的分数', () => {
   const state = S.defaultState();
   state.filter = 'all';
   state.exams = [
-    { id: 'a', name: '甲', date: '2026-03-01', type: '月考', scores: { math: 110, chinese: 100 }, ranks: {}, averages: {} }
+    {
+      id: 'a',
+      name: '甲',
+      date: '2026-03-01',
+      type: '月考',
+      scores: { math: 110, chinese: 100 },
+      ranks: {},
+      averages: {}
+    }
   ];
   const plan = S.planImport(state, [
     { name: '甲', date: '2026-03-01', type: '月考', scores: {}, ranks: {}, averages: {}, absent: ['chinese'] }
@@ -647,7 +763,9 @@ test('导入新的分数会取消缺考标记', () => {
 
 test('不在科目表里的缺考标记会被丢掉', () => {
   const state = S.normalize({
-    exams: [{ id: 'a', name: '甲', date: '2026-03-01', type: '月考', scores: {}, absent: ['chinese', '没有这科', 'chinese'] }]
+    exams: [
+      { id: 'a', name: '甲', date: '2026-03-01', type: '月考', scores: {}, absent: ['chinese', '没有这科', 'chinese'] }
+    ]
   });
   assert.deepEqual(state.exams[0].absent, ['chinese']);
 });
@@ -658,7 +776,14 @@ test('导入前的计划只对位，不改动数据', () => {
   const before = JSON.stringify(state.exams);
   const plan = S.planImport(state, [
     { name: '新的', date: '2026-05-01', type: '月考', scores: { math: 100 }, ranks: {}, averages: {} },
-    { name: state.exams[0].name, date: state.exams[0].date, type: '月考', scores: { math: 111 }, ranks: {}, averages: {} }
+    {
+      name: state.exams[0].name,
+      date: state.exams[0].date,
+      type: '月考',
+      scores: { math: 111 },
+      ranks: {},
+      averages: {}
+    }
   ]);
   assert.equal(plan.added.length, 1);
   assert.equal(plan.replaced.length, 1);

@@ -8,15 +8,34 @@ const path = require('node:path');
 
 const ls = {
   map: new Map(),
-  getItem(key) { return this.map.has(key) ? this.map.get(key) : null; },
-  setItem(key, value) { this.map.set(key, String(value)); },
-  removeItem(key) { this.map.delete(key); }
+  getItem(key) {
+    return this.map.has(key) ? this.map.get(key) : null;
+  },
+  setItem(key, value) {
+    this.map.set(key, String(value));
+  },
+  removeItem(key) {
+    this.map.delete(key);
+  }
 };
 
 function fakeNode() {
   const node = {
-    style: { setProperty() {}, removeProperty() {}, getPropertyValue() { return ''; } },
-    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+    style: {
+      setProperty() {},
+      removeProperty() {},
+      getPropertyValue() {
+        return '';
+      }
+    },
+    classList: {
+      add() {},
+      remove() {},
+      toggle() {},
+      contains() {
+        return false;
+      }
+    },
     dataset: {},
     children: [],
     innerHTML: '',
@@ -26,28 +45,47 @@ function fakeNode() {
     clientWidth: 800,
     clientHeight: 600,
     setAttribute() {},
-    getAttribute() { return null; },
+    getAttribute() {
+      return null;
+    },
     removeAttribute() {},
-    hasAttribute() { return false; },
+    hasAttribute() {
+      return false;
+    },
     addEventListener() {},
     removeEventListener() {},
-    appendChild(child) { node.children.push(child); return child; },
-    insertBefore(child) { return child; },
+    appendChild(child) {
+      node.children.push(child);
+      return child;
+    },
+    insertBefore(child) {
+      return child;
+    },
     removeChild() {},
     remove() {},
-    querySelector() { return null; },
-    querySelectorAll() { return []; },
-    closest() { return null; },
+    querySelector() {
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+    closest() {
+      return null;
+    },
     focus() {},
     click() {},
-    getBoundingClientRect() { return { left: 0, top: 0, width: 800, height: 600, right: 800, bottom: 600 }; }
+    getBoundingClientRect() {
+      return { left: 0, top: 0, width: 800, height: 600, right: 800, bottom: 600 };
+    }
   };
   return node;
 }
 
 global.window = {
   localStorage: ls,
-  matchMedia() { return { matches: false, addEventListener() {} }; },
+  matchMedia() {
+    return { matches: false, addEventListener() {} };
+  },
   addEventListener() {},
   removeEventListener() {},
   innerWidth: 1280,
@@ -56,22 +94,41 @@ global.window = {
   scrollTo() {},
   location: { hash: '' },
   history: { replaceState() {} },
-  requestAnimationFrame(fn) { fn(0); return 1; },
+  requestAnimationFrame(fn) {
+    fn(0);
+    return 1;
+  },
   cancelAnimationFrame() {},
-  getComputedStyle() { return { getPropertyValue() { return '#000000'; } }; }
+  getComputedStyle() {
+    return {
+      getPropertyValue() {
+        return '#000000';
+      }
+    };
+  }
 };
 
 global.requestAnimationFrame = global.window.requestAnimationFrame;
 global.cancelAnimationFrame = global.window.cancelAnimationFrame;
 global.getComputedStyle = global.window.getComputedStyle;
 global.document = {
-  querySelector() { return null; },
-  querySelectorAll() { return []; },
-  getElementById() { return null; },
+  querySelector() {
+    return null;
+  },
+  querySelectorAll() {
+    return [];
+  },
+  getElementById() {
+    return null;
+  },
   addEventListener() {},
   removeEventListener() {},
-  createElement() { return fakeNode(); },
-  createElementNS() { return fakeNode(); },
+  createElement() {
+    return fakeNode();
+  },
+  createElementNS() {
+    return fakeNode();
+  },
   documentElement: fakeNode(),
   body: fakeNode(),
   head: fakeNode()
@@ -212,10 +269,18 @@ test('每一科都能在表单里标缺考', () => {
 
 test('缺考的那一科在详情页写成缺考，没填的仍然是横线', () => {
   const state = freshState();
-  state.exams = [{
-    id: 'a', name: '甲', date: '2026-03-01', type: '月考',
-    scores: { math: 100 }, ranks: {}, averages: {}, absent: ['chinese']
-  }];
+  state.exams = [
+    {
+      id: 'a',
+      name: '甲',
+      date: '2026-03-01',
+      type: '月考',
+      scores: { math: 100 },
+      ranks: {},
+      averages: {},
+      absent: ['chinese']
+    }
+  ];
   const html = V.detail(state, 'a');
   assertClean(html, '缺考详情');
   assert.ok(html.includes(S.ABSENT_TEXT), '缺考的科目要写缺考');
@@ -225,8 +290,11 @@ test('缺考的那一科在详情页写成缺考，没填的仍然是横线', ()
 test('单科拆件返回的每一块都能用', () => {
   const state = freshState();
   const parts = V.subjectParts(state, state.config.subjects[0]);
-  ['kpi', 'kpiItems', 'chartCard', 'sideCard', 'sideBody', 'tableCard', 'tableRows', 'points', 'bands']
-    .forEach((key) => { assert.ok(parts[key] !== undefined, '缺少 ' + key); });
+  ['kpi', 'kpiItems', 'chartCard', 'sideCard', 'sideBody', 'tableCard', 'tableRows', 'points', 'bands'].forEach(
+    (key) => {
+      assert.ok(parts[key] !== undefined, '缺少 ' + key);
+    }
+  );
   assert.ok(parts.points.length > 0);
   assertClean(parts.tableRows, '单科表格');
 });
@@ -239,7 +307,7 @@ test('没有记录时各页面给空状态而不是报错', () => {
   assertClean(V.subjects(state, state.config.subjects[0].id), '空状态单科');
   assertClean(V.compare(state, null, null), '空状态对比');
   assertClean(V.exams(state), '空状态记录');
-  assert.ok(V.detail(state, '不存在') .includes('没有这次考试'));
+  assert.ok(V.detail(state, '不存在').includes('没有这次考试'));
 });
 
 test('科目增减之后列表与表单跟着变', () => {

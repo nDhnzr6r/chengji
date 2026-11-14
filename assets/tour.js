@@ -125,9 +125,16 @@
 
   function onKey(evt) {
     if (!active) return;
-    if (evt.key === 'Escape') { evt.preventDefault(); finish(); }
-    else if (evt.key === 'ArrowRight' || evt.key === 'Enter') { evt.preventDefault(); next(); }
-    else if (evt.key === 'ArrowLeft') { evt.preventDefault(); prev(); }
+    if (evt.key === 'Escape') {
+      evt.preventDefault();
+      finish();
+    } else if (evt.key === 'ArrowRight' || evt.key === 'Enter') {
+      evt.preventDefault();
+      next();
+    } else if (evt.key === 'ArrowLeft') {
+      evt.preventDefault();
+      prev();
+    }
   }
 
   function clearTour() {
@@ -142,7 +149,9 @@
       root = null;
       hole = null;
       tip = null;
-      setTimeout(function () { el.remove(); }, 220);
+      setTimeout(function () {
+        el.remove();
+      }, 220);
     }
   }
 
@@ -152,7 +161,10 @@
   }
 
   function next() {
-    if (index >= STEPS.length - 1) { finish(); return; }
+    if (index >= STEPS.length - 1) {
+      finish();
+      return;
+    }
     index += 1;
     show();
   }
@@ -167,7 +179,10 @@
     var step = STEPS[index];
     var target = document.querySelector(step.sel);
 
-    if (!target) { next(); return; }
+    if (!target) {
+      next();
+      return;
+    }
 
     currentTarget = target;
     currentStep = step;
@@ -181,7 +196,7 @@
 
     paint(rect, step);
 
-    tip.querySelector('.tour-count').textContent = (index + 1) + ' / ' + STEPS.length;
+    tip.querySelector('.tour-count').textContent = index + 1 + ' / ' + STEPS.length;
     tip.querySelector('.tour-title').textContent = step.title;
     tip.querySelector('.tour-text').textContent = step.text;
 
@@ -196,10 +211,10 @@
   /* 把高亮框和气泡摆到目标身上 */
   function paint(rect, step) {
     var pad = 8;
-    hole.style.left = (rect.left - pad) + 'px';
-    hole.style.top = (rect.top - pad) + 'px';
-    hole.style.width = (rect.width + pad * 2) + 'px';
-    hole.style.height = (rect.height + pad * 2) + 'px';
+    hole.style.left = rect.left - pad + 'px';
+    hole.style.top = rect.top - pad + 'px';
+    hole.style.width = rect.width + pad * 2 + 'px';
+    hole.style.height = rect.height + pad * 2 + 'px';
     positionTip(rect, step.place);
   }
 

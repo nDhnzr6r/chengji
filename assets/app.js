@@ -33,7 +33,11 @@
         var eq = pair.indexOf('=');
         var k = eq >= 0 ? pair.slice(0, eq) : pair;
         var v = eq >= 0 ? pair.slice(eq + 1) : '';
-        try { query[decodeURIComponent(k)] = decodeURIComponent(v); } catch (err) { /* 保留原样 */ }
+        try {
+          query[decodeURIComponent(k)] = decodeURIComponent(v);
+        } catch (err) {
+          /* 保留原样 */
+        }
       });
     }
     var parts = raw.split('/').filter(Boolean);
@@ -42,15 +46,20 @@
 
   /* 提示条；带上动作时会多一个按钮，停留时间也更长 */
   function toast(message, tone, action) {
-    toastEl.innerHTML = S.esc(message) + (action
-      ? '<button type="button" class="toast-act" data-action="' + action.id + '">' + S.esc(action.label) + '</button>'
-      : '');
+    toastEl.innerHTML =
+      S.esc(message) +
+      (action
+        ? '<button type="button" class="toast-act" data-action="' + action.id + '">' + S.esc(action.label) + '</button>'
+        : '');
     toastEl.className = 'toast is-on' + (tone ? ' toast-' + tone : '');
     clearTimeout(toast._t);
-    toast._t = setTimeout(function () {
-      toastEl.className = 'toast';
-      toastEl.innerHTML = '';
-    }, action ? 7000 : 2600);
+    toast._t = setTimeout(
+      function () {
+        toastEl.className = 'toast';
+        toastEl.innerHTML = '';
+      },
+      action ? 7000 : 2600
+    );
   }
 
   /* ---------------- 存储状态 ---------------- */
@@ -61,17 +70,26 @@
     if (!storageNote) return '';
     var extra = '';
     if (storageNote.kind === 'broken') {
-      extra = '<button type="button" class="btn btn-sm btn-ghost" data-action="export-broken">下载原始存档</button>' +
+      extra =
+        '<button type="button" class="btn btn-sm btn-ghost" data-action="export-broken">下载原始存档</button>' +
         '<button type="button" class="btn btn-sm btn-ghost" data-action="discard-broken">丢弃</button>';
     } else if (storageNote.kind === 'external') {
       extra = '<button type="button" class="btn btn-sm btn-primary" data-action="reload-external">载入最新</button>';
     } else if (storageNote.kind === 'save' || storageNote.kind === 'off') {
       extra = '<button type="button" class="btn btn-sm btn-primary" data-action="export-json">导出备份</button>';
     }
-    return '<div class="storage-note storage-' + storageNote.tone + '" id="storageNote" role="alert">' +
-      '<div class="storage-text"><b>' + S.esc(storageNote.title) + '</b><span>' + S.esc(storageNote.text) + '</span></div>' +
+    return (
+      '<div class="storage-note storage-' +
+      storageNote.tone +
+      '" id="storageNote" role="alert">' +
+      '<div class="storage-text"><b>' +
+      S.esc(storageNote.title) +
+      '</b><span>' +
+      S.esc(storageNote.text) +
+      '</span></div>' +
       (extra ? '<div class="storage-actions">' + extra + '</div>' : '') +
-      '</div>';
+      '</div>'
+    );
   }
 
   function setStorageNote(note) {
@@ -159,7 +177,9 @@
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 1500);
   }
 
   function todayStamp() {
@@ -169,7 +189,11 @@
   function readJSONScript(id) {
     var node = document.getElementById(id);
     if (!node) return null;
-    try { return JSON.parse(node.textContent); } catch (err) { return null; }
+    try {
+      return JSON.parse(node.textContent);
+    } catch (err) {
+      return null;
+    }
   }
 
   /* ---------------- 导航 ---------------- */
@@ -187,25 +211,42 @@
     var name = route.name;
     var picked = route.query.type || 'all';
     /* 地址栏里的类型如果已经不存在，就当没筛 */
-    if (picked !== 'all' && !state.exams.some(function (e) { return (e.type || S.DEFAULT_TYPE) === picked; })) {
+    if (
+      picked !== 'all' &&
+      !state.exams.some(function (e) {
+        return (e.type || S.DEFAULT_TYPE) === picked;
+      })
+    ) {
       picked = 'all';
     }
     state.filter = picked;
     var html;
     var title;
 
-    if (name === 'overview') { html = V.overview(state); title = '总览'; }
-    else if (name === 'subjects') {
+    if (name === 'overview') {
+      html = V.overview(state);
+      title = '总览';
+    } else if (name === 'subjects') {
       var firstId = state.config.subjects[0] && state.config.subjects[0].id;
       var sid = route.param || firstId;
       html = V.subjects(state, sid);
       title = '单科分析';
+    } else if (name === 'compare') {
+      html = V.compare(state, comparePair[0], comparePair[1]);
+      title = '两次考试对比';
+    } else if (name === 'exams') {
+      html = V.exams(state);
+      title = '考试记录';
+    } else if (name === 'exam') {
+      html = V.detail(state, route.param);
+      title = '考试详情';
+    } else if (name === 'settings') {
+      html = V.settings(state, route.query.sec);
+      title = '设置';
+    } else {
+      html = V.overview(state);
+      title = '总览';
     }
-    else if (name === 'compare') { html = V.compare(state, comparePair[0], comparePair[1]); title = '两次考试对比'; }
-    else if (name === 'exams') { html = V.exams(state); title = '考试记录'; }
-    else if (name === 'exam') { html = V.detail(state, route.param); title = '考试详情'; }
-    else if (name === 'settings') { html = V.settings(state, route.query.sec); title = '设置'; }
-    else { html = V.overview(state); title = '总览'; }
 
     document.title = title + ' · 成迹';
     currentView = name;
@@ -214,21 +255,33 @@
     /* 还在用示例数据的时候在总览说一句，免得当成自己的 */
     if (state.sample && name === 'overview') {
       var sampleCount = S.allSorted(state).length;
-      html = '<div class="sample-note">' +
+      html =
+        '<div class="sample-note">' +
         '<span class="sample-tag">示例数据</span>' +
-        '<span class="sample-text">这 ' + sampleCount + ' 场考试、班级名和目标是虚构的。清掉之后从白纸开始录。</span>' +
+        '<span class="sample-text">这 ' +
+        sampleCount +
+        ' 场考试、班级名和目标是虚构的。清掉之后从白纸开始录。</span>' +
         '<button type="button" class="sample-clear" data-action="reset-all">清空并开始记录</button>' +
-        '</div>' + html;
+        '</div>' +
+        html;
     }
 
     /* 筛选开着就在每页顶上挂一条，免得看着像全部数据 */
     if (picked !== 'all') {
       var shownCount = S.sorted(state).length;
       var totalCount = S.allSorted(state).length;
-      html = '<div class="filter-note">' +
-        '<span>只看' + S.esc(picked) + '，' + shownCount + ' 次</span>' +
-        '<button type="button" class="filter-clear" data-exam-filter="all">显示全部 ' + totalCount + ' 次</button>' +
-        '</div>' + html;
+      html =
+        '<div class="filter-note">' +
+        '<span>只看' +
+        S.esc(picked) +
+        '，' +
+        shownCount +
+        ' 次</span>' +
+        '<button type="button" class="filter-clear" data-exam-filter="all">显示全部 ' +
+        totalCount +
+        ' 次</button>' +
+        '</div>' +
+        html;
     }
 
     mainEl.innerHTML = html;
@@ -245,7 +298,9 @@
     void mainEl.offsetWidth;
     mainEl.classList.add('is-enter');
 
-    requestAnimationFrame(function () { mount(name); });
+    requestAnimationFrame(function () {
+      mount(name);
+    });
   }
 
   /* 分段控件的白色滑块：点在哪个上就滑到哪 */
@@ -276,7 +331,9 @@
     if (!btn) return;
     var seg = btn.closest('.seg');
     if (!seg) return;
-    requestAnimationFrame(function () { moveThumb(seg); });
+    requestAnimationFrame(function () {
+      moveThumb(seg);
+    });
   });
 
   var segResizeTimer = null;
@@ -293,8 +350,10 @@
     if (name === 'overview') mountOverview();
     else if (name === 'subjects') mountSubjects();
     else if (name === 'compare') mountCompare();
-    else if (name === 'settings') { mountSettings(); initSettingsNav(); }
-    else if (name === 'exam') mountDetail();
+    else if (name === 'settings') {
+      mountSettings();
+      initSettingsNav();
+    } else if (name === 'exam') mountDetail();
   }
 
   function mountOverview() {
@@ -306,10 +365,42 @@
     var range = 'all';
 
     var METRICS = {
-      total: { title: '总分走势', note: '虚线是目标分数线', label: '目标', unit: '', digits: 0, invert: false, area: true },
-      rate: { title: '得分率走势', note: '虚线是目标得分率', label: '目标', unit: '%', digits: 1, invert: false, area: true },
-      grade: { title: '年级名次走势', note: '数值越小越靠上，虚线是目标名次', label: '目标', unit: ' 名', digits: 0, invert: true, area: false },
-      classRank: { title: '班级名次走势', note: '数值越小越靠上，虚线是目标名次', label: '目标', unit: ' 名', digits: 0, invert: true, area: false }
+      total: {
+        title: '总分走势',
+        note: '虚线是目标分数线',
+        label: '目标',
+        unit: '',
+        digits: 0,
+        invert: false,
+        area: true
+      },
+      rate: {
+        title: '得分率走势',
+        note: '虚线是目标得分率',
+        label: '目标',
+        unit: '%',
+        digits: 1,
+        invert: false,
+        area: true
+      },
+      grade: {
+        title: '年级名次走势',
+        note: '数值越小越靠上，虚线是目标名次',
+        label: '目标',
+        unit: ' 名',
+        digits: 0,
+        invert: true,
+        area: false
+      },
+      classRank: {
+        title: '班级名次走势',
+        note: '数值越小越靠上，虚线是目标名次',
+        label: '目标',
+        unit: ' 名',
+        digits: 0,
+        invert: true,
+        area: false
+      }
     };
 
     function pointsFor(key) {
@@ -318,7 +409,10 @@
       else if (range === 'term') {
         /* 本学期 = 和最近一次考试同一个学期 */
         var lastBand = data.bands && data.bands.length ? data.bands[data.bands.length - 1] : null;
-        if (lastBand) exams = exams.filter(function (e) { return e.ts >= lastBand.startTs; });
+        if (lastBand)
+          exams = exams.filter(function (e) {
+            return e.ts >= lastBand.startTs;
+          });
       }
       return exams.map(function (e) {
         return {
@@ -459,7 +553,10 @@
       }
     }
 
-    var subject = state.config.subjects.find(function (s) { return s.id === activeId; }) || state.config.subjects[0];
+    var subject =
+      state.config.subjects.find(function (s) {
+        return s.id === activeId;
+      }) || state.config.subjects[0];
     draw(V.subjectParts(state, subject), true);
 
     mainEl.querySelectorAll('.tab').forEach(function (tab) {
@@ -467,7 +564,9 @@
         evt.preventDefault();
         var id = tab.getAttribute('data-subject-tab');
         if (id === activeId) return;
-        var next = state.config.subjects.find(function (s) { return s.id === id; });
+        var next = state.config.subjects.find(function (s) {
+          return s.id === id;
+        });
         if (!next) return;
         activeId = id;
         mainEl.querySelectorAll('.tab').forEach(function (t) {
@@ -511,7 +610,16 @@
     });
 
     bindResize(function () {
-      if (currentView === 'subjects') draw(V.subjectParts(state, state.config.subjects.find(function (s) { return s.id === activeId; }) || state.config.subjects[0]), true);
+      if (currentView === 'subjects')
+        draw(
+          V.subjectParts(
+            state,
+            state.config.subjects.find(function (s) {
+              return s.id === activeId;
+            }) || state.config.subjects[0]
+          ),
+          true
+        );
     });
   }
 
@@ -525,7 +633,7 @@
     });
     void list[0].offsetWidth;
     list.forEach(function (el, i) {
-      el.style.animationDelay = (i * step) + 'ms';
+      el.style.animationDelay = i * step + 'ms';
       el.classList.add('fade-in');
     });
   }
@@ -538,7 +646,9 @@
       if (typeof resizeHandler === 'function') resizeHandler();
     }, 150);
   });
-  function bindResize(fn) { resizeHandler = fn; }
+  function bindResize(fn) {
+    resizeHandler = fn;
+  }
 
   /* 左栏选中块滑到当前这一项 */
   function initSettingsNav() {
@@ -600,7 +710,10 @@
   function setThemeToggleVisible(show) {
     var btn = document.getElementById('themeToggle');
     if (show) {
-      if (btn) { btn.classList.remove('is-away'); return; }
+      if (btn) {
+        btn.classList.remove('is-away');
+        return;
+      }
       var side = document.querySelector('.side');
       if (!side) return;
       side.insertAdjacentHTML('beforeend', V.themeToggleHTML());
@@ -647,7 +760,9 @@
         /* 存不进去就别给「已保存」的绿框 */
         if (!commit()) return;
         el.classList.add('is-saved');
-        setTimeout(function () { el.classList.remove('is-saved'); }, 900);
+        setTimeout(function () {
+          el.classList.remove('is-saved');
+        }, 900);
       });
     });
 
@@ -656,9 +771,18 @@
       input.addEventListener('change', function () {
         var oldName = input.getAttribute('data-type-old');
         var next = (input.value || '').trim().slice(0, S.TYPE_NAME_MAX);
-        if (!next || next === oldName) { input.value = oldName; return; }
-        if ((c.types || []).indexOf(next) >= 0) { input.value = oldName; toast('已经有这个类型了', 'bad'); return; }
-        c.types = (c.types || []).map(function (t) { return t === oldName ? next : t; });
+        if (!next || next === oldName) {
+          input.value = oldName;
+          return;
+        }
+        if ((c.types || []).indexOf(next) >= 0) {
+          input.value = oldName;
+          toast('已经有这个类型了', 'bad');
+          return;
+        }
+        c.types = (c.types || []).map(function (t) {
+          return t === oldName ? next : t;
+        });
         state.exams.forEach(function (e) {
           if ((e.type || S.DEFAULT_TYPE) === oldName) e.type = next;
         });
@@ -672,7 +796,9 @@
 
     mainEl.querySelectorAll('.table-form tbody tr').forEach(function (tr) {
       var id = tr.getAttribute('data-subject');
-      var subject = c.subjects.find(function (s) { return s.id === id; });
+      var subject = c.subjects.find(function (s) {
+        return s.id === id;
+      });
       if (!subject) return;
       tr.querySelectorAll('input[data-field]').forEach(function (input) {
         input.addEventListener('change', function () {
@@ -682,15 +808,24 @@
             input.value = subject.name;
           } else {
             var num = Number(input.value);
-            if (isNaN(num) || num < 0) { input.value = subject[field]; return; }
+            if (isNaN(num) || num < 0) {
+              input.value = subject[field];
+              return;
+            }
             if (field === 'full') {
-              if (num < 1) { input.value = subject.full; return; }
+              if (num < 1) {
+                input.value = subject.full;
+                return;
+              }
               subject.full = Math.min(num, S.SUBJECT_FULL_MAX);
               input.value = subject.full;
               if (Number(subject.target) > subject.full) {
                 subject.target = subject.full;
                 var tEl = tr.querySelector('[data-field="target"]');
-                if (tEl) { tEl.value = subject.target; tEl.max = subject.full; }
+                if (tEl) {
+                  tEl.value = subject.target;
+                  tEl.max = subject.full;
+                }
               }
             } else {
               subject[field] = Math.min(num, Number(subject.full) || num);
@@ -803,21 +938,35 @@
         document.body.classList.remove('no-scroll');
       }
     };
-    if (C.reduced()) { finish(); return; }
+    if (C.reduced()) {
+      finish();
+      return;
+    }
     dlg.classList.add('is-closing');
     setTimeout(finish, 140);
   }
 
   /* 确认框：标题、正文、按钮文字和确认动作 */
   function confirmDialog(o) {
-    openDialog('<dialog class="dialog dialog-confirm">' +
-      '<div class="form-head"><h2>' + o.title + '</h2></div>' +
-      '<div class="form-body"><p class="confirm-text">' + o.text + '</p></div>' +
-      '<div class="form-foot"><button class="btn btn-ghost" data-action="close-dialog">取消</button>' +
-      '<button class="btn ' + (o.danger ? 'btn-danger' : 'btn-primary') + '" data-action="confirm">' + o.label + '</button></div>' +
-      '</dialog>', function (dlg) {
+    openDialog(
+      '<dialog class="dialog dialog-confirm">' +
+        '<div class="form-head"><h2>' +
+        o.title +
+        '</h2></div>' +
+        '<div class="form-body"><p class="confirm-text">' +
+        o.text +
+        '</p></div>' +
+        '<div class="form-foot"><button class="btn btn-ghost" data-action="close-dialog">取消</button>' +
+        '<button class="btn ' +
+        (o.danger ? 'btn-danger' : 'btn-primary') +
+        '" data-action="confirm">' +
+        o.label +
+        '</button></div>' +
+        '</dialog>',
+      function (dlg) {
         dlg.querySelector('[data-action="confirm"]').addEventListener('click', o.onConfirm);
-      });
+      }
+    );
   }
 
   function openExamForm(exam) {
@@ -867,7 +1016,10 @@
         var date = dateEl ? dateEl.getAttribute('data-value') : '';
         var type = typeEl ? typeEl.getAttribute('data-value') : S.DEFAULT_TYPE;
 
-        if (!date) { errEl.textContent = '先填日期。'; return; }
+        if (!date) {
+          errEl.textContent = '先填日期。';
+          return;
+        }
         if (!name) name = date + ' ' + type;
 
         var scores = {};
@@ -878,21 +1030,35 @@
           var raw = input.value.trim();
           if (raw === '') return;
           var num = Number(raw);
-          var subject = subjects.find(function (s) { return s.id === id; });
+          var subject = subjects.find(function (s) {
+            return s.id === id;
+          });
           if (!subject) return;
-          if (isNaN(num) || num < 0) { bad = bad || subject.name + ' 的分数不是有效数字'; return; }
-          if (num > subject.full) { bad = bad || subject.name + ' 超过满分 ' + subject.full + ' 分'; return; }
+          if (isNaN(num) || num < 0) {
+            bad = bad || subject.name + ' 的分数不是有效数字';
+            return;
+          }
+          if (num > subject.full) {
+            bad = bad || subject.name + ' 超过满分 ' + subject.full + ' 分';
+            return;
+          }
           scores[id] = num;
           filled++;
         });
 
-        if (bad) { errEl.textContent = bad; return; }
+        if (bad) {
+          errEl.textContent = bad;
+          return;
+        }
 
         var absent = [];
         dlg.querySelectorAll('.absent-toggle').forEach(function (btn) {
           if (btn.getAttribute('aria-pressed') === 'true') absent.push(btn.getAttribute('data-absent'));
         });
-        if (!filled && !absent.length) { errEl.textContent = '至少填一科分数。'; return; }
+        if (!filled && !absent.length) {
+          errEl.textContent = '至少填一科分数。';
+          return;
+        }
 
         var pickRank = function (id) {
           var n = Number(dlg.querySelector(id).value);
@@ -935,9 +1101,16 @@
           toast('已保存这次考试');
         } else {
           state.exams.push({
-            id: S.uid(), name: name, date: date, type: type,
-            scores: scores, ranks: ranks, averages: averages, absent: absent,
-            subjectRanks: subjectRanks, subjectAverages: subjectAverages
+            id: S.uid(),
+            name: name,
+            date: date,
+            type: type,
+            scores: scores,
+            ranks: ranks,
+            averages: averages,
+            absent: absent,
+            subjectRanks: subjectRanks,
+            subjectAverages: subjectAverages
           });
           toast('已记录「' + name + '」');
         }
@@ -967,8 +1140,13 @@
       var s = document.createElement('script');
       s.src = 'vendor/xlsx.full.min.js';
       s.async = true;
-      s.onload = function () { resolve(global.XLSX); };
-      s.onerror = function () { xlsxLoading = null; reject(new Error('load failed')); };
+      s.onload = function () {
+        resolve(global.XLSX);
+      };
+      s.onerror = function () {
+        xlsxLoading = null;
+        reject(new Error('load failed'));
+      };
       document.head.appendChild(s);
     });
     return xlsxLoading;
@@ -976,11 +1154,13 @@
 
   function exportXLSX() {
     toast('正在准备 Excel 组件');
-    loadXLSX().then(function () {
-      buildXLSX();
-    }).catch(function () {
-      toast('Excel 组件加载失败，改用 CSV 导出', 'bad');
-    });
+    loadXLSX()
+      .then(function () {
+        buildXLSX();
+      })
+      .catch(function () {
+        toast('Excel 组件加载失败，改用 CSV 导出', 'bad');
+      });
   }
 
   function buildXLSX() {
@@ -988,7 +1168,9 @@
     var rows = [head].concat(S.examRows(state));
 
     var sheet = global.XLSX.utils.aoa_to_sheet(rows);
-    sheet['!cols'] = head.map(function (h) { return { wch: Math.max(8, Math.min(18, h.length * 2 + 4)) }; });
+    sheet['!cols'] = head.map(function (h) {
+      return { wch: Math.max(8, Math.min(18, h.length * 2 + 4)) };
+    });
     var book = global.XLSX.utils.book_new();
     global.XLSX.utils.book_append_sheet(book, sheet, '成绩');
     global.XLSX.writeFile(book, '成迹-成绩-' + todayStamp() + '.xlsx');
@@ -998,7 +1180,10 @@
   /* 导出一份能直接看的分析报告 */
   function exportReport() {
     var list = S.allSorted(state);
-    if (!list.length) { toast('还没有成绩记录', 'bad'); return; }
+    if (!list.length) {
+      toast('还没有成绩记录', 'bad');
+      return;
+    }
     var last = list[list.length - 1];
     /* 报告里的结论和明细都按全部记录算，不受类型筛选影响 */
     var plain = Object.assign({}, state, { filter: 'all' });
@@ -1015,22 +1200,39 @@
       return '<tr><th>' + k + '</th><td>' + v + '</td></tr>';
     }
 
-    var subjectRows = sub.map(function (s) {
-      var v = Number(last.scores[s.id]);
-      var t = Number(s.target) || 0;
-      var avg = Number((last.subjectAverages || {})[s.id]) || null;
-      var rk = Number((last.subjectRanks || {})[s.id]) || null;
-      return '<tr>' +
-        '<td>' + S.esc(s.name) + '</td>' +
-        '<td class="num">' + (isNaN(v) ? '—' : v + ' / ' + s.full) + '</td>' +
-        '<td class="num">' + (isNaN(v) || !Number(s.full) ? '—' : S.pctText(v / s.full)) + '</td>' +
-        '<td class="num">' + (avg === null ? '—' : avg) + '</td>' +
-        '<td class="num">' + (rk === null ? '—' : '第 ' + rk + ' 名') + '</td>' +
-        '<td class="num">' + (isNaN(v) || !t ? '—' : (v >= t ? '达标' : '差 ' + (t - v))) + '</td>' +
-        '</tr>';
-    }).join('');
+    var subjectRows = sub
+      .map(function (s) {
+        var v = Number(last.scores[s.id]);
+        var t = Number(s.target) || 0;
+        var avg = Number((last.subjectAverages || {})[s.id]) || null;
+        var rk = Number((last.subjectRanks || {})[s.id]) || null;
+        return (
+          '<tr>' +
+          '<td>' +
+          S.esc(s.name) +
+          '</td>' +
+          '<td class="num">' +
+          (isNaN(v) ? '—' : v + ' / ' + s.full) +
+          '</td>' +
+          '<td class="num">' +
+          (isNaN(v) || !Number(s.full) ? '—' : S.pctText(v / s.full)) +
+          '</td>' +
+          '<td class="num">' +
+          (avg === null ? '—' : avg) +
+          '</td>' +
+          '<td class="num">' +
+          (rk === null ? '—' : '第 ' + rk + ' 名') +
+          '</td>' +
+          '<td class="num">' +
+          (isNaN(v) || !t ? '—' : v >= t ? '达标' : '差 ' + (t - v)) +
+          '</td>' +
+          '</tr>'
+        );
+      })
+      .join('');
 
-    var html = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">' +
+    var html =
+      '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">' +
       '<title>成绩分析报告</title><style>' +
       ':root{--ink:#111;--dim:#666;--faint:#999;--rule:#ddd;--hair:#eee}' +
       'body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;max-width:820px;margin:40px auto;padding:0 24px;color:var(--ink);line-height:1.7}' +
@@ -1045,47 +1247,117 @@
       'footer{margin-top:34px;color:var(--faint);font-size:12px}' +
       '</style></head><body>' +
       '<h1>成绩分析报告</h1>' +
-      '<p class="meta">' + S.esc(last.name) + ' · ' + S.cnDate(last.date) + ' · 共 ' + list.length + ' 次记录</p>' +
-
+      '<p class="meta">' +
+      S.esc(last.name) +
+      ' · ' +
+      S.cnDate(last.date) +
+      ' · 共 ' +
+      list.length +
+      ' 次记录</p>' +
       '<h2>这次的结论</h2>' +
-      '<p class="lead">' + (ins ? ins.headlines.map(S.esc).join('，') : '') + '</p>' +
+      '<p class="lead">' +
+      (ins ? ins.headlines.map(S.esc).join('，') : '') +
+      '</p>' +
       (road && road.predict !== null
-        ? '<p>' + (term ? '按' + term.term + '这几场的速度，下次大约 ' + Math.round(term.next) + ' 分，学期末大约 ' + Math.round(term.end) + ' 分。' : '') +
-          '按最近六次算，下次大约 ' + Math.round(road.predict) + ' 分' +
-          (road.needPerExam !== null ? '；剩 ' + road.remaining + ' 场，每场要涨 ' + road.needPerExam.toFixed(1) + ' 分才够。' : '。') + '</p>'
+        ? '<p>' +
+          (term
+            ? '按' +
+              term.term +
+              '这几场的速度，下次大约 ' +
+              Math.round(term.next) +
+              ' 分，学期末大约 ' +
+              Math.round(term.end) +
+              ' 分。'
+            : '') +
+          '按最近六次算，下次大约 ' +
+          Math.round(road.predict) +
+          ' 分' +
+          (road.needPerExam !== null
+            ? '；剩 ' + road.remaining + ' 场，每场要涨 ' + road.needPerExam.toFixed(1) + ' 分才够。'
+            : '。') +
+          '</p>'
         : '') +
-
       '<h2>和同学比</h2>' +
       (peers.vsClass !== null || peers.vsGrade !== null
         ? '<table>' +
-          (peers.vsClass !== null ? row('班级平均', peers.classAvg + '（' + (peers.vsClass >= 0 ? '高 ' : '低 ') + Math.abs(peers.vsClass) + ' 分）') : '') +
-          (peers.vsGrade !== null ? row('年级平均', peers.gradeAvg + '（' + (peers.vsGrade >= 0 ? '高 ' : '低 ') + Math.abs(peers.vsGrade) + ' 分）') : '') +
+          (peers.vsClass !== null
+            ? row(
+                '班级平均',
+                peers.classAvg + '（' + (peers.vsClass >= 0 ? '高 ' : '低 ') + Math.abs(peers.vsClass) + ' 分）'
+              )
+            : '') +
+          (peers.vsGrade !== null
+            ? row(
+                '年级平均',
+                peers.gradeAvg + '（' + (peers.vsGrade >= 0 ? '高 ' : '低 ') + Math.abs(peers.vsGrade) + ' 分）'
+              )
+            : '') +
           (peers.toTop !== null ? row('年级最高', peers.top + '（差 ' + peers.toTop + ' 分）') : '') +
-          '</table>' + (peers.diagnosis ? '<p>' + S.esc(peers.diagnosis.text) + '。</p>' : '')
+          '</table>' +
+          (peers.diagnosis ? '<p>' + S.esc(peers.diagnosis.text) + '。</p>' : '')
         : '<p>这次没有填班级平均或年级平均，判断不了是题难还是状态问题。</p>') +
-
       '<h2>各科明细</h2>' +
       '<table><tr><th>科目</th><th class="num">得分</th><th class="num">得分率</th><th class="num">班平</th><th class="num">班内名次</th><th class="num">距目标</th></tr>' +
-      subjectRows + '</table>' +
-
+      subjectRows +
+      '</table>' +
       '<h2>偏科</h2>' +
       (spread
-        ? '<p>最强 ' + S.esc(spread.strongest.name) + ' ' + spread.strongest.rate.toFixed(1) + '%，最弱 ' +
-          S.esc(spread.weakest.name) + ' ' + spread.weakest.rate.toFixed(1) + '%，相差 ' + spread.spread.toFixed(1) +
-          ' 个百分点，整体' + spread.level.text + '。及格 ' + spread.pass + ' 科，优秀 ' + spread.good + ' 科。</p>'
+        ? '<p>最强 ' +
+          S.esc(spread.strongest.name) +
+          ' ' +
+          spread.strongest.rate.toFixed(1) +
+          '%，最弱 ' +
+          S.esc(spread.weakest.name) +
+          ' ' +
+          spread.weakest.rate.toFixed(1) +
+          '%，相差 ' +
+          spread.spread.toFixed(1) +
+          ' 个百分点，整体' +
+          spread.level.text +
+          '。及格 ' +
+          spread.pass +
+          ' 科，优秀 ' +
+          spread.good +
+          ' 科。</p>'
         : '') +
-
       '<h2>下一步</h2>' +
       '<ul>' +
-      (prio.length ? '<li>先补 ' + S.esc(prio[0].subject.name) + '，还差 ' + prio[0].gap + ' 分（占满分 ' + (prio[0].gapRate * 100).toFixed(0) + '%）。</li>' : '') +
-      (smooth.up.length ? '<li>最近三场进步最多的是 ' + S.esc(smooth.up[0].subject.name) + '，' + S.signed(smooth.up[0].delta) + ' 分，保持。</li>' : '') +
-      (smooth.down.length ? '<li>最近三场回落最多的是 ' + S.esc(smooth.down[0].subject.name) + '，' + S.signed(smooth.down[0].delta) + ' 分。</li>' : '') +
+      (prio.length
+        ? '<li>先补 ' +
+          S.esc(prio[0].subject.name) +
+          '，还差 ' +
+          prio[0].gap +
+          ' 分（占满分 ' +
+          (prio[0].gapRate * 100).toFixed(0) +
+          '%）。</li>'
+        : '') +
+      (smooth.up.length
+        ? '<li>最近三场进步最多的是 ' +
+          S.esc(smooth.up[0].subject.name) +
+          '，' +
+          S.signed(smooth.up[0].delta) +
+          ' 分，保持。</li>'
+        : '') +
+      (smooth.down.length
+        ? '<li>最近三场回落最多的是 ' +
+          S.esc(smooth.down[0].subject.name) +
+          '，' +
+          S.signed(smooth.down[0].delta) +
+          ' 分。</li>'
+        : '') +
       (road && road.needPerExam !== null && road.needPerExam > 0
-        ? '<li>离目标还差 ' + road.gap + ' 分，剩 ' + road.remaining + ' 场，每场至少涨 ' + road.needPerExam.toFixed(1) + ' 分。</li>'
+        ? '<li>离目标还差 ' +
+          road.gap +
+          ' 分，剩 ' +
+          road.remaining +
+          ' 场，每场至少涨 ' +
+          road.needPerExam.toFixed(1) +
+          ' 分。</li>'
         : '') +
       '</ul>' +
-
-      '<footer>由成迹生成 · ' + new Date().toLocaleString('zh-CN') + '</footer>' +
+      '<footer>由成迹生成 · ' +
+      new Date().toLocaleString('zh-CN') +
+      '</footer>' +
       '</body></html>';
 
     download('成迹-报告-' + todayStamp() + '.html', html, 'text/html;charset=utf-8');
@@ -1102,11 +1374,29 @@
     var subs = state.config.subjects;
     var head = S.examHeader(subs);
     var sample = ['高二上 · 第三次月考', '2026-12-11', S.DEFAULT_TYPE]
-      .concat(subs.map(function (s) { return Math.round(Number(s.full) * 0.82); }))
-      .concat(subs.map(function () { return ''; }))
-      .concat(subs.map(function (s) { return Math.round(Number(s.full) * 0.68); }))
+      .concat(
+        subs.map(function (s) {
+          return Math.round(Number(s.full) * 0.82);
+        })
+      )
+      .concat(
+        subs.map(function () {
+          return '';
+        })
+      )
+      .concat(
+        subs.map(function (s) {
+          return Math.round(Number(s.full) * 0.68);
+        })
+      )
       .concat(['4', '88', '446', '441', '682']);
-    var csv = '\uFEFF' + [head, sample].map(function (row) { return row.join(','); }).join('\r\n');
+    var csv =
+      '\uFEFF' +
+      [head, sample]
+        .map(function (row) {
+          return row.join(',');
+        })
+        .join('\r\n');
     download('成迹-导入模板.csv', csv, 'text/csv;charset=utf-8');
     toast('模板已下载');
   }
@@ -1140,22 +1430,24 @@
       reader.readAsText(file, 'utf-8');
     } else if (kind === 'xlsx') {
       toast('正在准备 Excel 组件');
-      loadXLSX().then(function () {
-        reader.onload = function (evt) {
-          try {
-            var data = new Uint8Array(evt.target.result);
-            var wb = global.XLSX.read(data, { type: 'array' });
-            var sheet = wb.Sheets[wb.SheetNames[0]];
-            var rows = global.XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
-            ingest(rows);
-          } catch (err) {
-            toast('这个 Excel 文件读不出来', 'bad');
-          }
-        };
-        reader.readAsArrayBuffer(file);
-      }).catch(function () {
-        toast('Excel 组件加载失败，请改用 CSV', 'bad');
-      });
+      loadXLSX()
+        .then(function () {
+          reader.onload = function (evt) {
+            try {
+              var data = new Uint8Array(evt.target.result);
+              var wb = global.XLSX.read(data, { type: 'array' });
+              var sheet = wb.Sheets[wb.SheetNames[0]];
+              var rows = global.XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
+              ingest(rows);
+            } catch (err) {
+              toast('这个 Excel 文件读不出来', 'bad');
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        })
+        .catch(function () {
+          toast('Excel 组件加载失败，请改用 CSV', 'bad');
+        });
     } else {
       reader.onload = function (evt) {
         var rows = S.parseCSV(String(evt.target.result));
@@ -1171,39 +1463,59 @@
 
     function facts() {
       var out = [];
-      if (plan.replaced.length) out.push('<div class="import-fact"><b class="num">' + plan.replaced.length + '</b><span>次会被覆盖</span></div>');
-      if (plan.added.length) out.push('<div class="import-fact"><b class="num">' + plan.added.length + '</b><span>次会新增</span></div>');
-      if (errors.length) out.push('<div class="import-fact"><b class="num">' + errors.length + '</b><span>行会被跳过</span></div>');
+      if (plan.replaced.length)
+        out.push(
+          '<div class="import-fact"><b class="num">' + plan.replaced.length + '</b><span>次会被覆盖</span></div>'
+        );
+      if (plan.added.length)
+        out.push('<div class="import-fact"><b class="num">' + plan.added.length + '</b><span>次会新增</span></div>');
+      if (errors.length)
+        out.push('<div class="import-fact"><b class="num">' + errors.length + '</b><span>行会被跳过</span></div>');
       return out.join('');
     }
 
     function block(title, list) {
-      var head = list.slice(0, 6).map(function (p) {
-        var e = p.incoming || p;
-        return '<li>' + S.esc(e.date) + ' · ' + S.esc(e.name) + '</li>';
-      }).join('');
+      var head = list
+        .slice(0, 6)
+        .map(function (p) {
+          var e = p.incoming || p;
+          return '<li>' + S.esc(e.date) + ' · ' + S.esc(e.name) + '</li>';
+        })
+        .join('');
       var rest = list.length - 6;
-      return '<div class="import-block"><div class="import-title">' + title + '</div>' +
-        '<ul class="import-list">' + head + (rest > 0 ? '<li class="muted">还有 ' + rest + ' 次</li>' : '') + '</ul></div>';
+      return (
+        '<div class="import-block"><div class="import-title">' +
+        title +
+        '</div>' +
+        '<ul class="import-list">' +
+        head +
+        (rest > 0 ? '<li class="muted">还有 ' + rest + ' 次</li>' : '') +
+        '</ul></div>'
+      );
     }
 
-    openDialog('<dialog class="dialog dialog-import">' +
-      '<div class="form-head"><h2>导入预览</h2></div>' +
-      '<div class="form-body">' +
-      '  <div class="import-facts">' + facts() + '</div>' +
-      (plan.replaced.length ? block('按「日期 + 名称」找到的记录，会被这次的内容盖掉', plan.replaced) : '') +
-      (plan.added.length ? block('这些会加进来', plan.added) : '') +
-      (errors.length ? block('这些行读不出来，会跳过', errors) : '') +
-      '</div>' +
-      '<div class="form-foot">' +
-      '  <button type="button" class="btn btn-ghost" data-action="close-dialog">取消</button>' +
-      '  <button type="button" class="btn btn-primary" data-action="do-import">导入</button>' +
-      '</div>' +
-      '</dialog>', function (dlg) {
-      dlg.querySelector('[data-action="do-import"]').addEventListener('click', function () {
-        doImport(plan);
-      });
-    });
+    openDialog(
+      '<dialog class="dialog dialog-import">' +
+        '<div class="form-head"><h2>导入预览</h2></div>' +
+        '<div class="form-body">' +
+        '  <div class="import-facts">' +
+        facts() +
+        '</div>' +
+        (plan.replaced.length ? block('按「日期 + 名称」找到的记录，会被这次的内容盖掉', plan.replaced) : '') +
+        (plan.added.length ? block('这些会加进来', plan.added) : '') +
+        (errors.length ? block('这些行读不出来，会跳过', errors) : '') +
+        '</div>' +
+        '<div class="form-foot">' +
+        '  <button type="button" class="btn btn-ghost" data-action="close-dialog">取消</button>' +
+        '  <button type="button" class="btn btn-primary" data-action="do-import">导入</button>' +
+        '</div>' +
+        '</dialog>',
+      function (dlg) {
+        dlg.querySelector('[data-action="do-import"]').addEventListener('click', function () {
+          doImport(plan);
+        });
+      }
+    );
   }
 
   function doImport(plan) {
@@ -1249,10 +1561,16 @@
     }
 
     var themeBtn = evt.target.closest('#themeToggle');
-    if (themeBtn) { toggleTheme(); return; }
+    if (themeBtn) {
+      toggleTheme();
+      return;
+    }
 
     var renameInput = evt.target.closest('.type-name');
-    if (renameInput) { renameInput.select(); return; }
+    if (renameInput) {
+      renameInput.select();
+      return;
+    }
 
     if (evt.target.closest('[data-type-add]')) {
       var typeInput = document.getElementById('typeNew');
@@ -1270,9 +1588,16 @@
     var delBtn = evt.target.closest('[data-type-del]');
     if (delBtn) {
       var dropType = delBtn.getAttribute('data-type-del');
-      var inUse = state.exams.some(function (e) { return (e.type || S.DEFAULT_TYPE) === dropType; });
-      if (inUse) { toast('还有考试用着这个类型，改掉之后才能删', 'bad'); return; }
-      state.config.types = (state.config.types || []).filter(function (t) { return t !== dropType; });
+      var inUse = state.exams.some(function (e) {
+        return (e.type || S.DEFAULT_TYPE) === dropType;
+      });
+      if (inUse) {
+        toast('还有考试用着这个类型，改掉之后才能删', 'bad');
+        return;
+      }
+      state.config.types = (state.config.types || []).filter(function (t) {
+        return t !== dropType;
+      });
       state.sample = false;
       persist();
       render();
@@ -1281,22 +1606,30 @@
 
     /* 设置页左栏换分区 */
     var secEl = evt.target.closest('[data-sec]');
-    if (secEl) { openSettingsSection(secEl.getAttribute('data-sec')); return; }
+    if (secEl) {
+      openSettingsSection(secEl.getAttribute('data-sec'));
+      return;
+    }
 
     var actionEl = evt.target.closest('[data-action]');
     if (!actionEl) return;
     var action = actionEl.getAttribute('data-action');
 
-    if (action === 'new-exam') { openExamForm(null); }
-    else if (action === 'edit-exam') {
+    if (action === 'new-exam') {
+      openExamForm(null);
+    } else if (action === 'edit-exam') {
       var editId = actionEl.getAttribute('data-id');
-      var editing = state.exams.find(function (e) { return e.id === editId; });
+      var editing = state.exams.find(function (e) {
+        return e.id === editId;
+      });
       if (editing) openExamForm(editing);
-    }
-    else if (action === 'close-dialog') { closeDialog(); }
-    else if (action === 'delete-exam') {
+    } else if (action === 'close-dialog') {
+      closeDialog();
+    } else if (action === 'delete-exam') {
       var id = actionEl.getAttribute('data-id');
-      var exam = state.exams.find(function (e) { return e.id === id; });
+      var exam = state.exams.find(function (e) {
+        return e.id === id;
+      });
       if (!exam) return;
       confirmDialog({
         title: '删除这次考试？',
@@ -1305,20 +1638,23 @@
         danger: true,
         onConfirm: function () {
           pushUndo();
-          state.exams = state.exams.filter(function (e) { return e.id !== exam.id; });
+          state.exams = state.exams.filter(function (e) {
+            return e.id !== exam.id;
+          });
           persist();
           closeDialog();
           refreshSidebar();
-          global.location.hash = '#/exams' + (state.filter && state.filter !== 'all'
-            ? '?type=' + encodeURIComponent(state.filter) : '');
+          global.location.hash =
+            '#/exams' + (state.filter && state.filter !== 'all' ? '?type=' + encodeURIComponent(state.filter) : '');
           render();
           toast('已删除', null, UNDO);
         }
       });
-    }
-    else if (action === 'export-json') { exportJSON(); }
-    else if (action === 'undo') { undoLast(); }
-    else if (action === 'import-json') {
+    } else if (action === 'export-json') {
+      exportJSON();
+    } else if (action === 'undo') {
+      undoLast();
+    } else if (action === 'import-json') {
       confirmDialog({
         title: '导入备份？',
         text: '会用备份里的目标、科目和全部考试替换现在的全部内容。这一步不能撤销。',
@@ -1327,24 +1663,36 @@
           closeDialog();
           fileInput.setAttribute('accept', '.json,application/json');
           fileInput.value = '';
-          setTimeout(function () { fileInput.click(); }, 160);
+          setTimeout(function () {
+            fileInput.click();
+          }, 160);
         }
       });
-    }
-    else if (action === 'export-csv') { exportCSV(); }
-    else if (action === 'export-xlsx') { exportXLSX(); }
-    else if (action === 'export-report') { exportReport(); }
-    else if (action === 'download-template') { downloadTemplate(); }
-    else if (action === 'replay-tour') {
+    } else if (action === 'export-csv') {
+      exportCSV();
+    } else if (action === 'export-xlsx') {
+      exportXLSX();
+    } else if (action === 'export-report') {
+      exportReport();
+    } else if (action === 'download-template') {
+      downloadTemplate();
+    } else if (action === 'replay-tour') {
       if (global.Tour) {
         global.Tour.reset();
         global.location.hash = '#/overview';
-        setTimeout(function () { global.Tour.start(); }, 420);
+        setTimeout(function () {
+          global.Tour.start();
+        }, 420);
       }
-    }
-    else if (action === 'import-csv') { fileInput.setAttribute('accept', '.csv,text/csv'); fileInput.value = ''; fileInput.click(); }
-    else if (action === 'import-xlsx') { fileInput.setAttribute('accept', '.xlsx,.xls'); fileInput.value = ''; fileInput.click(); }
-    else if (action === 'clear-exams') {
+    } else if (action === 'import-csv') {
+      fileInput.setAttribute('accept', '.csv,text/csv');
+      fileInput.value = '';
+      fileInput.click();
+    } else if (action === 'import-xlsx') {
+      fileInput.setAttribute('accept', '.xlsx,.xls');
+      fileInput.value = '';
+      fileInput.click();
+    } else if (action === 'clear-exams') {
       confirmDialog({
         title: '清空全部记录？',
         text: state.exams.length + ' 次考试会被删除，目标和科目设置保留。这个操作不能撤销。',
@@ -1360,11 +1708,13 @@
           toast('记录已清空', null, UNDO);
         }
       });
-    }
-    else if (action === 'reset-all') {
+    } else if (action === 'reset-all') {
       confirmDialog({
         title: '清空示例，从白纸开始？',
-        text: '示例的 ' + state.exams.length + ' 场考试会被删掉，班级名、目标、人数、科目和类型也会回到默认值，之后你自己改。这个操作不能撤销。',
+        text:
+          '示例的 ' +
+          state.exams.length +
+          ' 场考试会被删掉，班级名、目标、人数、科目和类型也会回到默认值，之后你自己改。这个操作不能撤销。',
         label: '全部清掉',
         danger: true,
         onConfirm: function () {
@@ -1377,11 +1727,15 @@
           toast('已经恢复出厂', null, UNDO);
         }
       });
-    }
-    else if (action === 'load-sample') {
+    } else if (action === 'load-sample') {
       confirmDialog({
         title: '填入示例数据？',
-        text: '当前的 ' + state.exams.length + ' 次记录和全部设置会被 ' + S.SEED_COUNT + ' 场示例考试和默认设置替换。想留住现在的内容，先导出备份。',
+        text:
+          '当前的 ' +
+          state.exams.length +
+          ' 次记录和全部设置会被 ' +
+          S.SEED_COUNT +
+          ' 场示例考试和默认设置替换。想留住现在的内容，先导出备份。',
         label: '填入',
         onConfirm: function () {
           pushUndo();
@@ -1393,36 +1747,34 @@
           toast('示例数据已经装回来了', null, UNDO);
         }
       });
-    }
-    else if (action === 'export-broken') {
+    } else if (action === 'export-broken') {
       var rawArchive = (S.storage.broken && S.storage.broken.raw) || S.readBroken();
-      if (!rawArchive) { toast('没有留底的存档', 'bad'); return; }
+      if (!rawArchive) {
+        toast('没有留底的存档', 'bad');
+        return;
+      }
       download('成迹-原始存档-' + todayStamp() + '.json', rawArchive, 'application/json');
       toast('原始存档已下载');
-    }
-    else if (action === 'discard-broken') {
+    } else if (action === 'discard-broken') {
       S.discardBroken();
       if (storageNote && storageNote.kind === 'broken') setStorageNote(null);
       toast('留底的存档已丢弃');
       refreshSettingsPanel();
-    }
-    else if (action === 'request-persist') {
+    } else if (action === 'request-persist') {
       S.requestPersist().then(function (result) {
         if (result === true) toast('浏览器已同意长期保留这些数据');
         else if (result === 'unsupported') toast('这个浏览器不支持申请长期保留', 'bad');
         else toast('浏览器没有同意，数据仍可能被清理', 'bad');
         refreshSettingsPanel();
       });
-    }
-    else if (action === 'reload-external') {
+    } else if (action === 'reload-external') {
       state = S.load();
       setStorageNote(null);
       lastShownTotal = null;
       refreshSidebar();
       render();
       toast('已载入另一个标签页的内容');
-    }
-    else if (action === 'set-palette') {
+    } else if (action === 'set-palette') {
       var want = actionEl.getAttribute('data-pick');
       if (want === S.paletteName()) return;
       revealChange(actionEl, function () {
@@ -1430,16 +1782,14 @@
         paintPalette(want);
       });
       toast('已换成' + paletteLabel(want));
-    }
-    else if (action === 'set-theme') {
+    } else if (action === 'set-theme') {
       var mode = actionEl.getAttribute('data-mode');
       if (mode === S.themeMode()) return;
       revealChange(actionEl, function () {
         applyTheme(mode, true);
         paintThemeChoice(mode);
       });
-    }
-    else if (action === 'set-theme-switch') {
+    } else if (action === 'set-theme-switch') {
       var wantSwitch = actionEl.getAttribute('data-switch') === 'off' ? 'off' : 'on';
       S.writeKey(S.THEME_TOGGLE_KEY, wantSwitch);
       var swSeg = document.getElementById('switchSeg');
@@ -1481,7 +1831,10 @@
   document.addEventListener('keydown', function (evt) {
     if (evt.key === 'Escape') {
       var dlg = dialogRoot.querySelector('dialog');
-      if (dlg) { closeDialog(); return; }
+      if (dlg) {
+        closeDialog();
+        return;
+      }
       var side = sideHost.querySelector('.side.is-open');
       if (side) {
         side.classList.remove('is-open');
@@ -1491,14 +1844,18 @@
   });
 
   /* 点击遮罩关闭移动导航 */
-  document.addEventListener('click', function (evt) {
-    if (!document.body.classList.contains('nav-open')) return;
-    var side = sideHost.querySelector('.side');
-    if (side && !side.contains(evt.target) && !evt.target.closest('#navToggle')) {
-      side.classList.remove('is-open');
-      document.body.classList.remove('nav-open');
-    }
-  }, true);
+  document.addEventListener(
+    'click',
+    function (evt) {
+      if (!document.body.classList.contains('nav-open')) return;
+      var side = sideHost.querySelector('.side');
+      if (side && !side.contains(evt.target) && !evt.target.closest('#navToggle')) {
+        side.classList.remove('is-open');
+        document.body.classList.remove('nav-open');
+      }
+    },
+    true
+  );
 
   /* ---------------- 主题 ---------------- */
 
@@ -1545,7 +1902,8 @@
   }
 
   function applyTheme(mode, remember) {
-    var actual = mode === 'dark' ? 'dark' : mode === 'light' ? 'light' : (darkQuery && darkQuery.matches ? 'dark' : 'light');
+    var actual =
+      mode === 'dark' ? 'dark' : mode === 'light' ? 'light' : darkQuery && darkQuery.matches ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', actual);
     if (remember) S.writeKey(S.THEME_KEY, mode);
     updateThemeButtons();
@@ -1641,7 +1999,9 @@
       done = true;
       render();
       bootEl.classList.add('is-done');
-      setTimeout(function () { bootEl.remove(); }, 460);
+      setTimeout(function () {
+        bootEl.remove();
+      }, 460);
       maybeTour(2400);
     }
 
