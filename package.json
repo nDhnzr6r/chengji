@@ -5,7 +5,7 @@
   "description": "成迹 · 学生成绩看板",
   "type": "commonjs",
   "scripts": {
-    "test": "node --test tests/",
+    "test": "node --test tests",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
