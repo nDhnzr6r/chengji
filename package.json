@@ -5,10 +5,22 @@
   "description": "成迹 · 学生成绩看板",
   "type": "commonjs",
   "scripts": {
-    "test": "node --test tests/"
+    "test": "node --test tests/",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "version:set": "node scripts/version.js --set",
+    "version:check": "node scripts/version.js --check",
+    "check": "npm run version:check && npm run lint && npm run format:check && npm test"
   },
   "license": "GPL-3.0",
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1"
   }
 }

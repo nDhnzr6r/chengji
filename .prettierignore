@@ -1,0 +1,8 @@
+vendor/
+node_modules/
+package-lock.json
+默认数据.csv
+默认数据.json
+CHANGELOG.md
+.shots/
+.tmp/
