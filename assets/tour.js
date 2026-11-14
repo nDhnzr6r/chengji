@@ -19,7 +19,7 @@
     },
     {
       sel: '.kpi-strip',
-      title: '四个数，各带一句判断',
+      title: '几个关键数字，各带一句判断',
       text: '总分、年级排名、班级排名、离目标差多少。每格右上角有一句判断，比如「连涨 4 次」「已进前 100」。没填的格子不会占位。',
       place: 'bottom'
     },
@@ -31,7 +31,7 @@
     },
     {
       sel: '.card-subjects',
-      title: '这六科离目标多远',
+      title: '各科离目标多远',
       text: '横条是这一科这次的得分率，竖线是它的目标。越过竖线就是达标，会变成蓝色。',
       place: 'bottom'
     },
@@ -50,7 +50,7 @@
     {
       sel: '[data-action="new-exam"]',
       title: '下次考完从这里记',
-      text: '填名称、日期和六科分数就行。名次、班级平均、各科名次都在底部的折叠区里，不填也能用。现成的表格能从设置页导进来。',
+      text: '填名称、日期和各科分数就行。名次、班级平均、各科名次都在底部的折叠区里，不填也能用。现成的表格能从设置页导进来。',
       place: 'bottom'
     }
   ];
@@ -271,7 +271,6 @@
   global.Tour = {
     shouldRun: shouldRun,
     start: start,
-    stop: finish,
     reset: reset
   };
 })(window);

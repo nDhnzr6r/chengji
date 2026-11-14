@@ -14,9 +14,7 @@
   var toastEl = document.getElementById('toast');
   var fileInput = document.getElementById('fileInput');
 
-  var firstPaint = true;
   var currentView = null;
-  var pendingImport = null;
   var lastShownTotal = null;
   var comparePair = [null, null];
   var pendingFilter = null;
@@ -68,7 +66,7 @@
       extra = '<button type="button" class="btn btn-sm btn-primary" data-action="export-json">导出备份</button>';
     }
     return '<div class="storage-note storage-' + storageNote.tone + '" id="storageNote" role="alert">' +
-      '<div class="storage-text"><b>' + V.esc(storageNote.title) + '</b><span>' + V.esc(storageNote.text) + '</span></div>' +
+      '<div class="storage-text"><b>' + S.esc(storageNote.title) + '</b><span>' + S.esc(storageNote.text) + '</span></div>' +
       (extra ? '<div class="storage-actions">' + extra + '</div>' : '') +
       '</div>';
   }
@@ -139,8 +137,7 @@
   }
 
   function todayStamp() {
-    var d = new Date();
-    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+    return S.toISO(new Date());
   }
 
   function readJSONScript(id) {
@@ -164,7 +161,7 @@
     var name = route.name;
     var picked = route.query.type || 'all';
     /* 地址栏里的类型如果已经不存在，就当没筛 */
-    if (picked !== 'all' && !state.exams.some(function (e) { return (e.type || '月考') === picked; })) {
+    if (picked !== 'all' && !state.exams.some(function (e) { return (e.type || S.DEFAULT_TYPE) === picked; })) {
       picked = 'all';
     }
     state.filter = picked;
@@ -203,7 +200,7 @@
       var shownCount = S.sorted(state).length;
       var totalCount = S.allSorted(state).length;
       html = '<div class="filter-note">' +
-        '<span>只看' + V.esc(picked) + '，' + shownCount + ' 次</span>' +
+        '<span>只看' + S.esc(picked) + '，' + shownCount + ' 次</span>' +
         '<button type="button" class="filter-clear" data-exam-filter="all">显示全部 ' + totalCount + ' 次</button>' +
         '</div>' + html;
     }
@@ -271,9 +268,7 @@
     else if (name === 'subjects') mountSubjects();
     else if (name === 'compare') mountCompare();
     else if (name === 'settings') { mountSettings(); initSettingsNav(); }
-    else if (name === 'exams') mountExams();
     else if (name === 'exam') mountDetail();
-    firstPaint = false;
   }
 
   function mountOverview() {
@@ -317,7 +312,7 @@
         target: data.target[metric] || null,
         targetLabel: m.label,
         stackAxis: true,
-        height: host.clientWidth < 520 ? 200 : 232,
+        height: host.clientWidth < C.COMPACT_WIDTH ? 200 : 232,
         unit: m.unit,
         digits: m.digits,
         invert: m.invert,
@@ -406,10 +401,6 @@
     bindResize(function () {
       if (currentView !== 'overview') return;
       if (!chart) return;
-      var savedMetric = metric;
-      var savedRange = range;
-      metric = savedMetric;
-      range = savedRange;
       chart = null;
       draw(true);
     });
@@ -427,7 +418,7 @@
       var opts = {
         target: parts.target,
         targetLabel: '目标',
-        height: host.clientWidth < 520 ? 200 : 232,
+        height: host.clientWidth < C.COMPACT_WIDTH ? 200 : 232,
         xMode: 'time',
         bands: parts.bands,
         label: '单科走势',
@@ -612,15 +603,18 @@
       return ok;
     }
 
-    function bind(id, key, transform, min, max) {
-      var el = document.getElementById(id);
-      if (!el) return;
+    /* 设置项：控件上带 data-cfg，上下限直接读控件属性 */
+    mainEl.querySelectorAll('[data-cfg]').forEach(function (el) {
       el.addEventListener('change', function () {
-        var value = transform ? transform(el.value) : el.value;
-        if (typeof value === 'number') {
+        var key = el.getAttribute('data-cfg');
+        var numeric = el.type === 'number';
+        var value = numeric ? Number(el.value) : el.value;
+        if (numeric) {
           if (isNaN(value)) return;
-          if (min !== undefined && value < min) value = min;
-          if (max !== undefined && value > max) value = max;
+          var min = el.getAttribute('min');
+          var max = el.getAttribute('max');
+          if (min !== null && value < Number(min)) value = Number(min);
+          if (max !== null && value > Number(max)) value = Number(max);
           if (value !== Number(el.value)) el.value = value;
         }
         c[key] = value;
@@ -629,29 +623,18 @@
         el.classList.add('is-saved');
         setTimeout(function () { el.classList.remove('is-saved'); }, 900);
       });
-    }
-
-    bind('cfgTargetTotal', 'targetTotal', Number, 0, S.fullTotal(state));
-    bind('cfgTargetClass', 'targetRankClass', Number, 1, Number(c.classSize) || 1000);
-    bind('cfgTargetGrade', 'targetRankGrade', Number, 1, Number(c.gradeSize) || 5000);
-    bind('cfgClassName', 'className', String);
-    bind('cfgClassSize', 'classSize', Number, 1, 200);
-    bind('cfgGradeSize', 'gradeSize', Number, 1, 20000);
-    bind('cfgEnrollYear', 'enrollYear', Number, 2000, 2100);
-    bind('cfgRemaining', 'remainingExams', Number, 0, 60);
-    bind('cfgPassRate', 'passRate', Number, 10, 100);
-    bind('cfgGoodRate', 'goodRate', Number, 10, 100);
+    });
 
     /* 改类型名：旧名字下挂着的考试一起换过去 */
     mainEl.querySelectorAll('.type-name').forEach(function (input) {
       input.addEventListener('change', function () {
         var oldName = input.getAttribute('data-type-old');
-        var next = (input.value || '').trim().slice(0, 8);
+        var next = (input.value || '').trim().slice(0, S.TYPE_NAME_MAX);
         if (!next || next === oldName) { input.value = oldName; return; }
         if ((c.types || []).indexOf(next) >= 0) { input.value = oldName; toast('已经有这个类型了', 'bad'); return; }
         c.types = (c.types || []).map(function (t) { return t === oldName ? next : t; });
         state.exams.forEach(function (e) {
-          if ((e.type || '月考') === oldName) e.type = next;
+          if ((e.type || S.DEFAULT_TYPE) === oldName) e.type = next;
         });
         if (state.filter === oldName) state.filter = next;
         state.sample = false;
@@ -676,7 +659,7 @@
             if (isNaN(num) || num < 0) { input.value = subject[field]; return; }
             if (field === 'full') {
               if (num < 1) { input.value = subject.full; return; }
-              subject.full = Math.min(num, 300);
+              subject.full = Math.min(num, S.SUBJECT_FULL_MAX);
               input.value = subject.full;
               if (Number(subject.target) > subject.full) {
                 subject.target = subject.full;
@@ -692,16 +675,12 @@
           persist();
           var rateCell = tr.querySelector('td:last-child');
           if (rateCell) {
-            rateCell.textContent = subject.full ? ((Number(subject.target || 0) / Number(subject.full)) * 100).toFixed(1) + '%' : '—';
+            rateCell.textContent = subject.full ? S.pctText(Number(subject.target || 0) / Number(subject.full)) : '—';
           }
           refreshSidebar();
         });
       });
     });
-  }
-
-  function mountExams() {
-    /* 行切换由链接完成 */
   }
 
   function mountCompare() {
@@ -747,7 +726,7 @@
         points: data.points,
         target: S.targetTotal(state),
         targetLabel: '目标',
-        height: host.clientWidth < 520 ? 220 : 240,
+        height: host.clientWidth < C.COMPACT_WIDTH ? 220 : 240,
         xMode: 'time',
         bands: data.bands,
         highlightIndex: data.index,
@@ -803,6 +782,18 @@
     setTimeout(finish, 140);
   }
 
+  /* 确认框：标题、正文、按钮文字和确认动作 */
+  function confirmDialog(o) {
+    openDialog('<dialog class="dialog dialog-confirm">' +
+      '<div class="form-head"><h2>' + o.title + '</h2></div>' +
+      '<div class="form-body"><p class="confirm-text">' + o.text + '</p></div>' +
+      '<div class="form-foot"><button class="btn btn-ghost" data-action="close-dialog">取消</button>' +
+      '<button class="btn ' + (o.danger ? 'btn-danger' : 'btn-primary') + '" data-action="confirm">' + o.label + '</button></div>' +
+      '</dialog>', function (dlg) {
+        dlg.querySelector('[data-action="confirm"]').addEventListener('click', o.onConfirm);
+      });
+  }
+
   function openExamForm(exam) {
     openDialog('<dialog class="dialog">' + V.examForm(state, exam) + '</dialog>', function (dlg) {
       var form = dlg.querySelector('#examForm');
@@ -832,7 +823,7 @@
         var dateEl = dlg.querySelector('.datep[data-field="date"], #fDate');
         var typeEl = dlg.querySelector('.sel[data-field="type"]');
         var date = dateEl ? dateEl.getAttribute('data-value') : '';
-        var type = typeEl ? typeEl.getAttribute('data-value') : '月考';
+        var type = typeEl ? typeEl.getAttribute('data-value') : S.DEFAULT_TYPE;
 
         if (!date) { errEl.textContent = '先填日期。'; return; }
         if (!name) name = date + ' ' + type;
@@ -945,24 +936,8 @@
   }
 
   function buildXLSX() {
-    var subjects = state.config.subjects;
-    var head = ['考试名称', '日期', '类型']
-      .concat(subjects.map(function (x) { return x.name; }))
-      .concat(subjects.map(function (x) { return x.name + '名次'; }))
-      .concat(subjects.map(function (x) { return x.name + '平均'; }))
-      .concat(['班级排名', '年级排名', '班级平均', '年级平均', '年级最高']);
-
-    var rows = [head];
-    S.allSorted(state).forEach(function (e) {
-      var avg = e.averages || {};
-      var sr = e.subjectRanks || {};
-      var sa = e.subjectAverages || {};
-      rows.push([e.name, e.date, e.type || '']
-        .concat(subjects.map(function (x) { return e.scores[x.id] === undefined ? '' : e.scores[x.id]; }))
-        .concat(subjects.map(function (x) { return sr[x.id] || ''; }))
-        .concat(subjects.map(function (x) { return sa[x.id] || ''; }))
-        .concat([e.ranks.class || '', e.ranks.grade || '', avg.class || '', avg.grade || '', avg.top || '']));
-    });
+    var head = S.examHeader(state.config.subjects);
+    var rows = [head].concat(S.examRows(state));
 
     var sheet = global.XLSX.utils.aoa_to_sheet(rows);
     sheet['!cols'] = head.map(function (h) { return { wch: Math.max(8, Math.min(18, h.length * 2 + 4)) }; });
@@ -974,9 +949,6 @@
 
   /* 导出一份能直接看的分析报告 */
   function exportReport() {
-    var esc = V.esc;
-    var cnDate = V.cnDate;
-    var signed = V.signed;
     var list = S.allSorted(state);
     if (!list.length) { toast('还没有成绩记录', 'bad'); return; }
     var last = list[list.length - 1];
@@ -1001,9 +973,9 @@
       var avg = Number((last.subjectAverages || {})[s.id]) || null;
       var rk = Number((last.subjectRanks || {})[s.id]) || null;
       return '<tr>' +
-        '<td>' + esc(s.name) + '</td>' +
+        '<td>' + S.esc(s.name) + '</td>' +
         '<td class="num">' + (isNaN(v) ? '—' : v + ' / ' + s.full) + '</td>' +
-        '<td class="num">' + (isNaN(v) || !Number(s.full) ? '—' : ((v / s.full) * 100).toFixed(1) + '%') + '</td>' +
+        '<td class="num">' + (isNaN(v) || !Number(s.full) ? '—' : S.pctText(v / s.full)) + '</td>' +
         '<td class="num">' + (avg === null ? '—' : avg) + '</td>' +
         '<td class="num">' + (rk === null ? '—' : '第 ' + rk + ' 名') + '</td>' +
         '<td class="num">' + (isNaN(v) || !t ? '—' : (v >= t ? '达标' : '差 ' + (t - v))) + '</td>' +
@@ -1012,22 +984,23 @@
 
     var html = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">' +
       '<title>成绩分析报告</title><style>' +
-      'body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;max-width:820px;margin:40px auto;padding:0 24px;color:#111;line-height:1.7}' +
-      'h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:26px 0 8px;padding-bottom:6px;border-bottom:1px solid #ddd}' +
-      '.meta{color:#666;font-size:13px;margin-bottom:22px}' +
+      ':root{--ink:#111;--dim:#666;--faint:#999;--rule:#ddd;--hair:#eee}' +
+      'body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;max-width:820px;margin:40px auto;padding:0 24px;color:var(--ink);line-height:1.7}' +
+      'h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:26px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--rule)}' +
+      '.meta{color:var(--dim);font-size:13px;margin-bottom:22px}' +
       'p{margin:6px 0}.lead{font-size:15px;font-weight:600}' +
       'table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}' +
-      'th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #eee}' +
-      'th{font-weight:400;color:#666;width:38%}' +
+      'th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--hair)}' +
+      'th{font-weight:400;color:var(--dim);width:38%}' +
       'td.num{text-align:right;font-variant-numeric:tabular-nums}' +
       'ul{margin:6px 0;padding-left:18px}li{margin:3px 0;font-size:13px}' +
-      'footer{margin-top:34px;color:#999;font-size:12px}' +
+      'footer{margin-top:34px;color:var(--faint);font-size:12px}' +
       '</style></head><body>' +
       '<h1>成绩分析报告</h1>' +
-      '<p class="meta">' + esc(last.name) + ' · ' + cnDate(last.date) + ' · 共 ' + list.length + ' 次记录</p>' +
+      '<p class="meta">' + S.esc(last.name) + ' · ' + S.cnDate(last.date) + ' · 共 ' + list.length + ' 次记录</p>' +
 
       '<h2>这次的结论</h2>' +
-      '<p class="lead">' + (ins ? ins.headlines.map(esc).join('，') : '') + '</p>' +
+      '<p class="lead">' + (ins ? ins.headlines.map(S.esc).join('，') : '') + '</p>' +
       (road && road.predict !== null
         ? '<p>' + (term ? '按' + term.term + '这几场的速度，下次大约 ' + Math.round(term.next) + ' 分，学期末大约 ' + Math.round(term.end) + ' 分。' : '') +
           '按最近六次算，下次大约 ' + Math.round(road.predict) + ' 分' +
@@ -1040,25 +1013,25 @@
           (peers.vsClass !== null ? row('班级平均', peers.classAvg + '（' + (peers.vsClass >= 0 ? '高 ' : '低 ') + Math.abs(peers.vsClass) + ' 分）') : '') +
           (peers.vsGrade !== null ? row('年级平均', peers.gradeAvg + '（' + (peers.vsGrade >= 0 ? '高 ' : '低 ') + Math.abs(peers.vsGrade) + ' 分）') : '') +
           (peers.toTop !== null ? row('年级最高', peers.top + '（差 ' + peers.toTop + ' 分）') : '') +
-          '</table>' + (peers.diagnosis ? '<p>' + esc(peers.diagnosis.text) + '。</p>' : '')
+          '</table>' + (peers.diagnosis ? '<p>' + S.esc(peers.diagnosis.text) + '。</p>' : '')
         : '<p>这次没有填班级平均或年级平均，判断不了是题难还是状态问题。</p>') +
 
-      '<h2>六科明细</h2>' +
+      '<h2>各科明细</h2>' +
       '<table><tr><th>科目</th><th class="num">得分</th><th class="num">得分率</th><th class="num">班平</th><th class="num">班内名次</th><th class="num">距目标</th></tr>' +
       subjectRows + '</table>' +
 
       '<h2>偏科</h2>' +
       (spread
-        ? '<p>最强 ' + esc(spread.strongest.name) + ' ' + spread.strongest.rate.toFixed(1) + '%，最弱 ' +
-          esc(spread.weakest.name) + ' ' + spread.weakest.rate.toFixed(1) + '%，相差 ' + spread.spread.toFixed(1) +
+        ? '<p>最强 ' + S.esc(spread.strongest.name) + ' ' + spread.strongest.rate.toFixed(1) + '%，最弱 ' +
+          S.esc(spread.weakest.name) + ' ' + spread.weakest.rate.toFixed(1) + '%，相差 ' + spread.spread.toFixed(1) +
           ' 个百分点，整体' + spread.level.text + '。及格 ' + spread.pass + ' 科，优秀 ' + spread.good + ' 科。</p>'
         : '') +
 
       '<h2>下一步</h2>' +
       '<ul>' +
-      (prio.length ? '<li>先补 ' + esc(prio[0].subject.name) + '，还差 ' + prio[0].gap + ' 分（占满分 ' + (prio[0].gapRate * 100).toFixed(0) + '%）。</li>' : '') +
-      (smooth.up.length ? '<li>最近三场进步最多的是 ' + esc(smooth.up[0].subject.name) + '，' + signed(smooth.up[0].delta) + ' 分，保持。</li>' : '') +
-      (smooth.down.length ? '<li>最近三场回落最多的是 ' + esc(smooth.down[0].subject.name) + '，' + signed(smooth.down[0].delta) + ' 分。</li>' : '') +
+      (prio.length ? '<li>先补 ' + S.esc(prio[0].subject.name) + '，还差 ' + prio[0].gap + ' 分（占满分 ' + (prio[0].gapRate * 100).toFixed(0) + '%）。</li>' : '') +
+      (smooth.up.length ? '<li>最近三场进步最多的是 ' + S.esc(smooth.up[0].subject.name) + '，' + S.signed(smooth.up[0].delta) + ' 分，保持。</li>' : '') +
+      (smooth.down.length ? '<li>最近三场回落最多的是 ' + S.esc(smooth.down[0].subject.name) + '，' + S.signed(smooth.down[0].delta) + ' 分。</li>' : '') +
       (road && road.needPerExam !== null && road.needPerExam > 0
         ? '<li>离目标还差 ' + road.gap + ' 分，剩 ' + road.remaining + ' 场，每场至少涨 ' + road.needPerExam.toFixed(1) + ' 分。</li>'
         : '') +
@@ -1079,13 +1052,8 @@
 
   function downloadTemplate() {
     var subs = state.config.subjects;
-    var names = subs.map(function (s) { return s.name; });
-    var head = ['考试名称', '日期', '类型']
-      .concat(names)
-      .concat(names.map(function (n) { return n + '名次'; }))
-      .concat(names.map(function (n) { return n + '平均'; }))
-      .concat(['班级排名', '年级排名', '班级平均', '年级平均', '年级最高']);
-    var sample = ['高二上 · 第三次月考', '2026-12-11', '月考']
+    var head = S.examHeader(subs);
+    var sample = ['高二上 · 第三次月考', '2026-12-11', S.DEFAULT_TYPE]
       .concat(subs.map(function (s) { return Math.round(Number(s.full) * 0.82); }))
       .concat(subs.map(function () { return ''; }))
       .concat(subs.map(function (s) { return Math.round(Number(s.full) * 0.68); }))
@@ -1193,7 +1161,7 @@
 
     if (evt.target.closest('[data-type-add]')) {
       var typeInput = document.getElementById('typeNew');
-      var typeName = ((typeInput && typeInput.value) || '').trim().slice(0, 8);
+      var typeName = ((typeInput && typeInput.value) || '').trim().slice(0, S.TYPE_NAME_MAX);
       if (!typeName) return;
       state.config.types = state.config.types || [];
       if (state.config.types.indexOf(typeName) < 0) state.config.types.push(typeName);
@@ -1207,7 +1175,7 @@
     var delBtn = evt.target.closest('[data-type-del]');
     if (delBtn) {
       var dropType = delBtn.getAttribute('data-type-del');
-      var inUse = state.exams.some(function (e) { return (e.type || '月考') === dropType; });
+      var inUse = state.exams.some(function (e) { return (e.type || S.DEFAULT_TYPE) === dropType; });
       if (inUse) { toast('还有考试用着这个类型，改掉之后才能删', 'bad'); return; }
       state.config.types = (state.config.types || []).filter(function (t) { return t !== dropType; });
       state.sample = false;
@@ -1235,40 +1203,36 @@
       var id = actionEl.getAttribute('data-id');
       var exam = state.exams.find(function (e) { return e.id === id; });
       if (!exam) return;
-      openDialog('<dialog class="dialog dialog-confirm">' +
-        '<div class="form-head"><h2>删除这次考试？</h2></div>' +
-        '<div class="form-body"><p class="confirm-text">「' + V.esc(exam.name) + '」' + V.esc(exam.date) + ' 的全部分数会被移除，之后的走势会重新接上。</p></div>' +
-        '<div class="form-foot"><button class="btn btn-ghost" data-action="close-dialog">取消</button>' +
-        '<button class="btn btn-danger" data-action="confirm-delete" data-id="' + exam.id + '">删除</button></div>' +
-        '</dialog>', function (dlg) {
-          dlg.querySelector('[data-action="confirm-delete"]').addEventListener('click', function () {
-            state.exams = state.exams.filter(function (e) { return e.id !== exam.id; });
-            persist();
-            closeDialog();
-            refreshSidebar();
-            global.location.hash = '#/exams' + (state.filter && state.filter !== 'all'
-              ? '?type=' + encodeURIComponent(state.filter) : '');
-            render();
-            toast('已删除');
-          });
-        });
+      confirmDialog({
+        title: '删除这次考试？',
+        text: '「' + S.esc(exam.name) + '」' + S.esc(exam.date) + ' 的全部分数会被移除，之后的走势会重新接上。',
+        label: '删除',
+        danger: true,
+        onConfirm: function () {
+          state.exams = state.exams.filter(function (e) { return e.id !== exam.id; });
+          persist();
+          closeDialog();
+          refreshSidebar();
+          global.location.hash = '#/exams' + (state.filter && state.filter !== 'all'
+            ? '?type=' + encodeURIComponent(state.filter) : '');
+          render();
+          toast('已删除');
+        }
+      });
     }
     else if (action === 'export-json') { exportJSON(); }
     else if (action === 'import-json') {
-      openDialog('<dialog class="dialog dialog-confirm">' +
-        '<div class="form-head"><h2>导入备份？</h2></div>' +
-        '<div class="form-body"><p class="confirm-text">会用备份里的目标、科目和全部考试替换现在的全部内容。这一步不能撤销。</p></div>' +
-        '<div class="form-foot"><button class="btn btn-ghost" data-action="close-dialog">取消</button>' +
-        '<button class="btn btn-primary" data-action="pick-json">选文件</button></div>' +
-        '</dialog>', function (dlg) {
-          dlg.querySelector('[data-action="pick-json"]').addEventListener('click', function () {
-            closeDialog();
-            pendingImport = 'json';
-            fileInput.setAttribute('accept', '.json,application/json');
-            fileInput.value = '';
-            setTimeout(function () { fileInput.click(); }, 160);
-          });
-        });
+      confirmDialog({
+        title: '导入备份？',
+        text: '会用备份里的目标、科目和全部考试替换现在的全部内容。这一步不能撤销。',
+        label: '选文件',
+        onConfirm: function () {
+          closeDialog();
+          fileInput.setAttribute('accept', '.json,application/json');
+          fileInput.value = '';
+          setTimeout(function () { fileInput.click(); }, 160);
+        }
+      });
     }
     else if (action === 'export-csv') { exportCSV(); }
     else if (action === 'export-xlsx') { exportXLSX(); }
@@ -1281,58 +1245,54 @@
         setTimeout(function () { global.Tour.start(); }, 420);
       }
     }
-    else if (action === 'import-csv') { pendingImport = 'csv'; fileInput.setAttribute('accept', '.csv,text/csv'); fileInput.value = ''; fileInput.click(); }
-    else if (action === 'import-xlsx') { pendingImport = 'xlsx'; fileInput.setAttribute('accept', '.xlsx,.xls'); fileInput.value = ''; fileInput.click(); }
+    else if (action === 'import-csv') { fileInput.setAttribute('accept', '.csv,text/csv'); fileInput.value = ''; fileInput.click(); }
+    else if (action === 'import-xlsx') { fileInput.setAttribute('accept', '.xlsx,.xls'); fileInput.value = ''; fileInput.click(); }
     else if (action === 'clear-exams') {
-      openDialog('<dialog class="dialog dialog-confirm">' +
-        '<div class="form-head"><h2>清空全部记录？</h2></div>' +
-        '<div class="form-body"><p class="confirm-text">' + state.exams.length + ' 次考试会被删除，目标和科目设置保留。这个操作不能撤销。</p></div>' +
-        '<div class="form-foot"><button class="btn btn-ghost" data-action="close-dialog">取消</button>' +
-        '<button class="btn btn-danger" data-action="confirm-clear">全部清空</button></div>' +
-        '</dialog>', function (dlg) {
-          dlg.querySelector('[data-action="confirm-clear"]').addEventListener('click', function () {
-            state = S.clearExams();
-            noteStorageOutcome();
-            closeDialog();
-            refreshSidebar();
-            render();
-            toast('记录已清空');
-          });
-        });
+      confirmDialog({
+        title: '清空全部记录？',
+        text: state.exams.length + ' 次考试会被删除，目标和科目设置保留。这个操作不能撤销。',
+        label: '全部清空',
+        danger: true,
+        onConfirm: function () {
+          state = S.clearExams();
+          noteStorageOutcome();
+          closeDialog();
+          refreshSidebar();
+          render();
+          toast('记录已清空');
+        }
+      });
     }
     else if (action === 'reset-all') {
-      openDialog('<dialog class="dialog dialog-confirm">' +
-        '<div class="form-head"><h2>清空示例，从白纸开始？</h2></div>' +
-        '<div class="form-body"><p class="confirm-text">示例的 ' + state.exams.length + ' 场考试会被删掉，班级名、目标、人数、科目和类型也会回到默认值，之后你自己改。这个操作不能撤销。</p></div>' +
-        '<div class="form-foot"><button class="btn btn-ghost" data-action="close-dialog">取消</button>' +
-        '<button class="btn btn-danger" data-action="confirm-reset">全部清掉</button></div>' +
-        '</dialog>', function (dlg) {
-          dlg.querySelector('[data-action="confirm-reset"]').addEventListener('click', function () {
-            state = S.resetAll();
-            noteStorageOutcome();
-            closeDialog();
-            refreshSidebar();
-            render();
-            toast('已经恢复出厂');
-          });
-        });
+      confirmDialog({
+        title: '清空示例，从白纸开始？',
+        text: '示例的 ' + state.exams.length + ' 场考试会被删掉，班级名、目标、人数、科目和类型也会回到默认值，之后你自己改。这个操作不能撤销。',
+        label: '全部清掉',
+        danger: true,
+        onConfirm: function () {
+          state = S.resetAll();
+          noteStorageOutcome();
+          closeDialog();
+          refreshSidebar();
+          render();
+          toast('已经恢复出厂');
+        }
+      });
     }
     else if (action === 'load-sample') {
-      openDialog('<dialog class="dialog dialog-confirm">' +
-        '<div class="form-head"><h2>填入示例数据？</h2></div>' +
-        '<div class="form-body"><p class="confirm-text">当前的 ' + state.exams.length + ' 次记录和全部设置会被 15 场示例考试和默认设置替换。想留住现在的内容，先导出备份。</p></div>' +
-        '<div class="form-foot"><button class="btn btn-ghost" data-action="close-dialog">取消</button>' +
-        '<button class="btn btn-primary" data-action="confirm-sample">填入</button></div>' +
-        '</dialog>', function (dlg) {
-          dlg.querySelector('[data-action="confirm-sample"]').addEventListener('click', function () {
-            state = S.loadSample();
-            noteStorageOutcome();
-            closeDialog();
-            refreshSidebar();
-            render();
-            toast('示例数据已经装回来了');
-          });
-        });
+      confirmDialog({
+        title: '填入示例数据？',
+        text: '当前的 ' + state.exams.length + ' 次记录和全部设置会被 ' + S.SEED_COUNT + ' 场示例考试和默认设置替换。想留住现在的内容，先导出备份。',
+        label: '填入',
+        onConfirm: function () {
+          state = S.loadSample();
+          noteStorageOutcome();
+          closeDialog();
+          refreshSidebar();
+          render();
+          toast('示例数据已经装回来了');
+        }
+      });
     }
     else if (action === 'export-broken') {
       var rawArchive = (S.storage.broken && S.storage.broken.raw) || S.readBroken();
@@ -1364,7 +1324,7 @@
     }
     else if (action === 'set-palette') {
       var want = actionEl.getAttribute('data-pick');
-      if (want === paletteName()) return;
+      if (want === S.paletteName()) return;
       revealChange(actionEl, function () {
         applyPalette(want, true);
         paintPalette(want);
@@ -1373,7 +1333,7 @@
     }
     else if (action === 'set-theme') {
       var mode = actionEl.getAttribute('data-mode');
-      if (mode === themeMode()) return;
+      if (mode === S.themeMode()) return;
       revealChange(actionEl, function () {
         applyTheme(mode, true);
         paintThemeChoice(mode);
@@ -1381,7 +1341,7 @@
     }
     else if (action === 'set-theme-switch') {
       var wantSwitch = actionEl.getAttribute('data-switch') === 'off' ? 'off' : 'on';
-      try { global.localStorage.setItem('scorebook.theme.toggle', wantSwitch); } catch (err) { /* 存不了就只在这次生效 */ }
+      S.writeKey(S.THEME_TOGGLE_KEY, wantSwitch);
       var swSeg = document.getElementById('switchSeg');
       if (swSeg) {
         swSeg.querySelectorAll('.seg-btn').forEach(function (b) {
@@ -1393,7 +1353,6 @@
       }
       setThemeToggleVisible(wantSwitch === 'on');
     }
-    else if (action === 'confirm-delete') { /* 由对话框内部处理 */ }
   });
 
   fileInput.addEventListener('change', function () {
@@ -1401,7 +1360,7 @@
     if (!file) return;
     /* 按文件自身的扩展名判断，避免用户选错格式 */
     var byName = /\.(xlsx|xls)$/i.test(file.name) ? 'xlsx' : /\.json$/i.test(file.name) ? 'json' : 'csv';
-    handleFile(file, byName || pendingImport);
+    handleFile(file, byName);
   });
 
   /* 移动端导航 */
@@ -1443,25 +1402,13 @@
 
   /* ---------------- 主题 ---------------- */
 
-  var THEME_KEY = 'scorebook.theme';
-  var PALETTE_KEY = 'scorebook.palette';
   var darkQuery = global.matchMedia ? global.matchMedia('(prefers-color-scheme: dark)') : null;
-
-  function themeMode() {
-    try { return global.localStorage.getItem(THEME_KEY) || 'auto'; } catch (err) { return 'auto'; }
-  }
-
-  function paletteName() {
-    try { return global.localStorage.getItem(PALETTE_KEY) === 'ink' ? 'ink' : 'classic'; } catch (err) { return 'classic'; }
-  }
 
   function applyPalette(name, remember) {
     var value = name === 'ink' ? 'ink' : 'classic';
     if (value === 'ink') document.documentElement.setAttribute('data-palette', 'ink');
     else document.documentElement.removeAttribute('data-palette');
-    if (remember) {
-      try { global.localStorage.setItem(PALETTE_KEY, value); } catch (err) { /* ignore */ }
-    }
+    if (remember) S.writeKey(S.PALETTE_KEY, value);
   }
 
   function paletteLabel(name) {
@@ -1500,9 +1447,7 @@
   function applyTheme(mode, remember) {
     var actual = mode === 'dark' ? 'dark' : mode === 'light' ? 'light' : (darkQuery && darkQuery.matches ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', actual);
-    if (remember) {
-      try { global.localStorage.setItem(THEME_KEY, mode); } catch (err) { /* ignore */ }
-    }
+    if (remember) S.writeKey(S.THEME_KEY, mode);
     updateThemeButtons();
   }
 
@@ -1559,7 +1504,7 @@
   /* 系统换深色时跟着走，设置页那三档也要跟上 */
   if (darkQuery && darkQuery.addEventListener) {
     darkQuery.addEventListener('change', function () {
-      if (themeMode() !== 'auto') return;
+      if (S.themeMode() !== 'auto') return;
       applyTheme('auto', false);
       paintThemeChoice('auto');
     });
@@ -1568,8 +1513,8 @@
   /* ---------------- 启动 ---------------- */
 
   function boot() {
-    applyTheme(themeMode(), false);
-    applyPalette(paletteName(), false);
+    applyTheme(S.themeMode(), false);
+    applyPalette(S.paletteName(), false);
     checkStorage();
     S.requestPersist();
     var route = parseHash();
@@ -1628,8 +1573,12 @@
       global.scrollTo({ top: 0, behavior: 'auto' });
       return;
     }
+    /* 地址里没有类型时把当前筛选带过去，已有的其它参数要留着 */
     if (!cur.query.type && state.filter && state.filter !== 'all') {
-      global.location.replace(base + '?type=' + encodeURIComponent(state.filter));
+      var keep = [];
+      if (cur.query.sec) keep.push('sec=' + encodeURIComponent(cur.query.sec));
+      keep.push('type=' + encodeURIComponent(state.filter));
+      global.location.replace(base + '?' + keep.join('&'));
       return;
     }
 

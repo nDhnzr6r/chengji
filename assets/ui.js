@@ -2,24 +2,7 @@
 (function (global) {
   'use strict';
 
-  function pad2(n) { return ('0' + n).slice(-2); }
-
-  function toISO(d) {
-    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
-  }
-
-  function parseISO(s) {
-    if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-    var p = s.split('-');
-    var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  function cnDate(iso) {
-    var d = parseISO(iso);
-    if (!d) return '选择日期';
-    return d.getFullYear() + ' 年 ' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日';
-  }
+  var S = global.Store;
 
   function closeAll(except) {
     document.querySelectorAll('.sel.is-open, .datep.is-open').forEach(function (node) {
@@ -176,7 +159,7 @@
   }
 
   function renderDays(root, viewDate) {
-    var selected = parseISO(root.getAttribute('data-value'));
+    var selected = S.parseISO(root.getAttribute('data-value'));
     var today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -205,9 +188,9 @@
       btn.type = 'button';
       btn.className = 'cal-day';
       btn.textContent = cell.day;
-      btn.setAttribute('data-iso', toISO(cell.date));
+      btn.setAttribute('data-iso', S.toISO(cell.date));
       if (cell.outside) btn.classList.add('is-outside');
-      if (selected && toISO(cell.date) === toISO(selected)) btn.classList.add('is-selected');
+      if (selected && S.toISO(cell.date) === S.toISO(selected)) btn.classList.add('is-selected');
       if (cell.date.getTime() === today.getTime()) btn.classList.add('is-today');
       grid.appendChild(btn);
     });
@@ -252,7 +235,7 @@
   function openDate(root) {
     closeAll(root);
     var pop = root._pop || root.querySelector('.cal-pop');
-    var current = parseISO(root.getAttribute('data-value')) || new Date();
+    var current = S.parseISO(root.getAttribute('data-value')) || new Date();
     var st = calState(root);
     st.view = 'day';
     st.date = new Date(current.getFullYear(), current.getMonth(), 1);
@@ -328,14 +311,14 @@
       var commitTyped = function () {
         var text = typeBox.value.trim();
         if (!text) return false;
-        var iso = global.Store && global.Store.normalizeDate ? global.Store.normalizeDate(text) : null;
+        var iso = S.normalizeDate(text);
         if (!iso) {
           typeBox.classList.add('is-bad');
           setTimeout(function () { typeBox.classList.remove('is-bad'); }, 700);
           return false;
         }
         var st0 = calState(root);
-        st0.date = parseISO(iso) || st0.date;
+        st0.date = S.parseISO(iso) || st0.date;
         st0.view = 'day';
         typeBox.value = '';
         setDate(root, iso);
@@ -415,7 +398,7 @@
       var todayBtn = evt.target.closest('[data-today]');
       if (todayBtn) {
         var now = new Date();
-        setDate(root, toISO(now));
+        setDate(root, S.toISO(now));
         st.view = 'day';
         st.date = new Date(now.getFullYear(), now.getMonth(), 1);
         renderCal(root, true);
@@ -440,14 +423,6 @@
   });
 
   global.UI = {
-    initSelect: initSelect,
-    initDate: initDate,
-    setSelect: setSelect,
-    setDate: setDate,
-    closeAll: closeAll,
-    toISO: toISO,
-    parseISO: parseISO,
-    cnDate: cnDate,
     mountAll: function (root) {
       (root || document).querySelectorAll('.sel').forEach(initSelect);
       (root || document).querySelectorAll('.datep').forEach(initDate);

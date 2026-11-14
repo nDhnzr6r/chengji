@@ -1,11 +1,11 @@
 {
   "name": "chengji",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "private": true,
   "description": "成迹 · 学生成绩看板",
   "type": "commonjs",
   "scripts": {
-    "test": "node --test tests/store.test.js"
+    "test": "node --test tests/"
   },
   "license": "GPL-3.0",
   "engines": {

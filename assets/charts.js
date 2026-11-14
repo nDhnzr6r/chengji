@@ -2,7 +2,30 @@
 (function (global) {
   'use strict';
 
+  var S = global.Store;
+
   var NS = 'http://www.w3.org/2000/svg';
+
+  /* 图表的固定尺寸集中在这里 */
+  var LAYOUT = {
+    height: 300,
+    minWidth: 240,
+    padLeft: 42,
+    padRight: 46,
+    padTop: 26,
+    padTopBanded: 40,
+    padBottom: 30,
+    padBottomTwoLine: 44,
+    axisGap: 10,
+    axisGapTwoLine: 26,
+    minPad: 8,
+    /* 上下留白与预测留位的比例 */
+    edgeRatio: 0.16,
+    targetRatio: 0.03,
+    forecastRatio: 0.06,
+    /* 宽度低于这个值时按窄屏处理 */
+    compactWidth: 520
+  };
 
   /* 缓动：到点即停，起步快收尾慢 */
   var EASE = {
@@ -19,13 +42,6 @@
       });
     }
     return node;
-  }
-
-  /* 悬浮提示里会放考试名称和日期，按文本转义再拼 */
-  function escText(value) {
-    return String(value === null || value === undefined ? '' : value)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   function reduced() {
@@ -130,16 +146,16 @@
         return null;
       }
 
-      var W = Math.max(240, host.clientWidth || 640);
-      var H = o.height || 300;
+      var W = Math.max(LAYOUT.minWidth, host.clientWidth || 640);
+      var H = o.height || LAYOUT.height;
       var showBands = !!(o.bands && o.bands.length > 1 && o.xMode === 'time');
       /* 只有明确要求时才把横轴写成两行，别的图 sub 是给悬浮提示用的 */
       var twoLine = !!o.stackAxis && points.some(function (p) { return p.sub; });
       var pad = {
-        t: showBands ? 40 : 26,
-        r: o.padRight === undefined ? 46 : o.padRight,
-        b: twoLine ? 44 : 30,
-        l: o.padLeft || 42
+        t: showBands ? LAYOUT.padTopBanded : LAYOUT.padTop,
+        r: o.padRight === undefined ? LAYOUT.padRight : o.padRight,
+        b: twoLine ? LAYOUT.padBottomTwoLine : LAYOUT.padBottom,
+        l: o.padLeft || LAYOUT.padLeft
       };
       var plotW = W - pad.l - pad.r;
       var plotH = H - pad.t - pad.b;
@@ -147,18 +163,18 @@
       var values = points.map(function (p) { return p.value; });
       var dataMin = Math.min.apply(null, values);
       var dataMax = Math.max.apply(null, values);
-      var rawSpan = Math.max(dataMax - dataMin, o.minPad || 8);
-      var padV = rawSpan * 0.16;
+      var rawSpan = Math.max(dataMax - dataMin, o.minPad || LAYOUT.minPad);
+      var padV = rawSpan * LAYOUT.edgeRatio;
       var lo0 = dataMin - padV;
       var hi0 = dataMax + padV;
       if (o.target) {
-        var tPad = Math.max(4, rawSpan * 0.03);
+        var tPad = Math.max(4, rawSpan * LAYOUT.targetRatio);
         lo0 = Math.min(lo0, o.target - tPad);
         hi0 = Math.max(hi0, o.target + tPad);
       }
       /* 预测值也要落在刻度里，不然点会飘出去 */
       if (o.forecast && typeof o.forecast.value === 'number') {
-        var fPad = rawSpan * 0.06;
+        var fPad = rawSpan * LAYOUT.forecastRatio;
         lo0 = Math.min(lo0, o.forecast.value - fPad);
         hi0 = Math.max(hi0, o.forecast.value + fPad);
       }
@@ -176,7 +192,7 @@
       /* 给预测点留出右侧一段空位 */
       var hasForecast = !!(o.forecast && typeof o.forecast.value === 'number');
       var xSpan = useTime ? (tsMax - tsMin) : Math.max(points.length - 1, 1);
-      var lead = hasForecast ? xSpan * 0.16 : 0;
+      var lead = hasForecast ? xSpan * LAYOUT.edgeRatio : 0;
 
       var x = function (i) {
         if (useTime && tsMax > tsMin) {
@@ -335,7 +351,7 @@
           if (i === lastIndex) return x(i);
           return x(i) + half;
         };
-        var gap = W < 520 ? 12 : 8;
+        var gap = W < LAYOUT.compactWidth ? 12 : 8;
         var lastRight = -Infinity;
         points.forEach(function (p, i) {
           if (leftEdge(i) >= lastRight + gap) {
@@ -353,7 +369,7 @@
           chosen.push(lastIndex);
         }
       } else {
-        var minGap = W < 520 ? 56 : 68;
+        var minGap = W < LAYOUT.compactWidth ? 56 : 68;
         points.forEach(function (p, i) {
           if (!chosen.length || x(i) - x(chosen[chosen.length - 1]) >= minGap) chosen.push(i);
         });
@@ -364,7 +380,7 @@
       }
       chosen.forEach(function (i, k) {
         var anchor = points.length === 1 ? 'middle' : i === 0 ? 'start' : i === lastIndex ? 'end' : 'middle';
-        var yBase = twoLine ? H - 26 : H - 10;
+        var yBase = twoLine ? H - LAYOUT.axisGapTwoLine : H - LAYOUT.axisGap;
         var label = el('text', {
           x: x(i), y: yBase, class: 'axis-x' + (twoLine ? ' axis-x-two' : ''), 'text-anchor': anchor
         });
@@ -488,9 +504,9 @@
         var p = points[nearest];
         if (nearest !== move._last) {
           move._last = nearest;
-          tip.innerHTML = '<span class="tip-date">' + escText(p.full) + '</span><span class="tip-value">' +
+          tip.innerHTML = '<span class="tip-date">' + S.esc(p.full) + '</span><span class="tip-value">' +
             fmtNumber(p.value, o.digits || 0) + (o.unit || '') + '</span>' +
-            (p.sub ? '<span class="tip-sub">' + escText(p.sub) + '</span>' : '');
+            (p.sub ? '<span class="tip-sub">' + S.esc(p.sub) + '</span>' : '');
           tip.classList.remove('is-updated');
           void tip.offsetWidth;
           tip.classList.add('is-updated');
@@ -754,47 +770,13 @@
     }
   }
 
-  /* ---------- 极简迷你走势 ---------- */
-
-  function spark(host, values, opts) {
-    opts = opts || {};
-    host.innerHTML = '';
-    var vals = values.filter(function (v) { return v !== null && v !== undefined && !isNaN(v); });
-    if (vals.length < 2) {
-      var dash = document.createElement('span');
-      dash.className = 'spark-empty';
-      dash.textContent = '—';
-      host.appendChild(dash);
-      return;
-    }
-    var W = 72, H = 22, p = 3;
-    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
-    var span = max - min || 1;
-    var pts = vals.map(function (v, i) {
-      return [
-        p + ((W - p * 2) * i) / (vals.length - 1),
-        H - p - ((v - min) / span) * (H - p * 2)
-      ];
-    });
-    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'spark', width: W, height: H, 'aria-hidden': 'true' });
-    svg.appendChild(el('path', {
-      d: pts.map(function (c, i) { return (i ? 'L' : 'M') + c[0].toFixed(1) + ' ' + c[1].toFixed(1); }).join(' '),
-      class: 'spark-line'
-    }));
-    var last = pts[pts.length - 1];
-    svg.appendChild(el('circle', { cx: last[0], cy: last[1], r: 2, class: 'spark-dot' }));
-    host.appendChild(svg);
-  }
-
   global.Charts = {
-    EASE: EASE,
-    el: el,
+    COMPACT_WIDTH: LAYOUT.compactWidth,
     reduced: reduced,
     roll: roll,
     trend: trend,
     radar: radar,
     bullets: bullets,
-    spark: spark,
     niceScale: niceScale
   };
 })(window);

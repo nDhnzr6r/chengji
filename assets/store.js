@@ -3,6 +3,16 @@
   'use strict';
 
   var STORAGE_KEY = 'scorebook.v2';
+  var BROKEN_KEY = STORAGE_KEY + '.broken';
+  var THEME_KEY = 'scorebook.theme';
+  var PALETTE_KEY = 'scorebook.palette';
+  var THEME_TOGGLE_KEY = 'scorebook.theme.toggle';
+
+  var DEFAULT_TYPE = '月考';
+  var TYPE_NAME_MAX = 8;
+  var SUBJECT_FULL_MAX = 300;
+  var PASS_RATE_DEFAULT = 60;
+  var GOOD_RATE_DEFAULT = 85;
 
   var DEFAULT_CONFIG = {
     className: '高二（7）班',
@@ -13,8 +23,8 @@
     targetRankClass: 5,
     targetRankGrade: 100,
     remainingExams: 3,
-    passRate: 60,
-    goodRate: 85,
+    passRate: PASS_RATE_DEFAULT,
+    goodRate: GOOD_RATE_DEFAULT,
     types: ['月考', '期中', '期末', '联考', '模拟'],
     subjects: [
       { id: 'chinese', name: '语文', full: 150, target: 122 },
@@ -44,6 +54,90 @@
     { id: 'f15', name: '高二上 · 期末考试', date: '2026-12-18', type: '期末', scores: { chinese: 122, math: 132, english: 128, physics: 75, chemistry: 82, biology: 84 }, ranks: { class: 4, grade: 88 }, averages: { class: 451, grade: 446, top: 683 }, subjectRanks: { chinese: 10, math: 7, english: 8, physics: 14, chemistry: 10, biology: 9 }, subjectAverages: { chinese: 95, math: 96, english: 95, physics: 63, chemistry: 63, biology: 63 } }
   ];
 
+  var SEED_COUNT = SEED_EXAMS.length;
+
+  /* ---------- 通用工具 ---------- */
+
+  function pad2(n) {
+    return ('0' + n).slice(-2);
+  }
+
+  function toISO(d) {
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
+  function parseISO(s) {
+    if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    var p = s.split('-');
+    var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    /* 2 月 30 日这种会被 Date 顺延，回读比对挡掉 */
+    if (d.getFullYear() !== Number(p[0]) || d.getMonth() !== Number(p[1]) - 1 || d.getDate() !== Number(p[2])) return null;
+    return d;
+  }
+
+  /* 日期写成中文；读不出来时给调用方自己的兜底文字 */
+  function cnDate(iso, fallback) {
+    var p = iso ? String(iso).split('-') : null;
+    if (!p || p.length < 3) return fallback === undefined ? '—' : fallback;
+    return p[0] + ' 年 ' + Number(p[1]) + ' 月 ' + Number(p[2]) + ' 日';
+  }
+
+  function monthOf(date) {
+    return Number(String(date).slice(5, 7));
+  }
+
+  function dateTs(iso) {
+    return new Date(iso + 'T00:00:00').getTime();
+  }
+
+  function esc(value) {
+    return String(value === null || value === undefined ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function signed(n, digits) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    var v = Number(n);
+    if (Math.abs(v) < 0.005) return '0';
+    return (v > 0 ? '+' : '−') + Math.abs(v).toFixed(digits || 0);
+  }
+
+  function pctText(rate, digits) {
+    return ((Number(rate) || 0) * 100).toFixed(digits === undefined ? 1 : digits) + '%';
+  }
+
+  /* 等间隔序列的斜率：每场平均变化多少 */
+  function indexSlope(values) {
+    var n = values ? values.length : 0;
+    if (n < 2) return 0;
+    var xs = [];
+    for (var i = 0; i < n; i++) xs.push(i);
+    return slopeOf(xs, values);
+  }
+
+  /* 两列数之间的最小二乘斜率 */
+  function slopeOf(xs, ys) {
+    var n = Math.min(xs.length, ys.length);
+    if (n < 2) return 0;
+    var mx = mean(xs.slice(0, n));
+    var my = mean(ys.slice(0, n));
+    var num = 0;
+    var den = 0;
+    for (var i = 0; i < n; i++) {
+      var dx = xs[i] - mx;
+      num += dx * (ys[i] - my);
+      den += dx * dx;
+    }
+    return den ? num / den : 0;
+  }
+
+  /* 一条记录的前一场；找不到就是空 */
+  function prevExamOf(list, exam) {
+    var i = list.findIndex(function (e) { return e.id === exam.id; });
+    return i > 0 ? list[i - 1] : null;
+  }
+
   function uid() {
     return 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   }
@@ -54,7 +148,6 @@
 
   function defaultState() {
     return {
-      version: 1,
       sample: true,
       config: clone(DEFAULT_CONFIG),
       exams: clone(SEED_EXAMS)
@@ -76,7 +169,7 @@
     var list = allSorted(state);
     var f = state.filter || 'all';
     if (f === 'all') return list;
-    return list.filter(function (e) { return (e.type || '月考') === f; });
+    return list.filter(function (e) { return (e.type || DEFAULT_TYPE) === f; });
   }
 
   function examTotal(state, exam) {
@@ -119,7 +212,7 @@
   function typeFacets(state) {
     var map = {};
     allSorted(state).forEach(function (e) {
-      var t = e.type || '月考';
+      var t = e.type || DEFAULT_TYPE;
       map[t] = (map[t] || 0) + 1;
     });
     return Object.keys(map).map(function (t) {
@@ -127,18 +220,12 @@
     }).sort(function (a, b) { return b.count - a.count || a.type.localeCompare(b.type); });
   }
 
-  function filterByType(list, type) {
-    if (!type || type === 'all') return list;
-    return list.filter(function (e) { return (e.type || '月考') === type; });
-  }
-
   /* ---------- 参照与诊断 ---------- */
 
   /* 自己和班级平均、年级平均、最高分的关系，以及这次变化该算题难还是状态 */
   function examVsPeers(state, exam) {
     var list = sorted(state);
-    var idx = list.findIndex(function (e) { return e.id === exam.id; });
-    var prev = idx > 0 ? list[idx - 1] : null;
+    var prev = prevExamOf(list, exam);
     var avg = exam.averages || {};
     var total = examTotal(state, exam);
     var classAvg = Number(avg.class) || null;
@@ -211,8 +298,8 @@
     var avg = mean(rates);
     var sd = Math.sqrt(mean(rates.map(function (r) { return (r - avg) * (r - avg); })));
     var ordered = items.slice().sort(function (a, b) { return a.rate - b.rate; });
-    var pass = Number(state.config.passRate) || 60;
-    var good = Number(state.config.goodRate) || 85;
+    var pass = Number(state.config.passRate) || PASS_RATE_DEFAULT;
+    var good = Number(state.config.goodRate) || GOOD_RATE_DEFAULT;
 
     var level;
     if (sd < 6) level = { text: '均衡', tone: 'good' };
@@ -260,19 +347,12 @@
 
     /* 最近六次做线性拟合，斜率就是每场平均推进的分数 */
     var recent = totals.slice(-6);
-    var n = recent.length;
-    var mx = (n - 1) / 2;
-    var my = mean(recent);
-    var num = 0;
-    var den = 0;
-    recent.forEach(function (y, i) {
-      num += (i - mx) * (y - my);
-      den += (i - mx) * (i - mx);
-    });
-    var slope = den ? num / den : 0;
+    var slope = indexSlope(recent);
     var fullCap = fullTotal(state) || 0;
 
     /* 拟合残差，拿来做预测区间的宽度 */
+    var mx = (recent.length - 1) / 2;
+    var my = mean(recent);
     var resid = 0;
     recent.forEach(function (y, i) {
       var fit = my + slope * (i - mx);
@@ -295,11 +375,16 @@
 
   var GRADE_NAMES = ['一', '二', '三', '四', '五', '六'];
 
+  /* 年级名；超出高中的范围时退成学年数，不硬拼学制名 */
+  function gradeLabel(grade) {
+    var name = GRADE_NAMES[grade - 1];
+    return name ? '高' + name : '第 ' + grade + ' 学年';
+  }
+
   /* 9 月是新学年的开始 */
   function schoolYearStart(date) {
     var y = Number(String(date).slice(0, 4));
-    var m = Number(String(date).slice(5, 7));
-    return m >= 9 ? y : y - 1;
+    return monthOf(date) >= 9 ? y : y - 1;
   }
 
   function enrollYear(state) {
@@ -312,7 +397,7 @@
 
   /* 一场考试属于哪个学期 */
   function semesterOf(state, date) {
-    var m = Number(String(date).slice(5, 7));
+    var m = monthOf(date);
     var start = schoolYearStart(date);
     var grade = start - enrollYear(state) + 1;
     if (grade < 1) grade = 1;
@@ -323,7 +408,7 @@
       grade: grade,
       half: half,
       start: start,
-      label: '高' + (GRADE_NAMES[grade - 1] || grade) + half
+      label: gradeLabel(grade) + half
     };
   }
 
@@ -365,9 +450,9 @@
     return groups.map(function (g, i) {
       return {
         label: g.label,
-        startTs: new Date(g.first.date + 'T00:00:00').getTime(),
-        endTs: new Date(g.last.date + 'T00:00:00').getTime(),
-        dividerTs: i > 0 ? new Date(g.first.date + 'T00:00:00').getTime() : null
+        startTs: dateTs(g.first.date),
+        endTs: dateTs(g.last.date),
+        dividerTs: i > 0 ? dateTs(g.first.date) : null
       };
     });
   }
@@ -409,9 +494,8 @@
   /* 与上一场比较：总分、各科、排名 */
   function changeSince(state, exam) {
     var list = sorted(state);
-    var i = list.findIndex(function (e) { return e.id === exam.id; });
-    if (i <= 0) return null;
-    var prev = list[i - 1];
+    var prev = prevExamOf(list, exam);
+    if (!prev) return null;
     var per = {};
     state.config.subjects.forEach(function (s) {
       var a = Number(exam.scores[s.id]);
@@ -440,15 +524,7 @@
     var rates = series.map(function (p) { return p.rate; });
     var best = series.reduce(function (a, b) { return (!a || b.score > a.score) ? b : a; }, null);
     var worst = series.reduce(function (a, b) { return (!a || b.score < a.score) ? b : a; }, null);
-    var slope = 0;
-    if (series.length >= 2) {
-      var n = series.length;
-      var xs = series.map(function (_, i) { return i; });
-      var mx = mean(xs), my = mean(rates);
-      var num = 0, den = 0;
-      xs.forEach(function (x, i) { num += (x - mx) * (rates[i] - my); den += (x - mx) * (x - mx); });
-      slope = den ? (num / den) * 100 : 0;
-    }
+    var slope = indexSlope(rates) * 100;
     /* 方向翻转了几次：标准差一样的两种曲线，来回跳的那种翻转更多 */
     var flips = 0;
     for (var k = 2; k < scores.length; k++) {
@@ -473,14 +549,7 @@
     };
   }
 
-  /* 进步最大 / 最需补的科目：看与上一场相比的得分率变化 */
   /* ---------- 结论 ---------- */
-
-  function signed(n) {
-    var v = Number(n) || 0;
-    if (Math.abs(v) < 0.005) return '0';
-    return (v > 0 ? '+' : '−') + Math.abs(v).toFixed(0);
-  }
 
   /* 把最近的走势翻成一句话和几个状态词，省得每次自己看数字 */
   function insight(state) {
@@ -754,12 +823,10 @@
     if (pts.length >= 2) {
       var md = mean(pts.map(function (x) { return x.d; }));
       var mr = mean(pts.map(function (x) { return x.r; }));
-      var num = 0, den = 0;
-      pts.forEach(function (x) {
-        num += (x.d - md) * (x.r - mr);
-        den += (x.d - md) * (x.d - md);
-      });
-      var slope = den ? num / den : 0;
+      var slope = slopeOf(
+        pts.map(function (x) { return x.d; }),
+        pts.map(function (x) { return x.r; })
+      );
       var curAvg = Number(last.averages && last.averages.class) || null;
       var curD = curAvg === null ? null : base - curAvg;
       /* 分差要减去拟合用的均值再外推，缺班平就算不出来 */
@@ -787,20 +854,13 @@
     var bands = semesterBands(state);
     var lastBand = bands.length ? bands[bands.length - 1] : null;
     var inTerm = lastBand
-      ? list.filter(function (e) { return new Date(e.date + 'T00:00:00').getTime() >= lastBand.startTs; })
+      ? list.filter(function (e) { return dateTs(e.date) >= lastBand.startTs; })
       : list;
     if (inTerm.length < 2) return null;
 
     var totals = inTerm.map(function (e) { return examTotal(state, e); });
     var n = totals.length;
-    var mx = (n - 1) / 2;
-    var my = mean(totals);
-    var num = 0, den = 0;
-    totals.forEach(function (y, i) {
-      num += (i - mx) * (y - my);
-      den += (i - mx) * (i - mx);
-    });
-    var slope = den ? num / den : 0;
+    var slope = indexSlope(totals);
     var now = totals[n - 1];
     var cap = fullTotal(state) || Infinity;
 
@@ -842,7 +902,7 @@
   function typeStats(state) {
     var map = {};
     allSorted(state).forEach(function (e) {
-      var t = e.type || '月考';
+      var t = e.type || DEFAULT_TYPE;
       if (!map[t]) map[t] = { type: t, count: 0, sum: 0, best: -1, worst: Infinity };
       var v = examTotal(state, e);
       map[t].count++;
@@ -878,8 +938,19 @@
 
   /* ---------- 持久化 ---------- */
 
-  var VERSION = '1.2.3';
-  var BROKEN_KEY = STORAGE_KEY + '.broken';
+  /* 版本号只写在 index.html 的资源引用上，脚本从那里取，不再各写一份 */
+  function scriptVersion() {
+    try {
+      var node = global.document.querySelector('script[src*="assets/store.js"]');
+      var src = node && node.getAttribute('src');
+      var m = src && src.match(/[?&]v=([^&]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  var VERSION = scriptVersion();
 
   /* 存储层的真实状况，界面据此提示，不再靠猜 */
   var storage = {
@@ -997,7 +1068,7 @@
           subjects.push({
             id: safeId(s.id, 'sub'),
             name: plainText(s.name, '科目', 16),
-            full: Math.min(1000, Math.max(1, toNumber(s.full, 100))),
+            full: Math.min(SUBJECT_FULL_MAX, Math.max(1, toNumber(s.full, 100))),
             target: Math.max(0, toNumber(s.target, 0))
           });
         });
@@ -1008,7 +1079,7 @@
         var types = [];
         src.types.forEach(function (t) {
           if (t === null || t === undefined) return;
-          var name = String(t).trim().slice(0, 8);
+          var name = String(t).trim().slice(0, TYPE_NAME_MAX);
           if (name && types.indexOf(name) < 0) types.push(name);
         });
         if (types.length) state.config.types = types;
@@ -1025,7 +1096,7 @@
           id: safeId(e.id, 'e'),
           name: plainText(e.name, '未命名考试', 64),
           date: date,
-          type: plainText(e.type, '月考', 8),
+          type: plainText(e.type, DEFAULT_TYPE, TYPE_NAME_MAX),
           scores: numberMap(e.scores),
           ranks: numberMap(e.ranks),
           averages: numberMap(e.averages),
@@ -1061,6 +1132,39 @@
       storage.reason = describeError(err);
       return false;
     }
+  }
+
+  /* ---------- 外观偏好 ---------- */
+
+  function readKey(key, fallback) {
+    try {
+      var value = global.localStorage.getItem(key);
+      return value === null ? fallback : value;
+    } catch (err) {
+      return fallback;
+    }
+  }
+
+  function writeKey(key, value) {
+    try {
+      global.localStorage.setItem(key, value);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function themeMode() {
+    var mode = readKey(THEME_KEY, 'auto');
+    return (mode === 'light' || mode === 'dark') ? mode : 'auto';
+  }
+
+  function paletteName() {
+    return readKey(PALETTE_KEY, '') === 'ink' ? 'ink' : 'classic';
+  }
+
+  function themeToggleOn() {
+    return readKey(THEME_TOGGLE_KEY, '') !== 'off';
   }
 
   /* 当前占用的字节数，按 UTF-16 粗估，只用于显示 */
@@ -1125,12 +1229,6 @@
       });
   }
 
-  function reset() {
-    var fresh = defaultState();
-    save(fresh);
-    return fresh;
-  }
-
   /* 连目标、科目、人数一起恢复出厂 */
   function resetAll() {
     var fresh = defaultState();
@@ -1163,14 +1261,19 @@
     return /[",\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
   }
 
-  function toCSV(state) {
-    var subjects = state.config.subjects;
-    var head = ['考试名称', '日期', '类型']
+  /* 表格的表头：导出 CSV、Excel 和模板都从这里取 */
+  function examHeader(subjects) {
+    return ['考试名称', '日期', '类型']
       .concat(subjects.map(function (s) { return s.name; }))
       .concat(subjects.map(function (s) { return s.name + '名次'; }))
       .concat(subjects.map(function (s) { return s.name + '平均'; }))
       .concat(['班级排名', '年级排名', '班级平均', '年级平均', '年级最高']);
-    var rows = allSorted(state).map(function (e) {
+  }
+
+  /* 表格的数据行：导出 CSV 和 Excel 都从这里取 */
+  function examRows(state) {
+    var subjects = state.config.subjects;
+    return allSorted(state).map(function (e) {
       var avg = e.averages || {};
       var sr = e.subjectRanks || {};
       var sa = e.subjectAverages || {};
@@ -1180,6 +1283,11 @@
         .concat(subjects.map(function (s) { return sa[s.id] || ''; }))
         .concat([e.ranks.class || '', e.ranks.grade || '', avg.class || '', avg.grade || '', avg.top || '']);
     });
+  }
+
+  function toCSV(state) {
+    var head = examHeader(state.config.subjects);
+    var rows = examRows(state);
     return [head].concat(rows).map(function (row) {
       return row.map(csvEscape).join(',');
     }).join('\r\n');
@@ -1288,7 +1396,7 @@
         id: uid() + r,
         name: iName >= 0 ? String(line[iName] || '').trim() || date + ' 考试' : date + ' 考试',
         date: date,
-        type: iType >= 0 ? String(line[iType] || '').trim() || '月考' : '月考',
+        type: iType >= 0 ? String(line[iType] || '').trim() || DEFAULT_TYPE : DEFAULT_TYPE,
         scores: scores,
         ranks: {
           class: iClass >= 0 ? (Number(String(line[iClass]).replace(/[^\d]/g, '')) || null) : null,
@@ -1327,7 +1435,7 @@
       /* 2 月 30 日这种不存在的日期要被 Date 顺延，用回读比对挡掉 */
       var probe = new Date(y, mo - 1, d);
       if (probe.getFullYear() !== y || probe.getMonth() !== mo - 1 || probe.getDate() !== d) return null;
-      return m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2);
+      return m[1] + '-' + pad2(m[2]) + '-' + pad2(m[3]);
     }
     var t = Date.parse(text);
     if (!isNaN(t)) {
@@ -1379,16 +1487,29 @@
     VERSION: VERSION,
     STORAGE_KEY: STORAGE_KEY,
     BROKEN_KEY: BROKEN_KEY,
+    THEME_KEY: THEME_KEY,
+    PALETTE_KEY: PALETTE_KEY,
+    THEME_TOGGLE_KEY: THEME_TOGGLE_KEY,
+    DEFAULT_TYPE: DEFAULT_TYPE,
+    TYPE_NAME_MAX: TYPE_NAME_MAX,
+    SUBJECT_FULL_MAX: SUBJECT_FULL_MAX,
+    PASS_RATE_DEFAULT: PASS_RATE_DEFAULT,
+    GOOD_RATE_DEFAULT: GOOD_RATE_DEFAULT,
+    SEED_COUNT: SEED_COUNT,
     storage: storage,
     DEFAULT_CONFIG: DEFAULT_CONFIG,
     load: load,
     save: save,
+    readKey: readKey,
+    writeKey: writeKey,
+    themeMode: themeMode,
+    paletteName: paletteName,
+    themeToggleOn: themeToggleOn,
     footprint: footprint,
     brokenExists: brokenExists,
     readBroken: readBroken,
     discardBroken: discardBroken,
     requestPersist: requestPersist,
-    reset: reset,
     clearExams: clearExams,
     resetAll: resetAll,
     loadSample: loadSample,
@@ -1398,6 +1519,22 @@
     fullTotal: fullTotal,
     targetTotal: targetTotal,
     rate: rate,
+    mean: mean,
+    stdev: stdev,
+    indexSlope: indexSlope,
+    slopeOf: slopeOf,
+    prevExamOf: prevExamOf,
+    examHeader: examHeader,
+    examRows: examRows,
+    pad2: pad2,
+    toISO: toISO,
+    parseISO: parseISO,
+    cnDate: cnDate,
+    monthOf: monthOf,
+    dateTs: dateTs,
+    esc: esc,
+    signed: signed,
+    pctText: pctText,
     subjectSeries: subjectSeries,
     subjectRows: subjectRows,
     subjectStats: subjectStats,
@@ -1414,7 +1551,6 @@
     goalCheck: goalCheck,
     audit: audit,
     typeFacets: typeFacets,
-    filterByType: filterByType,
     examVsPeers: examVsPeers,
     subjectRankOf: subjectRankOf,
     subjectSpread: subjectSpread,
