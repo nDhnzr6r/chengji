@@ -955,21 +955,18 @@ select {
   display: contents;
 }
 
-.card-trend {
-  grid-column: 1;
-  grid-row: 1;
+.main-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--gap);
+  align-items: start;
 }
-.card-records {
-  grid-column: 2;
-  grid-row: 1;
-}
-.card-subjects {
-  grid-column: 1;
-  grid-row: 2;
-}
-.card-analysis {
-  grid-column: 2;
-  grid-row: 2;
+
+.split-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-width: 0;
 }
 
 .card-chart {
@@ -983,10 +980,6 @@ select {
 .card-table {
   grid-column: 1 / -1;
   grid-row: 2;
-}
-
-.card-records {
-  align-self: start;
 }
 
 .card-side {
@@ -1571,15 +1564,6 @@ select {
 }
 
 /* ---------------- 类型对比与投入 ---------------- */
-
-.card-types {
-  grid-column: 1;
-  grid-row: 3;
-}
-.card-priority {
-  grid-column: 2;
-  grid-row: 3;
-}
 
 .type-bars {
   display: flex;
@@ -3763,7 +3747,8 @@ input[type='number'] {
   #app {
     grid-template-columns: 224px minmax(0, 1fr);
   }
-  .grid-main {
+  .grid-main,
+  .main-split {
     grid-template-columns: minmax(0, 1fr) 328px;
   }
   #main {
@@ -3826,8 +3811,13 @@ input[type='number'] {
     display: contents;
   }
 
-  .grid-main {
+  .grid-main,
+  .main-split {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .split-col {
+    display: contents;
   }
 
   .card-trend,
@@ -3841,6 +3831,25 @@ input[type='number'] {
   .card-priority {
     grid-column: 1;
     grid-row: auto;
+  }
+
+  .card-trend {
+    order: 1;
+  }
+  .card-records {
+    order: 2;
+  }
+  .card-subjects {
+    order: 3;
+  }
+  .card-analysis {
+    order: 4;
+  }
+  .card-types {
+    order: 5;
+  }
+  .card-priority {
+    order: 6;
   }
 
   #main {
@@ -4043,7 +4052,12 @@ input[type='number'] {
     max-width: none;
   }
 
-  .grid-main {
+  .grid-main,
+  .main-split {
+    display: block;
+  }
+
+  .split-col {
     display: block;
   }
 

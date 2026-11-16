@@ -843,23 +843,15 @@
           '</p>'
         : '') +
       kpi +
-      '<div class="grid-main">' +
-      '  <div class="col-main">' +
+      '<div class="main-split">' +
+      '  <div class="split-col">' +
       trendCard +
-      '</div>' +
-      '  <div class="col-rail">' +
-      records +
-      '</div>' +
-      '  <div class="col-main">' +
       subjectsCard +
-      '</div>' +
-      '  <div class="col-rail">' +
-      analyseCard +
-      '</div>' +
-      '  <div class="col-main">' +
       typeCard +
       '</div>' +
-      '  <div class="col-rail">' +
+      '  <div class="split-col">' +
+      records +
+      analyseCard +
       prioCard +
       '</div>' +
       '</div>' +
