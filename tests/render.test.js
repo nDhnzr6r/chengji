@@ -260,6 +260,22 @@ test('录入表单在新建和修改两种情况下都能生成', () => {
   assertClean(V.examForm(state, exam), '修改表单');
 });
 
+test('录入表单的名称灰字是建议的名称', () => {
+  const state = freshState();
+  const today = S.toISO(new Date());
+  const expect = S.suggestName(state, today, state.config.types[0], null);
+  const form = V.examForm(state, null);
+  assert.ok(form.includes('placeholder="' + expect + '"'), '灰字应是 ' + expect);
+});
+
+test('修改表单的灰字按这场自己的日期和类型算', () => {
+  const state = freshState();
+  const exam = state.exams[0];
+  const expect = S.suggestName(state, exam.date, exam.type, exam.id);
+  const form = V.examForm(state, exam);
+  assert.ok(form.includes('placeholder="' + expect + '"'), '灰字应是 ' + expect);
+});
+
 test('每一科都能在表单里标缺考', () => {
   const state = freshState();
   const form = V.examForm(state, null);

@@ -642,6 +642,49 @@
     });
   }
 
+  /* ---------- 名称建议 ---------- */
+
+  /* 带序号的类型按第几次排，期中期末只写名字，自定义类型原样 */
+  var TYPE_NAMING = {
+    月考: { count: true, word: '月考' },
+    联考: { count: true, word: '联考' },
+    模拟: { count: true, word: '模拟' },
+    期中: { count: false, word: '期中考试' },
+    期末: { count: false, word: '期末考试' }
+  };
+
+  var CN_DIGITS = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+
+  /* 1 到 99 说成中文，再往上直接用数字 */
+  function cnNumber(n) {
+    var v = Math.floor(Math.abs(Number(n) || 0));
+    if (v < 10) return CN_DIGITS[v];
+    if (v < 20) return '十' + (v % 10 ? CN_DIGITS[v % 10] : '');
+    if (v < 100) return CN_DIGITS[Math.floor(v / 10)] + '十' + (v % 10 ? CN_DIGITS[v % 10] : '');
+    return String(v);
+  }
+
+  /* 新一场考试该叫什么：学期 + 类型，月考、联考、模拟排这个学期的第几次 */
+  function suggestName(state, date, type, excludeId) {
+    var t = String(type || DEFAULT_TYPE).trim() || DEFAULT_TYPE;
+    var day = parseISO(date) ? date : toISO(new Date());
+    var sem = semesterOf(state, day);
+    var rule = TYPE_NAMING[t];
+    var tail = t;
+    if (rule && !rule.count) {
+      tail = rule.word;
+    } else if (rule) {
+      var nth = 1;
+      allSorted(state).forEach(function (e) {
+        if (excludeId && e.id === excludeId) return;
+        if ((e.type || DEFAULT_TYPE) !== t) return;
+        if (semesterOf(state, e.date).key === sem.key) nth++;
+      });
+      tail = '第' + cnNumber(nth) + '次' + rule.word;
+    }
+    return sem.label + ' · ' + tail;
+  }
+
   /* 每科的完整序列，按时间升序 */
   function subjectSeries(state, subjectId) {
     var subject = state.config.subjects.find(function (s) {
@@ -2030,6 +2073,7 @@
     semesterOf: semesterOf,
     groupBySemester: groupBySemester,
     semesterBands: semesterBands,
+    suggestName: suggestName,
     toCSV: toCSV,
     parseCSV: parseCSV,
     tableToExams: tableToExams,

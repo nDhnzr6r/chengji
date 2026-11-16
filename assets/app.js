@@ -975,6 +975,23 @@
       var totalEl = dlg.querySelector('#formTotal');
       var errEl = dlg.querySelector('#formError');
       var subjects = readJSONScript('formSubjects');
+      var nameEl = dlg.querySelector('#fName');
+      var dateEl = dlg.querySelector('.datep[data-field="date"], #fDate');
+      var typeEl = dlg.querySelector('.sel[data-field="type"]');
+      var examId = exam ? exam.id : null;
+
+      /* 灰字跟着日期和类型走，改哪一样都重算 */
+      function refreshHint() {
+        var day = dateEl ? dateEl.getAttribute('data-value') : '';
+        var kind = typeEl ? typeEl.getAttribute('data-value') : S.DEFAULT_TYPE;
+        nameEl.placeholder = S.suggestName(state, day, kind, examId);
+      }
+      form.addEventListener('datechange', function (evt) {
+        if (evt.target === dateEl) refreshHint();
+      });
+      form.addEventListener('selchange', function (evt) {
+        if (evt.target === typeEl) refreshHint();
+      });
 
       function recalc() {
         var sum = 0;
@@ -1010,9 +1027,7 @@
         evt.preventDefault();
         /* 关闭动画里再按一次回车，不要重复记一场 */
         if (dlg.classList.contains('is-closing')) return;
-        var name = dlg.querySelector('#fName').value.trim();
-        var dateEl = dlg.querySelector('.datep[data-field="date"], #fDate');
-        var typeEl = dlg.querySelector('.sel[data-field="type"]');
+        var name = nameEl.value.trim();
         var date = dateEl ? dateEl.getAttribute('data-value') : '';
         var type = typeEl ? typeEl.getAttribute('data-value') : S.DEFAULT_TYPE;
 
@@ -1020,7 +1035,7 @@
           errEl.textContent = '先填日期。';
           return;
         }
-        if (!name) name = date + ' ' + type;
+        if (!name) name = S.suggestName(state, date, type, examId);
 
         var scores = {};
         var filled = 0;

@@ -789,3 +789,64 @@ test('导入前的计划只对位，不改动数据', () => {
   assert.equal(plan.replaced.length, 1);
   assert.equal(JSON.stringify(state.exams), before);
 });
+
+/* ---------------- 名称建议 ---------------- */
+
+test('月考按本学期的场次接着排', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  assert.equal(S.suggestName(state, '2026-11-17', '月考'), '高二上 · 第二次月考');
+  assert.equal(S.suggestName(state, '2026-03-10', '月考'), '高一下 · 第三次月考');
+});
+
+test('期中期末只写名字，不排次数', () => {
+  const state = S.defaultState();
+  assert.equal(S.suggestName(state, '2026-11-17', '期中'), '高二上 · 期中考试');
+  assert.equal(S.suggestName(state, '2026-11-17', '期末'), '高二上 · 期末考试');
+});
+
+test('联考和模拟也排次数', () => {
+  const state = S.defaultState();
+  assert.equal(S.suggestName(state, '2026-11-17', '联考'), '高二上 · 第二次联考');
+  assert.equal(S.suggestName(state, '2026-11-17', '模拟'), '高二上 · 第一次模拟');
+});
+
+test('自定义类型原样接在学期后面', () => {
+  const state = S.defaultState();
+  assert.equal(S.suggestName(state, '2026-11-17', '周测'), '高二上 · 周测');
+});
+
+test('类型空着按默认类型算', () => {
+  const state = S.defaultState();
+  assert.equal(S.suggestName(state, '2026-11-17', ''), S.suggestName(state, '2026-11-17', S.DEFAULT_TYPE));
+});
+
+test('改这场自己的日期和类型时不算自己', () => {
+  const state = S.defaultState();
+  assert.equal(S.suggestName(state, '2026-11-17', '月考', 'f11'), '高二上 · 第一次月考');
+  assert.equal(S.suggestName(state, '2026-11-17', '月考', 'f12'), '高二上 · 第二次月考');
+});
+
+test('次数过了十说中文的十', () => {
+  const state = S.defaultState();
+  const here = S.semesterOf(state, '2026-11-17').key;
+  state.exams = state.exams.filter((e) => S.semesterOf(state, e.date).key !== here);
+  for (let i = 1; i <= 10; i++) {
+    state.exams.push({
+      id: 'm' + i,
+      name: '第 ' + i + ' 次月考',
+      date: '2026-09-' + String(i).padStart(2, '0'),
+      type: '月考',
+      scores: {},
+      ranks: {},
+      averages: {}
+    });
+  }
+  assert.equal(S.suggestName(state, '2026-11-17', '月考'), '高二上 · 第十一次月考');
+});
+
+test('没给日期就按今天算', () => {
+  const state = S.defaultState();
+  const today = S.toISO(new Date());
+  assert.ok(S.suggestName(state, '', '月考').startsWith(S.semesterOf(state, today).label + ' · '));
+});

@@ -2566,6 +2566,8 @@
     var subjectRanks = (exam && exam.subjectRanks) || {};
     var subjectAverages = (exam && exam.subjectAverages) || {};
     var absent = (exam && exam.absent) || [];
+    var startType = (c.types && c.types[0]) || S.DEFAULT_TYPE;
+    var hint = S.suggestName(state, exam ? exam.date : todayIso, exam ? exam.type : startType, exam ? exam.id : null);
 
     var fields = c.subjects
       .map(function (s) {
@@ -2616,12 +2618,14 @@
       '      <div class="field"><label class="field-label" for="fName">考试名称</label>' +
       '        <input class="input" id="fName" type="text" value="' +
       S.esc(exam ? exam.name : '') +
-      '" placeholder="高二上 · 第三次月考"></div>' +
+      '" placeholder="' +
+      S.esc(hint) +
+      '"></div>' +
       '      <div class="field field-date"><span class="field-label">日期</span>' +
       dateHTML(exam ? exam.date : todayIso, 'fDate') +
       '</div>' +
       '      <div class="field field-type"><span class="field-label">类型</span>' +
-      selectHTML(typesOf(c, exam), exam ? exam.type : (c.types && c.types[0]) || S.DEFAULT_TYPE, ' data-field="type"') +
+      selectHTML(typesOf(c, exam), exam ? exam.type : startType, ' data-field="type"') +
       '</div>' +
       '    </div>' +
       '    <div class="score-grid">' +
