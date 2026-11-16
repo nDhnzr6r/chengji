@@ -986,19 +986,7 @@ select {
 }
 
 .card-records {
-  display: flex;
-  flex-direction: column;
-}
-
-.card-records .record-list {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.card-records .record {
-  flex: 1;
-  padding: 12px 0;
+  align-self: start;
 }
 
 .card-side {
