@@ -282,7 +282,7 @@
   }
 
   function clone(value) {
-    return JSON.parse(JSON.stringify(value));
+    return structuredClone(value);
   }
 
   function defaultState() {
@@ -300,7 +300,7 @@
   }
 
   function allSorted(state) {
-    return state.exams.slice().sort(byDate);
+    return state.exams.toSorted(byDate);
   }
 
   /* 已经被类型筛选过一次的列表；没设筛选就是全部 */
@@ -467,7 +467,7 @@
         })
       )
     );
-    var ordered = items.slice().sort(function (a, b) {
+    var ordered = items.toSorted(function (a, b) {
       return a.rate - b.rate;
     });
     var pass = Number(state.config.passRate) || PASS_RATE_DEFAULT;

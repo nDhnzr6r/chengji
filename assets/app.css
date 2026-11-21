@@ -17,6 +17,8 @@
   unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0;
 }
 :root {
+  color-scheme: light dark;
+
   --ground: #f2f4f7;
   --surface: #ffffff;
   --raised: #f7f9fb;
@@ -90,6 +92,14 @@
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* 手动选的深浅色写进 meta，浏览器自带控件跟着走 */
+:root:has(> head > meta[name='color-scheme'][content='dark']) {
+  color-scheme: dark;
+}
+:root:has(> head > meta[name='color-scheme'][content='light']) {
+  color-scheme: light;
 }
 
 [data-theme='dark'] {
@@ -605,20 +615,28 @@ select {
   animation: viewIn 360ms var(--ease-out) both;
 }
 
-#main.is-enter > *:nth-child(2) {
-  animation-delay: 60ms;
+@supports (animation-delay: calc(sibling-index() * 0.1s)) {
+  #main.is-enter > * {
+    animation-delay: min(calc((sibling-index() - 1) * 60ms), 300ms);
+  }
 }
-#main.is-enter > *:nth-child(3) {
-  animation-delay: 120ms;
-}
-#main.is-enter > *:nth-child(4) {
-  animation-delay: 180ms;
-}
-#main.is-enter > *:nth-child(5) {
-  animation-delay: 240ms;
-}
-#main.is-enter > *:nth-child(6) {
-  animation-delay: 300ms;
+
+@supports not (animation-delay: calc(sibling-index() * 0.1s)) {
+  #main.is-enter > *:nth-child(2) {
+    animation-delay: 60ms;
+  }
+  #main.is-enter > *:nth-child(3) {
+    animation-delay: 120ms;
+  }
+  #main.is-enter > *:nth-child(4) {
+    animation-delay: 180ms;
+  }
+  #main.is-enter > *:nth-child(5) {
+    animation-delay: 240ms;
+  }
+  #main.is-enter > *:nth-child(6) {
+    animation-delay: 300ms;
+  }
 }
 
 @keyframes viewIn {

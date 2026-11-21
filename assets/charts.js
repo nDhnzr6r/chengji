@@ -144,7 +144,7 @@
       var points = (rawPoints || []).filter(function (p) {
         return p.value !== null && p.value !== undefined && !isNaN(p.value);
       });
-      host.innerHTML = '';
+      host.replaceChildren();
       host.classList.add('chart-host');
 
       if (!points.length) {
@@ -728,7 +728,7 @@
   /* ---------- 雷达图 ---------- */
 
   function radar(host, opts) {
-    host.innerHTML = '';
+    host.replaceChildren();
     var labels = opts.labels || [];
     var layers = opts.layers || [];
     var n = labels.length;
@@ -826,7 +826,7 @@
 
   function bullets(host, opts) {
     var rows = opts.rows || [];
-    host.innerHTML = '';
+    host.replaceChildren();
     if (!rows.length) {
       host.innerHTML = '<div class="chart-empty">' + (opts.emptyText || '还没有数据') + '</div>';
       return;

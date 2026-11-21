@@ -56,7 +56,7 @@
     toast._t = setTimeout(
       function () {
         toastEl.className = 'toast';
-        toastEl.innerHTML = '';
+        toastEl.replaceChildren();
       },
       action ? 7000 : 2600
     );
@@ -920,7 +920,7 @@
     document.body.classList.add('no-scroll');
     dlg.addEventListener('close', function () {
       document.body.classList.remove('no-scroll');
-      dialogRoot.innerHTML = '';
+      dialogRoot.replaceChildren();
     });
     if (onMount) onMount(dlg);
     if (global.UI) global.UI.mountAll(dlg);
@@ -934,7 +934,7 @@
       if (typeof dlg.close === 'function') dlg.close();
       else {
         dlg.removeAttribute('open');
-        dialogRoot.innerHTML = '';
+        dialogRoot.replaceChildren();
         document.body.classList.remove('no-scroll');
       }
     };
@@ -1920,6 +1920,8 @@
     var actual =
       mode === 'dark' ? 'dark' : mode === 'light' ? 'light' : darkQuery && darkQuery.matches ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', actual);
+    var meta = document.querySelector('meta[name="color-scheme"]');
+    if (meta) meta.content = mode === 'dark' ? 'dark' : mode === 'light' ? 'light' : 'light dark';
     if (remember) S.writeKey(S.THEME_KEY, mode);
     updateThemeButtons();
   }

@@ -172,7 +172,7 @@
     today.setHours(0, 0, 0, 0);
 
     var grid = calEl(root, '.cal-grid');
-    grid.innerHTML = '';
+    grid.replaceChildren();
 
     var first = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
     var startOffset = (first.getDay() + 6) % 7; /* 周一开头 */
@@ -210,7 +210,7 @@
 
   function renderMonths(root, date) {
     var box = calEl(root, '.cal-months');
-    box.innerHTML = '';
+    box.replaceChildren();
     for (var m = 0; m < 12; m++) {
       var btn = document.createElement('button');
       btn.type = 'button';
@@ -223,7 +223,7 @@
 
   function renderYears(root, start, date) {
     var box = calEl(root, '.cal-years');
-    box.innerHTML = '';
+    box.replaceChildren();
     for (var i = 0; i < 12; i++) {
       var y = start + i;
       var btn = document.createElement('button');

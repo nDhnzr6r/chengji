@@ -1076,8 +1076,7 @@
     });
 
     var rowsHtml = list
-      .slice()
-      .reverse()
+      .toReversed()
       .map(function (exam) {
         var before = S.prevExamOf(list, exam);
         var beforeScore = before ? Number(before.scores[active.id]) : null;
@@ -1262,7 +1261,7 @@
 
   function exams(state) {
     var sortedList = S.sorted(state);
-    var list = sortedList.slice().reverse();
+    var list = sortedList.toReversed();
     if (!list.length) {
       return (
         '<header class="page-head"><div><h1>考试记录</h1><p class="page-sub">每一次考试都在这里，点一行看当时的全部分数。</p></div><button class="btn btn-primary" data-action="new-exam">记录一次考试</button></header>' +
@@ -1301,8 +1300,7 @@
     var sections = groups
       .map(function (g) {
         var rows = g.exams
-          .slice()
-          .reverse()
+          .toReversed()
           .map(function (exam) {
             return examRow(state, exam, total, sortedList, withRank);
           })
