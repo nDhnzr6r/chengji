@@ -27,5 +27,13 @@ module.exports = [
       sourceType: 'commonjs',
       globals: globals.node
     }
+  },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: globals.node
+    }
   }
 ];

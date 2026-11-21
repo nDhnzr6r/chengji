@@ -2172,6 +2172,10 @@ select {
   color: var(--text);
 }
 
+.seg-btn[hidden] {
+  display: none;
+}
+
 .seg-btn.is-on {
   background: transparent;
   color: var(--text);
@@ -2755,6 +2759,10 @@ input[type='number'] {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 160px 120px;
   gap: 16px;
+}
+
+.field-row-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .field-date {
@@ -3936,7 +3944,8 @@ input[type='number'] {
     flex-direction: column;
     align-items: flex-start;
   }
-  .card-trend .card-head {
+  .card-trend .card-head,
+  .card-chart .card-head {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;

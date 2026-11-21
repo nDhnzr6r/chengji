@@ -206,10 +206,11 @@ test('导出表头由科目列表生成', () => {
   const state = freshState();
   const head = S.examHeader(state.config.subjects);
   assert.equal(head[0], '考试名称');
-  assert.equal(head.length, 3 + state.config.subjects.length * 3 + 5);
+  assert.equal(head.length, 3 + state.config.subjects.length * 3 + 7);
   assert.ok(head.includes('语文'));
   assert.ok(head.includes('语文名次'));
   assert.ok(head.includes('语文平均'));
+  assert.ok(head.includes('班级人数'));
   assert.ok(head.includes('年级最高'));
 });
 
@@ -313,6 +314,42 @@ test('单科拆件返回的每一块都能用', () => {
   );
   assert.ok(parts.points.length > 0);
   assertClean(parts.tableRows, '单科表格');
+});
+
+test('录入表单能单独填这一场的人数', () => {
+  const state = freshState();
+  const form = V.examForm(state, null);
+  assert.ok(form.includes('id="fClassSize"'), '缺少本次班级人数');
+  assert.ok(form.includes('id="fGradeSize"'), '缺少本次年级人数');
+  assert.ok(form.includes('本次班级人数'));
+
+  const exam = state.exams[0];
+  exam.sizes = { class: 50, grade: 700 };
+  const edited = V.examForm(state, exam);
+  assert.match(edited, /id="fClassSize"[^>]*value="50"/);
+  assert.match(edited, /id="fGradeSize"[^>]*value="700"/);
+  assert.ok(edited.includes('data-size-of="class">/ 50'));
+  assert.ok(edited.includes('aria-describedby="formSizeHint"'));
+});
+
+test('单科走势带出名次序列和切换档', () => {
+  const state = freshState();
+  const parts = V.subjectParts(state, state.config.subjects[0]);
+  assert.equal(parts.hasRank, true);
+  assert.equal(parts.ratePoints.length, parts.points.length);
+  assert.equal(parts.rankPoints.length, parts.points.length);
+  assert.ok(parts.chartCard.includes('data-submetric="rank"'));
+  assert.ok(parts.chartCard.includes('id="subjectChartSub"'));
+});
+
+test('没有单科名次时不显示名次档', () => {
+  const state = freshState();
+  state.exams.forEach((exam) => {
+    exam.subjectRanks = {};
+  });
+  const parts = V.subjectParts(state, state.config.subjects[0]);
+  assert.equal(parts.hasRank, false);
+  assert.ok(parts.chartCard.includes('data-submetric="rank" hidden'));
 });
 
 test('没有记录时各页面给空状态而不是报错', () => {

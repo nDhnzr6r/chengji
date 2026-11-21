@@ -531,33 +531,81 @@
     var activeTab = mainEl.querySelector('.tab.is-active');
     if (!activeTab) return;
     var activeId = activeTab.getAttribute('data-subject-tab');
+    var metric = 'score';
+    var current = null;
 
-    function draw(parts, animate) {
+    var METRICS = {
+      score: { sub: '每次考试的得分，虚线是目标分', targetLabel: '目标', unit: '', digits: 0, invert: false },
+      rate: { sub: '每次考试的得分率，虚线是目标得分率', targetLabel: '目标', unit: '%', digits: 1, invert: false },
+      rank: { sub: '每次考试在班级的名次，数值越小越靠上', targetLabel: '目标', unit: ' 名', digits: 0, invert: true }
+    };
+
+    function subjectById(id) {
+      return (
+        state.config.subjects.find(function (s) {
+          return s.id === id;
+        }) || state.config.subjects[0]
+      );
+    }
+
+    function pointsOf(key, parts) {
+      if (key === 'rate') return parts.ratePoints;
+      if (key === 'rank') return parts.rankPoints;
+      return parts.points;
+    }
+
+    function targetOf(key, parts) {
+      if (key === 'score') return parts.target;
+      if (key === 'rate') return parts.rateTarget;
+      return null;
+    }
+
+    function draw(animate) {
       var host = document.getElementById('subjectChart');
-      if (!host) return;
+      if (!host || !current) return;
+      var m = METRICS[metric];
       var opts = {
-        target: parts.target,
-        targetLabel: '目标',
+        target: targetOf(metric, current),
+        targetLabel: m.targetLabel,
+        unit: m.unit,
+        digits: m.digits,
+        invert: m.invert,
         height: host.clientWidth < C.COMPACT_WIDTH ? 200 : 232,
         xMode: 'time',
-        bands: parts.bands,
+        bands: current.bands,
         label: '单科走势',
-        forecast: parts.subjectForecast || null,
+        /* 预测只按得分算，别的指标没有可比的速度 */
+        forecast: metric === 'score' ? current.subjectForecast || null : null,
         animate: animate !== false
       };
+      var points = pointsOf(metric, current);
       if (!chart) {
-        opts.points = parts.points;
+        opts.points = points;
         chart = C.trend(host, opts);
       } else {
-        chart.set(parts.points, opts);
+        chart.set(points, opts);
       }
     }
 
-    var subject =
-      state.config.subjects.find(function (s) {
-        return s.id === activeId;
-      }) || state.config.subjects[0];
-    draw(V.subjectParts(state, subject), true);
+    /* 这一科没有名次记录时，「班内名次」那一档不出 */
+    function syncMetricButtons() {
+      mainEl.querySelectorAll('.card-chart .seg-metric .seg-btn').forEach(function (btn) {
+        var key = btn.getAttribute('data-submetric');
+        btn.hidden = key === 'rank' && !current.hasRank;
+        btn.classList.toggle('is-on', key === metric);
+      });
+      var seg = mainEl.querySelector('.card-chart .seg-metric');
+      if (seg) moveThumb(seg);
+    }
+
+    function syncSub() {
+      var subEl = document.getElementById('subjectChartSub');
+      if (subEl) subEl.textContent = METRICS[metric].sub;
+    }
+
+    current = V.subjectParts(state, subjectById(activeId));
+    syncMetricButtons();
+    draw(true);
 
     mainEl.querySelectorAll('.tab').forEach(function (tab) {
       tab.addEventListener('click', function (evt) {
@@ -574,7 +622,10 @@
           t.classList.toggle('is-active', on);
           t.setAttribute('aria-selected', on ? 'true' : 'false');
         });
-        var parts = V.subjectParts(state, next);
+        current = V.subjectParts(state, next);
+        /* 换到没有名次的科目时退回得分 */
+        if (metric === 'rank' && !current.hasRank) metric = 'score';
+        var parts = current;
         /* 卡片外框不动，只让里面的内容换一遍 */
         var strip = mainEl.querySelector('.kpi-strip');
         if (strip) {
@@ -602,24 +653,30 @@
           void titleEl.offsetWidth;
           titleEl.classList.add('fade-in');
         }
-        draw(parts, true);
+        syncMetricButtons();
+        syncSub();
+        draw(true);
         if (global.history && global.history.replaceState) {
           global.history.replaceState(null, '', '#/subjects/' + id);
         }
       });
     });
 
+    mainEl.querySelectorAll('.card-chart .seg-metric .seg-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var next = btn.getAttribute('data-submetric');
+        if (next === metric || btn.hidden) return;
+        metric = next;
+        syncMetricButtons();
+        syncSub();
+        draw(true);
+      });
+    });
+
     bindResize(function () {
-      if (currentView === 'subjects')
-        draw(
-          V.subjectParts(
-            state,
-            state.config.subjects.find(function (s) {
-              return s.id === activeId;
-            }) || state.config.subjects[0]
-          ),
-          true
-        );
+      if (currentView !== 'subjects') return;
+      current = V.subjectParts(state, subjectById(activeId));
+      draw(true);
     });
   }
 
@@ -1007,6 +1064,23 @@
       });
       recalc();
 
+      /* 排名格后面的「/ 人数」跟着这一场的人数走 */
+      var sizeEls = {
+        class: dlg.querySelector('#fClassSize'),
+        grade: dlg.querySelector('#fGradeSize')
+      };
+      function refreshSizeSuffix() {
+        dlg.querySelectorAll('[data-size-of]').forEach(function (el) {
+          var kind = el.getAttribute('data-size-of');
+          var input = sizeEls[kind];
+          var n = input ? Number(input.value) : 0;
+          el.textContent = '/ ' + (n > 0 ? n : S.examSize(state, {}, kind));
+        });
+      }
+      Object.keys(sizeEls).forEach(function (kind) {
+        if (sizeEls[kind]) sizeEls[kind].addEventListener('input', refreshSizeSuffix);
+      });
+
       /* 缺考和空着是两回事，点一下把这一科标下来 */
       dlg.querySelectorAll('.absent-toggle').forEach(function (btn) {
         btn.addEventListener('click', function (evt) {
@@ -1084,6 +1158,16 @@
           grade: pickRank('#fGrade')
         };
 
+        /* 空着的人数不写进记录，仍然跟设置走 */
+        var sizes = {};
+        [
+          ['class', '#fClassSize'],
+          ['grade', '#fGradeSize']
+        ].forEach(function (pair) {
+          var n = pickRank(pair[1]);
+          if (n) sizes[pair[0]] = n;
+        });
+
         var averages = {
           class: Number(dlg.querySelector('#fAvgClass').value) || null,
           grade: Number(dlg.querySelector('#fAvgGrade').value) || null,
@@ -1108,6 +1192,7 @@
           exam.type = type;
           exam.scores = scores;
           exam.ranks = ranks;
+          exam.sizes = sizes;
           exam.averages = averages;
           exam.absent = absent;
           exam.subjectRanks = subjectRanks;
@@ -1122,6 +1207,7 @@
             type: type,
             scores: scores,
             ranks: ranks,
+            sizes: sizes,
             averages: averages,
             absent: absent,
             subjectRanks: subjectRanks,

@@ -384,8 +384,8 @@
       })
     );
 
-    var gradeSize = Number(state.config.gradeSize) || 0;
-    var classSize = Number(state.config.classSize) || 0;
+    var gradeSize = S.examSize(state, last, 'grade');
+    var classSize = S.examSize(state, last, 'class');
 
     if (rankGrade) {
       kpiCells.push(
@@ -968,12 +968,37 @@
     var target = Number(active.target) || 0;
     var rateNow = isNaN(lastScore) ? null : S.rate(lastScore, active.full);
 
+    var withRank = list.some(function (e) {
+      return Number((e.subjectRanks || {})[active.id]);
+    });
+
     var points = stats.series.map(function (p) {
       return {
         label: shortMd(p.exam.date),
         full: S.cnDate(p.exam.date) + ' · ' + p.exam.name,
         value: p.score,
         sub: '满分 ' + p.full,
+        ts: S.dateTs(p.exam.date)
+      };
+    });
+
+    var ratePoints = stats.series.map(function (p) {
+      return {
+        label: shortMd(p.exam.date),
+        full: S.cnDate(p.exam.date) + ' · ' + p.exam.name,
+        value: p.rate === null ? null : p.rate * 100,
+        sub: '满分 ' + p.full,
+        ts: S.dateTs(p.exam.date)
+      };
+    });
+
+    var rankPoints = stats.series.map(function (p) {
+      var r = Number((p.exam.subjectRanks || {})[active.id]) || null;
+      return {
+        label: shortMd(p.exam.date),
+        full: S.cnDate(p.exam.date) + ' · ' + p.exam.name,
+        value: r,
+        sub: r ? '第 ' + r + ' / ' + S.examSize(state, p.exam, 'class') : '',
         ts: S.dateTs(p.exam.date)
       };
     });
@@ -1031,7 +1056,14 @@
       '  <div class="card-head">' +
       '    <div class="card-title-wrap"><h2 class="card-title" id="subjectChartTitle">' +
       S.esc(active.name) +
-      '走势</h2><p class="card-sub">每次考试的得分，虚线是目标分</p></div>' +
+      '走势</h2><p class="card-sub" id="subjectChartSub">每次考试的得分，虚线是目标分</p></div>' +
+      '    <div class="seg seg-metric" role="group" aria-label="显示指标">' +
+      '      <button class="seg-btn is-on" data-submetric="score">得分</button>' +
+      '      <button class="seg-btn" data-submetric="rate">得分率</button>' +
+      '      <button class="seg-btn" data-submetric="rank"' +
+      (withRank ? '' : ' hidden') +
+      '>班内名次</button>' +
+      '    </div>' +
       '  </div>' +
       '  <div class="chart-wrap" id="subjectChart"></div>' +
       '</section>';
@@ -1070,10 +1102,6 @@
       sideBody +
       '</div>' +
       '</section>';
-
-    var withRank = list.some(function (e) {
-      return Number((e.subjectRanks || {})[active.id]);
-    });
 
     var rowsHtml = list
       .toReversed()
@@ -1139,7 +1167,11 @@
       tableRows: rowsHtml,
       tableCount: stats.count,
       points: points,
+      ratePoints: ratePoints,
+      rankPoints: rankPoints,
+      hasRank: withRank,
       target: target,
+      rateTarget: active.full ? S.rate(target, active.full) * 100 : null,
       subjectForecast: (function () {
         var vals = stats.series.map(function (p) {
           return p.score;
@@ -1506,7 +1538,7 @@
         kpiCell({
           label: '年级排名',
           value: b.ranks.grade,
-          unit: '/ ' + state.config.gradeSize,
+          unit: '/ ' + S.examSize(state, b, 'grade'),
           foot:
             dGrade === null
               ? '—'
@@ -1520,7 +1552,7 @@
         kpiCell({
           label: '班级排名',
           value: b.ranks.class,
-          unit: '/ ' + state.config.classSize,
+          unit: '/ ' + S.examSize(state, b, 'class'),
           foot:
             dClass === null
               ? '—'
@@ -1845,7 +1877,7 @@
         kpiCell({
           label: '年级排名',
           value: exam.ranks.grade,
-          unit: '/ ' + state.config.gradeSize,
+          unit: '/ ' + S.examSize(state, exam, 'grade'),
           foot: diff && diff.gradeRank ? rankWord(diff.gradeRank).text + ' 名 较上一场' : '—'
         })
       );
@@ -1855,7 +1887,7 @@
         kpiCell({
           label: '班级排名',
           value: exam.ranks.class,
-          unit: '/ ' + state.config.classSize,
+          unit: '/ ' + S.examSize(state, exam, 'class'),
           foot: diff && diff.classRank ? rankWord(diff.classRank).text + ' 名 较上一场' : '—'
         })
       );
@@ -2066,14 +2098,14 @@
             '<input class="input num set-num" data-cfg="classSize" type="number" min="1" max="200" value="' +
               c.classSize +
               '">',
-            '用来算班级排名百分比'
+            '新记录默认用这个人数，录入时能单独改'
           ) +
           setField(
             '年级人数',
             '<input class="input num set-num" data-cfg="gradeSize" type="number" min="1" max="20000" value="' +
               c.gradeSize +
               '">',
-            '用来算年级排名百分比'
+            '同样只是默认值'
           ) +
           setField(
             '入学年份',
@@ -2213,7 +2245,7 @@
               setField(
                 '表格（Excel）',
                 '<button class="btn" data-action="export-xlsx">导出</button>',
-                '各科分数、名次和平均分，每场一行'
+                '各科分数、名次、人数和平均分，每场一行'
               ) +
               setField(
                 '表格（CSV）',
@@ -2259,7 +2291,7 @@
                 : '<span class="set-tag set-tag-ok">没有发现问题</span>') +
               '</span>' +
               '<span class="set-field-hint">' +
-              (issues.length ? '下面这些地方需要看看' : '分数、名次、平均分和目标都在合理范围内') +
+              (issues.length ? '下面这些地方需要看看' : '分数、名次、人数和平均分都在合理范围内') +
               '</span>' +
               '</div>' +
               (issues.length
@@ -2552,6 +2584,11 @@
     var todayIso = today.getFullYear() + '-' + S.pad2(today.getMonth() + 1) + '-' + S.pad2(today.getDate());
     var scores = exam ? exam.scores : {};
     var ranks = exam ? exam.ranks : {};
+    var sizes = (exam && exam.sizes) || {};
+    var sizeNow = {
+      class: S.examSize(state, exam || {}, 'class'),
+      grade: S.examSize(state, exam || {}, 'grade')
+    };
     var averages = (exam && exam.averages) || {};
     var subjectRanks = (exam && exam.subjectRanks) || {};
     var subjectAverages = (exam && exam.subjectAverages) || {};
@@ -2625,20 +2662,35 @@
       '      <label class="field"><span class="field-label">班级排名</span>' +
       '        <span class="input-suffix"><input class="input num" id="fClass" type="number" min="1" value="' +
       (ranks.class || '') +
-      '" placeholder="—"><span class="suffix num">/ ' +
-      c.classSize +
+      '" placeholder="—"><span class="suffix num" data-size-of="class">/ ' +
+      sizeNow.class +
       '</span></span></label>' +
       '      <label class="field"><span class="field-label">年级排名</span>' +
       '        <span class="input-suffix"><input class="input num" id="fGrade" type="number" min="1" value="' +
       (ranks.grade || '') +
-      '" placeholder="—"><span class="suffix num">/ ' +
-      c.gradeSize +
+      '" placeholder="—"><span class="suffix num" data-size-of="grade">/ ' +
+      sizeNow.grade +
       '</span></span></label>' +
       '      <div class="field field-total"><span class="field-label">合计</span>' +
       '        <span class="total-preview"><span class="num" id="formTotal">0</span><span class="muted num"> / ' +
       S.fullTotal(state) +
       '</span></span></div>' +
       '    </div>' +
+      '    <div class="field-row field-row-2">' +
+      '      <label class="field"><span class="field-label">本次班级人数</span>' +
+      '        <input class="input num" id="fClassSize" type="number" min="1" max="200" aria-describedby="formSizeHint" value="' +
+      (sizes.class || '') +
+      '" placeholder="' +
+      c.classSize +
+      '"></label>' +
+      '      <label class="field"><span class="field-label">本次年级人数</span>' +
+      '        <input class="input num" id="fGradeSize" type="number" min="1" max="20000" aria-describedby="formSizeHint" value="' +
+      (sizes.grade || '') +
+      '" placeholder="' +
+      c.gradeSize +
+      '"></label>' +
+      '    </div>' +
+      '    <p class="field-hint" id="formSizeHint">留空就按设置里的人数算，填了只影响这一场。</p>' +
       moreFields(c, exam, averages, subjectRanks, subjectAverages) +
       '    <p class="form-error" id="formError" role="alert"></p>' +
       '  </div>' +

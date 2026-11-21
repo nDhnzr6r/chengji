@@ -321,6 +321,13 @@
     return sum;
   }
 
+  /* 这一场的人数：自己填了就用自己填的，没填就用设置里的 */
+  function examSize(state, exam, kind) {
+    var own = Number(exam && exam.sizes && exam.sizes[kind]) || 0;
+    if (own > 0) return own;
+    return Number(state.config[kind + 'Size']) || 0;
+  }
+
   /* 这一科是记下的缺考，还是单纯没填 */
   function isAbsent(exam, subjectId) {
     return !!(exam && Array.isArray(exam.absent) && exam.absent.indexOf(subjectId) >= 0);
@@ -434,7 +441,7 @@
   function subjectRankOf(state, exam, subjectId) {
     var r = Number((exam.subjectRanks || {})[subjectId]) || null;
     if (!r) return null;
-    var size = Number(state.config.classSize) || 0;
+    var size = examSize(state, exam, 'class');
     var topPct = size ? (r / size) * 100 : null;
     return {
       rank: r,
@@ -946,8 +953,6 @@
   function audit(state) {
     var issues = [];
     var full = fullTotal(state);
-    var classSize = Number(state.config.classSize) || 0;
-    var gradeSize = Number(state.config.gradeSize) || 0;
     var pass = Number(state.config.passRate) || PASS_RATE_DEFAULT;
     var good = Number(state.config.goodRate) || GOOD_RATE_DEFAULT;
     var today = toISO(new Date());
@@ -967,12 +972,16 @@
 
       var rc = Number(e.ranks.class) || 0;
       var rg = Number(e.ranks.grade) || 0;
+      var classSize = examSize(state, e, 'class');
+      var gradeSize = examSize(state, e, 'grade');
       if (rc < 0) issues.push({ text: e.date + ' 的班级排名是负数' });
       if (rg < 0) issues.push({ text: e.date + ' 的年级排名是负数' });
       if (rc && classSize && rc > classSize)
         issues.push({ text: e.date + ' 的班级排名 ' + rc + ' 超过班级人数 ' + classSize });
       if (rg && gradeSize && rg > gradeSize)
         issues.push({ text: e.date + ' 的年级排名 ' + rg + ' 超过年级人数 ' + gradeSize });
+      if (classSize && gradeSize && classSize > gradeSize)
+        issues.push({ text: e.date + ' 的班级人数 ' + classSize + ' 比年级人数 ' + gradeSize + ' 还多' });
 
       /* 有科目缺考时总分本来就不全，只拿单科比，不比总分 */
       if (!absent.length) {
@@ -1417,6 +1426,16 @@
     return out;
   }
 
+  /* 只留正整数，人数这类字段用得上 */
+  function positiveMap(src) {
+    var out = numberMap(src);
+    Object.keys(out).forEach(function (key) {
+      out[key] = Math.round(out[key]);
+      if (!(out[key] > 0)) delete out[key];
+    });
+    return out;
+  }
+
   function plainText(value, fallback, max) {
     var text = String(value === null || value === undefined ? '' : value)
       .slice(0, max || 64)
@@ -1494,6 +1513,7 @@
           type: plainText(e.type, DEFAULT_TYPE, TYPE_NAME_MAX),
           scores: numberMap(e.scores),
           ranks: numberMap(e.ranks),
+          sizes: positiveMap(e.sizes),
           averages: numberMap(e.averages),
           absent: idList(e.absent, state.config.subjects),
           subjectAverages: numberMap(e.subjectAverages),
@@ -1677,7 +1697,7 @@
           return s.name + '平均';
         })
       )
-      .concat(['班级排名', '年级排名', '班级平均', '年级平均', '年级最高']);
+      .concat(['班级排名', '年级排名', '班级人数', '年级人数', '班级平均', '年级平均', '年级最高']);
   }
 
   /* 表格的数据行：导出 CSV 和 Excel 都从这里取 */
@@ -1704,7 +1724,15 @@
             return sa[s.id] || '';
           })
         )
-        .concat([e.ranks.class || '', e.ranks.grade || '', avg.class || '', avg.grade || '', avg.top || '']);
+        .concat([
+          e.ranks.class || '',
+          e.ranks.grade || '',
+          examSize(state, e, 'class') || '',
+          examSize(state, e, 'grade') || '',
+          avg.class || '',
+          avg.grade || '',
+          avg.top || ''
+        ]);
     });
   }
 
@@ -1779,6 +1807,8 @@
     var iType = find(['类型', 'type']);
     var iClass = find(['班级排名', '班排名', 'class']);
     var iGrade = find(['年级排名', '校排名', '年级名次', 'grade']);
+    var iClassSize = find(['班级人数', '班人数', 'classSize']);
+    var iGradeSize = find(['年级人数', '年人数', 'gradeSize']);
     var iAvgClass = find(['班级平均', '班平均', '班平']);
     var iAvgGrade = find(['年级平均', '年平均', '年平']);
     var iAvgTop = find(['年级最高', '最高分', '年最高']);
@@ -1860,6 +1890,15 @@
         var n = Number(raw.replace(/[^\d]/g, ''));
         if (n > 0) srOut[c.id] = n;
       });
+      var sizesOut = {};
+      [
+        ['class', iClassSize],
+        ['grade', iGradeSize]
+      ].forEach(function (pair) {
+        if (pair[1] < 0) return;
+        var n = Number(String(line[pair[1]] === undefined ? '' : line[pair[1]]).replace(/[^\d]/g, ''));
+        if (n > 0) sizesOut[pair[0]] = n;
+      });
       exams.push({
         id: uid() + r,
         name: iName >= 0 ? String(line[iName] || '').trim() || date + ' 考试' : date + ' 考试',
@@ -1870,6 +1909,7 @@
           class: iClass >= 0 ? Number(String(line[iClass]).replace(/[^\d]/g, '')) || null : null,
           grade: iGrade >= 0 ? Number(String(line[iGrade]).replace(/[^\d]/g, '')) || null : null
         },
+        sizes: sizesOut,
         averages: {
           class: iAvgClass >= 0 ? Number(String(line[iAvgClass]).replace(/[^\d.]/g, '')) || null : null,
           grade: iAvgGrade >= 0 ? Number(String(line[iAvgGrade]).replace(/[^\d.]/g, '')) || null : null,
@@ -1983,6 +2023,13 @@
       });
       target.subjectRanks = Object.assign({}, target.subjectRanks || {}, e.subjectRanks || {});
       target.subjectAverages = Object.assign({}, target.subjectAverages || {}, e.subjectAverages || {});
+      /* 表格里空着的人数不动原来的值 */
+      var inSizes = e.sizes || {};
+      var keptSizes = Object.assign({}, target.sizes || {});
+      Object.keys(inSizes).forEach(function (kind) {
+        if (inSizes[kind] > 0) keptSizes[kind] = inSizes[kind];
+      });
+      target.sizes = keptSizes;
       if (e.type) target.type = e.type;
       replaced++;
     });
@@ -2027,6 +2074,7 @@
     sorted: sorted,
     allSorted: allSorted,
     examTotal: examTotal,
+    examSize: examSize,
     isAbsent: isAbsent,
     fullTotal: fullTotal,
     targetTotal: targetTotal,

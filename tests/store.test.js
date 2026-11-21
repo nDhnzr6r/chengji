@@ -850,3 +850,101 @@ test('没给日期就按今天算', () => {
   const today = S.toISO(new Date());
   assert.ok(S.suggestName(state, '', '月考').startsWith(S.semesterOf(state, today).label + ' · '));
 });
+
+/* ---------------- 每场考试的人数 ---------------- */
+
+test('没填人数就用设置里的，填了就用这一场自己的', () => {
+  const state = S.defaultState();
+  state.config.classSize = 45;
+  state.config.gradeSize = 620;
+  assert.equal(S.examSize(state, {}, 'class'), 45);
+  assert.equal(S.examSize(state, {}, 'grade'), 620);
+  assert.equal(S.examSize(state, { sizes: {} }, 'class'), 45);
+  assert.equal(S.examSize(state, { sizes: { class: 52 } }, 'class'), 52);
+  assert.equal(S.examSize(state, { sizes: { grade: 700 } }, 'grade'), 700);
+});
+
+test('单科名次百分比按这一场的人数算', () => {
+  const state = S.defaultState();
+  const info = S.subjectRankOf(state, { subjectRanks: { math: 10 }, sizes: { class: 50 } }, 'math');
+  assert.equal(info.size, 50);
+  assert.equal(info.topPct, 20);
+  assert.match(info.label, /前 20%/);
+});
+
+test('名次超过这一场的人数会被抓到', () => {
+  const texts = auditOne({
+    id: 'a',
+    name: '甲',
+    date: '2026-03-01',
+    type: '月考',
+    scores: { math: 100 },
+    ranks: {},
+    averages: {},
+    sizes: { class: 30 },
+    subjectRanks: { math: 40 }
+  });
+  assert.ok(texts.some((t) => /数学班级名次 40 超过班级人数 30/.test(t)));
+});
+
+test('班级人数比年级人数多会被抓到', () => {
+  const texts = auditOne({
+    id: 'a',
+    name: '甲',
+    date: '2026-03-01',
+    type: '月考',
+    scores: { math: 100 },
+    ranks: {},
+    averages: {},
+    sizes: { class: 700, grade: 620 }
+  });
+  assert.ok(texts.some((t) => /班级人数 700 比年级人数 620 还多/.test(t)));
+});
+
+test('人数写进表格再读回来还在', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  state.exams = [
+    {
+      id: 'a',
+      name: '甲',
+      date: '2026-03-01',
+      type: '月考',
+      scores: { math: 110 },
+      ranks: { class: 3, grade: 40 },
+      sizes: { class: 48, grade: 700 },
+      averages: {}
+    }
+  ];
+  const back = S.tableToExams(state, S.parseCSV(S.toCSV(state)));
+  assert.deepEqual(back.exams[0].sizes, { class: 48, grade: 700 });
+});
+
+test('导入时表格空着的人数不动原来的', () => {
+  const state = S.defaultState();
+  state.filter = 'all';
+  state.exams = [
+    {
+      id: 'a',
+      name: '甲',
+      date: '2026-03-01',
+      type: '月考',
+      scores: { math: 110 },
+      ranks: {},
+      sizes: { class: 50 },
+      averages: {}
+    }
+  ];
+  S.mergeExams(state, [
+    { name: '甲', date: '2026-03-01', type: '月考', scores: { math: 120 }, ranks: {}, averages: {}, sizes: {} }
+  ]);
+  assert.equal(state.exams[0].sizes.class, 50);
+  assert.equal(state.exams[0].scores.math, 120);
+});
+
+test('备份里的人数只留正整数', () => {
+  const state = S.normalize({
+    exams: [{ date: '2026-03-01', name: '甲', scores: {}, sizes: { class: 48, grade: -3 } }]
+  });
+  assert.deepEqual(state.exams[0].sizes, { class: 48 });
+});
