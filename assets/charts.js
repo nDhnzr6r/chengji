@@ -27,11 +27,38 @@
     compactWidth: 520
   };
 
-  /* 缓动：到点即停，起步快收尾慢 */
+  /* 缓动：与样式里的五条曲线对应 */
   var EASE = {
     out: 'cubic-bezier(0.22, 1, 0.36, 1)',
     soft: 'cubic-bezier(0.32, 0.72, 0, 1)',
-    back: 'cubic-bezier(0.34, 1.4, 0.64, 1)'
+    land: 'cubic-bezier(0.34, 1.4, 0.64, 1)'
+  };
+
+  /* 时间线：全部毫秒，起点相对图表自己的起跑时刻 */
+  var TIME = {
+    grid: 0,
+    line: 50,
+    area: 200,
+    target: 250,
+    dots: 350,
+    dotStep: 30,
+    last: 550,
+    forecast: 650,
+    forecastDot: 750,
+    forecastLabel: 800,
+    dur: {
+      grid: 300,
+      line: 700,
+      area: 500,
+      target: 300,
+      label: 250,
+      dot: 250,
+      morph: 600,
+      radar: 800,
+      radarStep: 100,
+      bar: 600,
+      barStep: 50
+    }
   };
 
   function el(name, attrs) {
@@ -83,27 +110,56 @@
   function roll(el, from, to, opts) {
     opts = opts || {};
     var digits = opts.digits === undefined ? 0 : opts.digits;
-    var dur = opts.duration === undefined ? 720 : opts.duration;
+    var dur = opts.duration === undefined ? 400 : opts.duration;
+    var delay = opts.delay || 0;
     var prefix = opts.prefix || '';
     var suffix = opts.suffix || '';
     var sign = opts.sign ? (to > from ? '+' : to < from ? '−' : '') : '';
     var end = sign ? Math.abs(to) : to;
+
+    /* 同一个数字上的新滚动取消旧的，从当前显示的值接着走 */
+    if (el._roll) {
+      clearTimeout(el._roll.timer);
+      cancelAnimationFrame(el._roll.raf);
+      if (from === undefined) from = el._roll.value;
+      el._roll = null;
+    }
+    if (from === undefined) from = 0;
     var start = sign ? Math.abs(from) : from;
 
+    var write = function (v) {
+      el.textContent = prefix + sign + fmtNumber(v, digits) + suffix;
+    };
+
     if (reduced() || dur === 0) {
-      el.textContent = prefix + sign + fmtNumber(end, digits) + suffix;
+      write(end);
       return;
     }
-    var t0 = performance.now();
-    var tick = function (now) {
-      var p = Math.min(1, (now - t0) / dur);
-      var eased = 1 - Math.pow(1 - p, 4);
-      var v = start + (end - start) * eased;
-      el.textContent = prefix + sign + fmtNumber(v, digits) + suffix;
-      if (p < 1) requestAnimationFrame(tick);
-      else el.textContent = prefix + sign + fmtNumber(end, digits) + suffix;
+
+    write(start);
+    var state = { timer: null, raf: 0, value: start };
+    el._roll = state;
+
+    var run = function () {
+      var t0 = performance.now();
+      var tick = function (now) {
+        var p = Math.min(1, (now - t0) / dur);
+        var eased = 1 - Math.pow(1 - p, 4);
+        var v = start + (end - start) * eased;
+        state.value = v;
+        write(v);
+        if (p < 1) state.raf = requestAnimationFrame(tick);
+        else {
+          state.value = end;
+          write(end);
+          el._roll = null;
+        }
+      };
+      state.raf = requestAnimationFrame(tick);
     };
-    requestAnimationFrame(tick);
+
+    if (delay) state.timer = setTimeout(run, delay);
+    else run();
   }
 
   /* ---------- 走势图 ---------- */
@@ -516,36 +572,140 @@
       if (gBands) svg.insertBefore(gBands, svg.firstChild);
       host.appendChild(svg);
 
-      /* 入场 */
+      /* 入场：结构先到，数据按自己的节拍生长，注解最后亮起 */
       if (!reduced() && o.animate !== false) {
+        var delay = o.delay || 0;
         var len = line.getTotalLength();
         line.style.strokeDasharray = len + ' ' + len;
         line.style.strokeDashoffset = len;
         if (area) area.style.opacity = '0';
         gGrid.style.opacity = '0';
-        gTarget.style.opacity = '0';
+        var targetLines = gTarget.querySelectorAll('.target-line, .gap-line, .gap-tick');
+        var targetLabels = gTarget.querySelectorAll('.target-label, .gap-label');
+        targetLines.forEach(function (node) {
+          node.style.opacity = '0';
+        });
+        targetLabels.forEach(function (node) {
+          node.style.opacity = '0';
+          node.style.transform = 'translateY(2px)';
+        });
+        if (gHi) gHi.style.opacity = '0';
         dots.forEach(function (dt) {
           dt.style.opacity = '0';
         });
         lastDot.style.opacity = '0';
+        lastDot.style.transform = 'scale(0.6)';
+        var fLine = svg.querySelector('.forecast-line');
+        var fLabel = svg.querySelector('.forecast-label');
+        if (fLine) fLine.style.opacity = '0';
+        if (forecastMark) {
+          forecastMark.style.opacity = '0';
+          forecastMark.style.transform = 'scale(1.04)';
+        }
+        if (fLabel) {
+          fLabel.style.opacity = '0';
+          fLabel.style.transform = 'translateY(2px)';
+        }
 
         nextFrame(function () {
-          gGrid.style.transition = 'opacity 360ms ' + EASE.soft;
+          gGrid.style.transition = 'opacity ' + TIME.dur.grid + 'ms ' + EASE.soft + ' ' + delay + 'ms';
           gGrid.style.opacity = '1';
-          line.style.transition = 'stroke-dashoffset 900ms ' + EASE.out;
+          line.style.transition =
+            'stroke-dashoffset ' + TIME.dur.line + 'ms ' + EASE.out + ' ' + (delay + TIME.line) + 'ms';
           line.style.strokeDashoffset = '0';
           if (area) {
-            area.style.transition = 'opacity 620ms ' + EASE.soft + ' 220ms';
+            area.style.transition = 'opacity ' + TIME.dur.area + 'ms ' + EASE.soft + ' ' + (delay + TIME.area) + 'ms';
             area.style.opacity = '1';
           }
-          gTarget.style.transition = 'opacity 420ms ' + EASE.soft + ' 380ms';
-          gTarget.style.opacity = '1';
+          targetLines.forEach(function (node) {
+            node.style.transition =
+              'opacity ' + TIME.dur.target + 'ms ' + EASE.soft + ' ' + (delay + TIME.target) + 'ms';
+            node.style.opacity = '1';
+          });
+          targetLabels.forEach(function (node) {
+            node.style.transition =
+              'opacity ' +
+              TIME.dur.label +
+              'ms ' +
+              EASE.out +
+              ' ' +
+              (delay + TIME.last) +
+              'ms, transform ' +
+              TIME.dur.label +
+              'ms ' +
+              EASE.out +
+              ' ' +
+              (delay + TIME.last) +
+              'ms';
+            node.style.opacity = '1';
+            node.style.transform = 'none';
+          });
+          if (gHi) {
+            gHi.style.transition = 'opacity ' + TIME.dur.label + 'ms ' + EASE.out + ' ' + (delay + TIME.last) + 'ms';
+            gHi.style.opacity = '1';
+          }
           dots.forEach(function (dt, i) {
-            dt.style.transition = 'opacity 300ms ' + EASE.soft + ' ' + (300 + i * 45) + 'ms';
+            dt.style.transition =
+              'opacity ' + TIME.dur.dot + 'ms ' + EASE.soft + ' ' + (delay + TIME.dots + i * TIME.dotStep) + 'ms';
             dt.style.opacity = '1';
           });
-          lastDot.style.transition = 'opacity 320ms ' + EASE.soft + ' ' + (320 + points.length * 45) + 'ms';
+          lastDot.style.transition =
+            'opacity ' +
+            TIME.dur.dot +
+            'ms ' +
+            EASE.land +
+            ' ' +
+            (delay + TIME.last) +
+            'ms, transform ' +
+            TIME.dur.dot +
+            'ms ' +
+            EASE.land +
+            ' ' +
+            (delay + TIME.last) +
+            'ms';
           lastDot.style.opacity = '1';
+          lastDot.style.transform = 'none';
+          if (fLine) {
+            fLine.style.transition =
+              'opacity ' + TIME.dur.target + 'ms ' + EASE.soft + ' ' + (delay + TIME.forecast) + 'ms';
+            fLine.style.opacity = '1';
+          }
+          if (forecastMark) {
+            forecastMark.style.transition =
+              'opacity ' +
+              TIME.dur.dot +
+              'ms ' +
+              EASE.land +
+              ' ' +
+              (delay + TIME.forecastDot) +
+              'ms, transform ' +
+              TIME.dur.dot +
+              'ms ' +
+              EASE.land +
+              ' ' +
+              (delay + TIME.forecastDot) +
+              'ms';
+            forecastMark.style.opacity = '1';
+            forecastMark.style.transform = 'none';
+          }
+          if (fLabel) {
+            fLabel.style.transition =
+              'opacity ' +
+              TIME.dur.label +
+              'ms ' +
+              EASE.out +
+              ' ' +
+              (delay + TIME.forecastLabel) +
+              'ms, transform ' +
+              TIME.dur.label +
+              'ms ' +
+              EASE.out +
+              ' ' +
+              (delay + TIME.forecastLabel) +
+              'ms';
+            fLabel.style.opacity = '1';
+            fLabel.style.transform = 'none';
+          }
         });
       }
 
@@ -629,12 +789,13 @@
       };
     }
 
-    /* 指标切换：曲线从旧形状过渡到新形状 */
+    /* 指标切换：曲线从当前位置过渡到新形状，连续切换会接着走 */
     function morph(built, prev) {
+      if (built._morph) cancelAnimationFrame(built._morph);
       var from = prev.coords;
       var to = built.coords;
       var n = to.length;
-      var dur = 700;
+      var dur = TIME.dur.morph;
       var area = built.area;
       var line = built.line;
 
@@ -665,6 +826,9 @@
         for (var i = 0; i < n; i++) {
           var fx = from[i][0] + (to[i][0] - from[i][0]) * e;
           var fy = from[i][1] + (to[i][1] - from[i][1]) * e;
+          /* 记住当前插值，下一次切换从这里接上 */
+          built.coords[i][0] = fx;
+          built.coords[i][1] = fy;
           seg.push((i ? 'L' : 'M') + fx.toFixed(2) + ' ' + fy.toFixed(2));
           built.dots[i].setAttribute('cx', fx);
           built.dots[i].setAttribute('cy', fy);
@@ -687,38 +851,40 @@
               ' Z'
           );
         }
-        if (p < 1) requestAnimationFrame(frame);
+        if (p < 1) built._morph = requestAnimationFrame(frame);
+        else built._morph = null;
       }
-      requestAnimationFrame(frame);
+      built._morph = requestAnimationFrame(frame);
 
-      /* 刻度换一套：数字从左侧滑进来，网格线淡入 */
+      /* 刻度换一套：旧的先退，新的再进，不跟曲线抢同一时刻 */
       var grid = built.svg.querySelector('.chart-grid');
-      var target = built.svg.querySelector('.chart-target');
       if (grid) {
         var texts = Array.prototype.slice.call(grid.querySelectorAll('text'));
+        grid.style.opacity = '0';
         texts.forEach(function (t) {
           t.style.opacity = '0';
-          t.style.transform = 'translateX(-6px)';
         });
-        grid.style.opacity = '0';
         requestAnimationFrame(function () {
-          grid.style.transition = 'opacity 240ms linear';
+          grid.style.transition = 'opacity ' + TIME.dur.label + 'ms linear';
           grid.style.opacity = '1';
-          texts.forEach(function (t, i) {
-            t.style.transition =
-              'opacity 240ms linear ' + i * 36 + 'ms, transform 320ms cubic-bezier(0.22, 1, 0.36, 1) ' + i * 36 + 'ms';
+          texts.forEach(function (t) {
+            t.style.transition = 'opacity ' + TIME.dur.label + 'ms ' + EASE.out + ' 180ms';
             t.style.opacity = '1';
-            t.style.transform = 'none';
           });
         });
       }
-      if (target) {
-        target.style.opacity = '0';
-        target.style.transition = 'opacity 300ms linear 180ms';
+
+      /* 目标线与预测段在曲线走起来之后再亮 */
+      var target = built.svg.querySelector('.chart-target');
+      var forecast = built.svg.querySelector('.chart-forecast');
+      [target, forecast].forEach(function (node) {
+        if (!node) return;
+        node.style.opacity = '0';
         requestAnimationFrame(function () {
-          target.style.opacity = '1';
+          node.style.transition = 'opacity ' + TIME.dur.target + 'ms ' + EASE.soft + ' 150ms';
+          node.style.opacity = '1';
         });
-      }
+      });
     }
 
     if (opts && opts.points) set(opts.points, opts);
@@ -809,12 +975,53 @@
     host.appendChild(svg);
 
     if (!reduced() && opts.animate !== false) {
+      if (opts.from) {
+        /* 换一组数据：两层各自从旧形状长到新形状 */
+        layerEls.forEach(function (path, idx) {
+          var fromVals = opts.from[idx] || [];
+          var start = [];
+          for (var i = 0; i < n; i++) {
+            var p0 = pt(i, Math.max(0, Math.min(1, fromVals[i] || 0)));
+            start.push([p0[0], p0[1]]);
+          }
+          var target = [];
+          for (var j = 0; j < n; j++) {
+            var p1 = pt(j, Math.max(0, Math.min(1, layers[idx].values[j] || 0)));
+            target.push([p1[0], p1[1]]);
+          }
+          var t0 = performance.now();
+          var frame = function (now) {
+            var p = Math.min(1, (now - t0) / TIME.dur.line);
+            var e = 1 - Math.pow(1 - p, 3);
+            var seg = [];
+            for (var k = 0; k < n; k++) {
+              var x = start[k][0] + (target[k][0] - start[k][0]) * e;
+              var y = start[k][1] + (target[k][1] - start[k][1]) * e;
+              seg.push((k ? 'L' : 'M') + x.toFixed(2) + ' ' + y.toFixed(2));
+            }
+            path.setAttribute('d', seg.join(' ') + ' Z');
+            if (p < 1) requestAnimationFrame(frame);
+          };
+          requestAnimationFrame(frame);
+        });
+        return;
+      }
       layerEls.forEach(function (path, idx) {
         path.style.transform = 'scale(0.02)';
         path.style.opacity = '0';
         requestAnimationFrame(function () {
           path.style.transition =
-            'transform 720ms ' + EASE.out + ' ' + idx * 90 + 'ms, opacity 420ms linear ' + idx * 90 + 'ms';
+            'transform ' +
+            TIME.dur.radar +
+            'ms ' +
+            EASE.out +
+            ' ' +
+            idx * TIME.dur.radarStep +
+            'ms, opacity ' +
+            TIME.dur.target +
+            'ms linear ' +
+            idx * TIME.dur.radarStep +
+            'ms';
           path.style.transform = 'scale(1)';
           path.style.opacity = '1';
         });
@@ -834,7 +1041,7 @@
     var list = document.createElement('div');
     list.className = 'bullets';
 
-    rows.forEach(function (row) {
+    rows.forEach(function (row, index) {
       var item = document.createElement('div');
       item.className = 'bullet-row';
 
@@ -846,7 +1053,8 @@
       track.className = 'bullet-track';
       var fill = document.createElement('div');
       fill.className = 'bullet-fill' + (row.hit ? ' is-hit' : '');
-      fill.style.transform = 'scaleX(0)';
+      var fromRate = opts.from && opts.from[index] !== undefined ? opts.from[index] : 0;
+      fill.style.transform = 'scaleX(' + fromRate + ')';
       fill.setAttribute('data-w', Math.max(0, Math.min(1, row.rate)).toFixed(4));
       track.appendChild(fill);
       if (row.targetRate) {
@@ -876,7 +1084,7 @@
     if (!reduced() && opts.animate !== false) {
       nextFrame(function () {
         list.querySelectorAll('.bullet-fill').forEach(function (fill, i) {
-          fill.style.transition = 'transform 640ms ' + EASE.out + ' ' + i * 60 + 'ms';
+          fill.style.transition = 'transform ' + TIME.dur.bar + 'ms ' + EASE.out + ' ' + i * TIME.dur.barStep + 'ms';
           fill.style.transform = 'scaleX(' + fill.getAttribute('data-w') + ')';
         });
       });

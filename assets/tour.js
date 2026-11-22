@@ -60,6 +60,7 @@
   var tip = null;
   var index = 0;
   var active = false;
+  var painted = false;
   var currentTarget = null;
   var currentStep = null;
 
@@ -144,14 +145,17 @@
     currentTarget = null;
     currentStep = null;
     if (root) {
-      root.classList.add('is-out');
       var el = root;
+      var box = tip;
+      root.classList.add('is-out');
+      if (box) box.classList.add('is-leaving');
       root = null;
       hole = null;
       tip = null;
+      painted = false;
       setTimeout(function () {
         el.remove();
-      }, 220);
+      }, 250);
     }
   }
 
@@ -194,27 +198,72 @@
       rect = target.getBoundingClientRect();
     }
 
-    paint(rect, step);
+    var first = !painted;
+    paint(rect, step, first);
+    painted = true;
 
-    tip.querySelector('.tour-count').textContent = index + 1 + ' / ' + STEPS.length;
-    tip.querySelector('.tour-title').textContent = step.title;
-    tip.querySelector('.tour-text').textContent = step.text;
+    setText(step);
 
     var prevBtn = tip.querySelector('[data-tour="prev"]');
     var nextBtn = tip.querySelector('[data-tour="next"]');
     prevBtn.style.visibility = index === 0 ? 'hidden' : 'visible';
     nextBtn.textContent = index === STEPS.length - 1 ? '知道了' : '下一步';
-
-    positionTip(rect, step.place);
   }
 
-  /* 把高亮框和气泡摆到目标身上 */
-  function paint(rect, step) {
+  /* 文字换一套：先清掉旧动画，再一起亮出来 */
+  function setText(step) {
+    var count = tip.querySelector('.tour-count');
+    var title = tip.querySelector('.tour-title');
+    var text = tip.querySelector('.tour-text');
+    [count, title, text].forEach(function (el) {
+      el.classList.remove('is-swapping');
+    });
+    void tip.offsetWidth;
+
+    count.textContent = index + 1 + ' / ' + STEPS.length;
+    title.textContent = step.title;
+    text.textContent = step.text;
+
+    [count, title, text].forEach(function (el) {
+      el.classList.add('is-swapping');
+    });
+  }
+
+  /* 把高亮框和气泡摆到目标身上；首步从视口中心扩过去 */
+  function paint(rect, step, first) {
     var pad = 8;
-    hole.style.left = rect.left - pad + 'px';
-    hole.style.top = rect.top - pad + 'px';
-    hole.style.width = rect.width + pad * 2 + 'px';
-    hole.style.height = rect.height + pad * 2 + 'px';
+    var left = rect.left - pad;
+    var top = rect.top - pad;
+    var width = rect.width + pad * 2;
+    var height = rect.height + pad * 2;
+
+    if (first) {
+      hole.style.transition = 'none';
+      hole.style.setProperty('--hole-dur', '400ms');
+      hole.style.left = global.innerWidth / 2 - 8 + 'px';
+      hole.style.top = global.innerHeight / 2 - 8 + 'px';
+      hole.style.width = '16px';
+      hole.style.height = '16px';
+      tip.style.transition = 'none';
+      positionTip(rect, step.place);
+      void hole.offsetWidth;
+      requestAnimationFrame(function () {
+        hole.style.transition = '';
+        hole.style.left = left + 'px';
+        hole.style.top = top + 'px';
+        hole.style.width = width + 'px';
+        hole.style.height = height + 'px';
+        tip.style.transition = '';
+        tip.classList.add('is-entering');
+      });
+      return;
+    }
+
+    hole.style.setProperty('--hole-dur', '300ms');
+    hole.style.left = left + 'px';
+    hole.style.top = top + 'px';
+    hole.style.width = width + 'px';
+    hole.style.height = height + 'px';
     positionTip(rect, step.place);
   }
 
@@ -272,6 +321,7 @@
     build();
     index = 0;
     active = true;
+    painted = false;
     root.classList.remove('is-out');
     show();
     requestAnimationFrame(function () {

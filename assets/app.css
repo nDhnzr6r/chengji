@@ -90,8 +90,31 @@
 
   --font: 'Geist', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
 
+  /* 动效：九档时长、五条曲线、四档位移、三档错峰 */
+  --dur-1: 110ms;
+  --dur-2: 180ms;
+  --dur-3: 250ms;
+  --dur-4: 300ms;
+  --dur-5: 400ms;
+  --dur-6: 500ms;
+  --dur-7: 600ms;
+  --dur-8: 700ms;
+  --dur-9: 800ms;
+
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-in: cubic-bezier(0.55, 0, 0.85, 0.36);
+  --ease-swap: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-land: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  --shift-1: 2px;
+  --shift-2: 4px;
+  --shift-3: 6px;
+  --shift-4: 10px;
+
+  --stagger-1: 30ms;
+  --stagger-2: 50ms;
+  --stagger-3: 80ms;
 }
 
 /* 手动选的深浅色写进 meta，浏览器自带控件跟着走 */
@@ -350,6 +373,18 @@ select {
 .brand-mark {
   color: var(--chart-3);
   flex: none;
+  transition: stroke-width var(--dur-2) var(--ease-soft);
+}
+
+.brand:hover .brand-mark {
+  stroke-width: 1.35;
+}
+
+/* 侧栏第一次出现时，标记像启动那样画一遍 */
+.brand.is-boot .brand-mark path {
+  stroke-dasharray: 26;
+  stroke-dashoffset: 26;
+  animation: bootDraw var(--dur-5) var(--ease-out) 50ms forwards;
 }
 
 .brand-text {
@@ -389,18 +424,25 @@ select {
   font-size: var(--fs-14);
   color: var(--muted);
   transition:
-    background 160ms var(--ease-soft),
-    color 160ms linear;
+    background var(--dur-2) var(--ease-soft),
+    color var(--dur-2) var(--ease-soft);
 }
 
 .nav-item .ico {
   flex: none;
   opacity: 0.9;
+  transition:
+    transform var(--dur-2) var(--ease-soft),
+    opacity var(--dur-2) var(--ease-soft);
 }
 
 .nav-item:hover {
   background: var(--hover);
   color: var(--text);
+}
+
+.nav-item:hover .ico {
+  transform: translateY(-1px);
 }
 
 .nav-item.is-active {
@@ -411,6 +453,7 @@ select {
 
 .nav-item.is-active .ico {
   opacity: 1;
+  transform: translateY(-1px);
 }
 
 .goal-block {
@@ -477,24 +520,26 @@ select {
 .goal-fill {
   width: var(--pct, 0%);
   background: var(--chart-3);
-  animation: goalIn 700ms var(--ease-out) both;
+  animation: goalIn var(--dur-7) var(--ease-out) both;
 }
 
 .bullet-fill {
   transform: scaleX(0);
-  transition: transform 640ms var(--ease-out);
+  transition: transform var(--dur-7) var(--ease-out);
 }
 
 .type-bar-fill {
   display: block;
   width: 100%;
   transform: scaleX(var(--w, 0));
-  animation: typeBar 560ms var(--ease-out) both;
+  animation: typeBar var(--dur-7) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--stagger-2));
 }
 
 .sub-fill {
   width: var(--pct);
-  animation: barIn 560ms var(--ease-out) both;
+  animation: barIn var(--dur-7) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--stagger-2));
 }
 
 @keyframes goalIn {
@@ -527,12 +572,12 @@ select {
   cursor: pointer;
   overflow: hidden;
   transition:
-    background 160ms var(--ease-soft),
-    color 160ms linear,
-    height 240ms var(--ease-out),
-    margin-top 240ms var(--ease-out),
-    padding 240ms var(--ease-out),
-    opacity 180ms linear;
+    background var(--dur-2) var(--ease-soft),
+    color var(--dur-2) var(--ease-soft),
+    height var(--dur-4) var(--ease-out),
+    margin-top var(--dur-4) var(--ease-out),
+    padding var(--dur-4) var(--ease-out),
+    opacity var(--dur-4) var(--ease-out);
 }
 
 .theme-toggle:hover {
@@ -573,7 +618,46 @@ select {
 
 ::view-transition-new(root) {
   z-index: 2;
-  animation: themeReveal 620ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+html[data-vt='theme']::view-transition-new(root) {
+  animation: themeReveal var(--dur-7) var(--ease-soft) forwards;
+}
+
+/* 换页：旧页先走，新页后到；侧栏自己待着 */
+html[data-vt='page']::view-transition-old(root) {
+  animation: pageOut var(--dur-3) var(--ease-in) both;
+}
+
+html[data-vt='page']::view-transition-new(root) {
+  animation: pageIn var(--dur-4) var(--ease-out) both;
+}
+
+html[data-vt='page'] .side {
+  view-transition-name: side;
+}
+
+::view-transition-group(side),
+::view-transition-old(side),
+::view-transition-new(side) {
+  animation: none;
+}
+
+@keyframes pageOut {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--shift-3));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @keyframes themeReveal {
@@ -591,11 +675,11 @@ select {
 .is-theme-fading *::before,
 .is-theme-fading *::after {
   transition:
-    background-color 320ms linear,
-    border-color 320ms linear,
-    color 320ms linear,
-    fill 320ms linear,
-    stroke 320ms linear !important;
+    background-color var(--dur-4) linear,
+    border-color var(--dur-4) linear,
+    color var(--dur-4) linear,
+    fill var(--dur-4) linear,
+    stroke var(--dur-4) linear !important;
 }
 
 .mobile-bar {
@@ -611,38 +695,15 @@ select {
   margin: 0 auto;
   width: 100%;
 }
-#main.is-enter > * {
-  animation: viewIn 360ms var(--ease-out) both;
+/* 页面入场：层起点、层内序号、时长、位移都由脚本写进变量 */
+#main [data-motion='enter'] {
+  animation: enterUp var(--enter-dur, var(--dur-5)) var(--enter-ease, var(--ease-out)) var(--enter-delay, 0ms) backwards;
 }
 
-@supports (animation-delay: calc(sibling-index() * 0.1s)) {
-  #main.is-enter > * {
-    animation-delay: min(calc((sibling-index() - 1) * 60ms), 300ms);
-  }
-}
-
-@supports not (animation-delay: calc(sibling-index() * 0.1s)) {
-  #main.is-enter > *:nth-child(2) {
-    animation-delay: 60ms;
-  }
-  #main.is-enter > *:nth-child(3) {
-    animation-delay: 120ms;
-  }
-  #main.is-enter > *:nth-child(4) {
-    animation-delay: 180ms;
-  }
-  #main.is-enter > *:nth-child(5) {
-    animation-delay: 240ms;
-  }
-  #main.is-enter > *:nth-child(6) {
-    animation-delay: 300ms;
-  }
-}
-
-@keyframes viewIn {
+@keyframes enterUp {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(var(--enter-shift, 0px));
   }
   to {
     opacity: 1;
@@ -650,14 +711,42 @@ select {
   }
 }
 
-.fade-in {
-  animation: fadeInUp 300ms var(--ease-out) both;
+/* 同区域替换：外框不动，旧内容先走，新内容再来 */
+[data-motion='swap'] {
+  animation: swapIn var(--dur-4) var(--ease-out) backwards;
 }
 
-@keyframes fadeInUp {
+[data-motion='swap-out'] {
+  animation: swapOut var(--dur-2) var(--ease-in) both;
+}
+
+@keyframes swapIn {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(var(--shift-2));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes swapOut {
+  to {
+    opacity: 0;
+    transform: translateY(calc(var(--shift-1) * -1));
+  }
+}
+
+/* 标题与短文字换内容：只交叉，不带长位移 */
+.text-swap {
+  animation: textSwap var(--dur-3) var(--ease-out) backwards;
+}
+
+@keyframes textSwap {
+  from {
+    opacity: 0;
+    transform: translateY(var(--shift-1));
   }
   to {
     opacity: 1;
@@ -678,6 +767,12 @@ select {
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1.3;
+}
+
+/* 换页后焦点落在标题上，不必画一圈 */
+.page-head h1:focus,
+.page-head h1:focus-visible {
+  outline: none;
 }
 
 .page-sub {
@@ -726,9 +821,9 @@ select {
   gap: 6px;
   white-space: nowrap;
   transition:
-    background 150ms var(--ease-soft),
-    border-color 150ms var(--ease-soft),
-    transform 120ms var(--ease-soft);
+    background var(--dur-2) var(--ease-soft),
+    border-color var(--dur-2) var(--ease-soft),
+    transform var(--dur-1) var(--ease-soft);
 }
 
 .btn:hover {
@@ -736,7 +831,7 @@ select {
   border-color: var(--control-hover);
 }
 .btn:active {
-  transform: scale(0.985);
+  transform: scale(0.98);
 }
 
 .btn-primary {
@@ -749,6 +844,24 @@ select {
 .btn-primary:hover {
   background: var(--btn-hover);
   border-color: var(--btn-hover);
+}
+
+/* 存下来那一下：底色变浅绿，轻轻回一下 */
+.btn.is-saved,
+.btn-primary.is-saved {
+  background: var(--saved-bg);
+  border-color: var(--saved-border);
+  color: var(--positive);
+  animation: savePulse var(--dur-3) var(--ease-land);
+}
+
+@keyframes savePulse {
+  from {
+    transform: scale(0.98);
+  }
+  to {
+    transform: none;
+  }
 }
 
 .btn-ghost {
@@ -783,7 +896,9 @@ select {
   background: transparent;
   color: var(--muted);
   cursor: pointer;
-  transition: background 150ms var(--ease-soft);
+  transition:
+    background var(--dur-2) var(--ease-soft),
+    color var(--dur-2) var(--ease-soft);
 }
 
 .icon-btn:hover {
@@ -798,8 +913,8 @@ select {
   flex: none;
   border-bottom: 1px solid transparent;
   transition:
-    color 150ms var(--ease-soft),
-    border-color 150ms var(--ease-soft);
+    color var(--dur-2) var(--ease-soft),
+    border-color var(--dur-2) var(--ease-soft);
 }
 
 .text-link:hover {
@@ -819,7 +934,7 @@ select {
 }
 
 .card {
-  transition: border-color 200ms var(--ease-soft);
+  transition: border-color var(--dur-2) var(--ease-soft);
 }
 
 .card:hover {
@@ -1209,8 +1324,8 @@ select {
   stroke-width: 1;
   opacity: 0;
   transition:
-    opacity 150ms linear,
-    transform 100ms var(--ease-out);
+    opacity var(--dur-2) linear,
+    transform var(--dur-2) var(--ease-out);
   pointer-events: none;
 }
 
@@ -1220,8 +1335,8 @@ select {
   stroke-width: 2;
   opacity: 0;
   transition:
-    opacity 150ms linear,
-    transform 100ms var(--ease-out);
+    opacity var(--dur-2) linear,
+    transform var(--dur-2) var(--ease-out);
   pointer-events: none;
 }
 
@@ -1242,9 +1357,9 @@ select {
   transform-origin: 50% 100%;
   transform: translate(var(--tx, 0px), var(--ty, 0px)) translateY(-100%);
   transition:
-    opacity 150ms linear,
-    transform 110ms var(--ease-out),
-    scale 180ms var(--ease-out);
+    opacity var(--dur-2) linear,
+    transform var(--dur-2) var(--ease-out),
+    scale var(--dur-2) var(--ease-out);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1272,13 +1387,13 @@ select {
 
 .chart-tip.is-updated .tip-value,
 .chart-tip.is-updated .tip-date {
-  animation: tipSwap 200ms var(--ease-out) both;
+  animation: tipSwap var(--dur-2) var(--ease-out) both;
 }
 
 @keyframes tipSwap {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(var(--shift-2));
   }
   to {
     opacity: 1;
@@ -1334,6 +1449,21 @@ select {
   background: var(--negative);
 }
 
+/* 条越过目标刻度时，刻度提亮一次 */
+.bullet-tick {
+  animation: tickFlash var(--dur-3) var(--ease-soft) var(--tick-delay, 550ms) both;
+}
+
+@keyframes tickFlash {
+  0%,
+  100% {
+    background: var(--negative);
+  }
+  50% {
+    background: var(--chart-3);
+  }
+}
+
 .bullet-value {
   font-size: var(--fs-13);
   text-align: right;
@@ -1373,13 +1503,32 @@ select {
 }
 
 .record {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 12px 0;
   border-bottom: 1px solid var(--rule);
-  transition: background 150ms var(--ease-soft);
+  transition: background var(--dur-2) var(--ease-soft);
+}
+
+/* 悬停时左边立起一道细标 */
+.record::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  width: 2px;
+  height: 0;
+  background: var(--negative);
+  border-radius: 1px;
+  transform: translateY(-50%);
+  transition: height var(--dur-3) var(--ease-out);
+}
+
+.record:hover::before {
+  height: 40%;
 }
 
 .record:last-child {
@@ -1402,7 +1551,7 @@ select {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: color 150ms var(--ease-soft);
+  transition: color var(--dur-2) var(--ease-soft);
 }
 
 .record-meta {
@@ -1448,6 +1597,14 @@ select {
 
 .analysis-row:last-child {
   border-bottom: none;
+}
+
+.card-priority .analysis-row {
+  transition: background var(--dur-2) var(--ease-soft);
+}
+
+.card-priority .analysis-row:hover {
+  background: var(--raised);
 }
 
 .analysis-label {
@@ -1554,9 +1711,9 @@ select {
   font-size: var(--fs-13);
   cursor: pointer;
   transition:
-    background 160ms var(--ease-soft),
-    border-color 160ms linear,
-    color 160ms linear;
+    background var(--dur-2) var(--ease-soft),
+    border-color var(--dur-2) var(--ease-soft),
+    color var(--dur-2) var(--ease-soft);
 }
 
 .chip em {
@@ -1705,8 +1862,8 @@ select {
   padding: 5px 12px;
   cursor: pointer;
   transition:
-    background 150ms linear,
-    border-color 150ms linear;
+    background var(--dur-2) var(--ease-soft),
+    border-color var(--dur-2) var(--ease-soft);
 }
 
 .sample-clear:hover {
@@ -1774,7 +1931,7 @@ select {
 .app-meta a {
   color: var(--muted);
   text-decoration: none;
-  transition: color 120ms linear;
+  transition: color var(--dur-2) var(--ease-soft);
 }
 
 .app-meta a:hover {
@@ -1823,8 +1980,8 @@ select {
   background: var(--nav-active);
   pointer-events: none;
   transition:
-    transform 240ms var(--ease-out),
-    height 240ms var(--ease-out);
+    transform var(--dur-4) var(--ease-swap),
+    height var(--dur-4) var(--ease-swap);
 }
 
 .set-nav:not(.is-ready) .set-nav-thumb {
@@ -1848,7 +2005,7 @@ select {
 .set-nav-name {
   font-size: var(--fs-13);
   color: var(--muted);
-  transition: color 180ms linear;
+  transition: color var(--dur-2) var(--ease-soft);
 }
 
 .set-nav-meta {
@@ -1858,7 +2015,7 @@ select {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: color 180ms linear;
+  transition: color var(--dur-2) var(--ease-soft);
 }
 
 .set-nav-item:hover:not(.is-on) {
@@ -1879,13 +2036,16 @@ select {
 .set-panel {
   min-width: 0;
   transition:
-    opacity 160ms var(--ease-out),
-    transform 160ms var(--ease-out);
+    opacity var(--dur-4) var(--ease-out),
+    transform var(--dur-4) var(--ease-out);
 }
 
 .set-panel.is-leaving {
   opacity: 0;
-  transform: translateY(4px);
+  transform: translateY(var(--shift-2));
+  transition:
+    opacity var(--dur-2) var(--ease-in),
+    transform var(--dur-2) var(--ease-in);
 }
 
 .set-foot {
@@ -2035,7 +2195,7 @@ select {
   border-right: 1.4px solid currentColor;
   border-bottom: 1.4px solid currentColor;
   transform: rotate(-45deg);
-  transition: transform 140ms var(--ease-out);
+  transition: transform var(--dur-4) var(--ease-out);
 }
 
 .danger-fold[open] > summary::before {
@@ -2069,8 +2229,9 @@ select {
   list-style: none;
   user-select: none;
   transition:
-    background 160ms var(--ease-soft),
-    border-color 160ms linear;
+    background var(--dur-2) var(--ease-soft),
+    border-color var(--dur-2) var(--ease-soft),
+    margin-bottom var(--dur-4) var(--ease-out);
 }
 
 .form-more > summary::-webkit-details-marker {
@@ -2090,7 +2251,7 @@ select {
   border-bottom: 1.5px solid var(--muted);
   transform: rotate(-45deg);
   margin-left: 2px;
-  transition: transform 180ms var(--ease-soft);
+  transition: transform var(--dur-4) var(--ease-out);
 }
 
 .form-more[open] > summary::before {
@@ -2118,6 +2279,28 @@ select {
   margin-top: 16px;
 }
 
+/* 折叠区按内容高度开合；不支持的浏览器直接展开 */
+:root {
+  interpolate-size: allow-keywords;
+}
+
+.form-more::details-content,
+.danger-fold::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition:
+    block-size var(--dur-3) var(--ease-in),
+    content-visibility var(--dur-3) allow-discrete;
+}
+
+.form-more[open]::details-content,
+.danger-fold[open]::details-content {
+  block-size: auto;
+  transition:
+    block-size var(--dur-4) var(--ease-out),
+    content-visibility var(--dur-4) allow-discrete;
+}
+
 /* ---------------- 分段控件 ---------------- */
 
 .seg {
@@ -2141,8 +2324,8 @@ select {
   border: 1px solid var(--border);
   pointer-events: none;
   transition:
-    transform 240ms var(--ease-out),
-    width 240ms var(--ease-out);
+    transform var(--dur-3) var(--ease-swap),
+    width var(--dur-3) var(--ease-swap);
 }
 
 .seg-sm .seg-thumb {
@@ -2165,7 +2348,7 @@ select {
   font-size: var(--fs-12);
   color: var(--muted);
   cursor: pointer;
-  transition: color 180ms var(--ease-soft);
+  transition: color var(--dur-2) var(--ease-soft);
 }
 
 .seg-btn:hover {
@@ -2203,7 +2386,7 @@ select {
   font-size: var(--fs-14);
   color: var(--muted);
   white-space: nowrap;
-  transition: color 160ms var(--ease-soft);
+  transition: color var(--dur-2) var(--ease-soft);
 }
 
 .tab::after {
@@ -2218,9 +2401,9 @@ select {
   transform: scaleX(0.4);
   opacity: 0;
   transition:
-    transform 200ms var(--ease-out),
-    opacity 200ms var(--ease-out),
-    background 160ms linear;
+    transform var(--dur-3) var(--ease-out),
+    opacity var(--dur-3) var(--ease-out),
+    background var(--dur-2) linear;
 }
 
 .tab:hover {
@@ -2268,7 +2451,7 @@ select {
   padding: 8px 2px;
   border-bottom: 1px solid var(--rule);
   border-radius: 4px;
-  transition: background 160ms var(--ease-soft);
+  transition: background var(--dur-2) var(--ease-soft);
 }
 
 .row-link::before {
@@ -2281,7 +2464,7 @@ select {
   background: var(--negative);
   border-radius: 1px;
   transform: translateY(-50%);
-  transition: height 180ms var(--ease-out);
+  transition: height var(--dur-3) var(--ease-out);
 }
 
 .row-link:hover::before {
@@ -2315,6 +2498,10 @@ select {
 
 .row-link:hover {
   background: var(--raised);
+}
+
+.row-link:active {
+  background: var(--hover);
 }
 
 .cell-main {
@@ -2438,6 +2625,22 @@ select {
   background: var(--surface);
 }
 
+/* 空态逐层出现：图标、标题、说明、按钮 */
+.block-empty > * {
+  --enter-shift: var(--shift-3);
+  animation: enterUp var(--enter-dur, var(--dur-5)) var(--ease-out) var(--enter-delay, 0ms) backwards;
+}
+
+.block-empty > *:nth-child(2) {
+  --enter-delay: var(--dur-1);
+  --enter-dur: var(--dur-4);
+}
+
+.block-empty > *:nth-child(n + 3) {
+  --enter-delay: var(--dur-2);
+  --enter-dur: var(--dur-4);
+}
+
 /* ---------------- 表单 ---------------- */
 
 .field {
@@ -2472,7 +2675,10 @@ select {
 }
 
 .input {
-  transition: border-color 150ms var(--ease-soft);
+  transition:
+    border-color var(--dur-1) var(--ease-soft),
+    background-color var(--dur-2) var(--ease-soft),
+    opacity var(--dur-2) var(--ease-soft);
 }
 
 .input:hover {
@@ -2504,6 +2710,34 @@ input[type='number'] {
 .input.is-saved {
   border-color: var(--saved-border);
   background: var(--saved-bg);
+  transition:
+    border-color var(--dur-2) var(--ease-soft),
+    background-color var(--dur-3) var(--ease-soft);
+}
+
+/* 保存反馈：成则绿边停一会再淡回，败则红边抖两下 */
+.input.is-bad {
+  border-color: var(--negative);
+  animation: fieldShake var(--dur-3) var(--ease-soft);
+}
+
+@keyframes fieldShake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(calc(var(--shift-1) * -1));
+  }
+  40% {
+    transform: translateX(var(--shift-1));
+  }
+  60% {
+    transform: translateX(calc(var(--shift-1) * -1));
+  }
+  80% {
+    transform: translateX(var(--shift-1));
+  }
 }
 
 .input-plain {
@@ -2546,6 +2780,20 @@ input[type='number'] {
 
 .table-form tr:last-child td {
   border-bottom: none;
+}
+
+/* 科目表里存下一项，行底色闪一下 */
+.table-form tr.is-flash td {
+  animation: rowFlash var(--dur-3) var(--ease-soft) backwards;
+}
+
+@keyframes rowFlash {
+  from {
+    background: var(--hover-strong);
+  }
+  to {
+    background: transparent;
+  }
 }
 
 .table-form td .input {
@@ -2596,8 +2844,8 @@ input[type='number'] {
   background: var(--surface);
   cursor: pointer;
   transition:
-    border-color 140ms linear,
-    box-shadow 140ms linear;
+    border-color var(--dur-2) var(--ease-soft),
+    box-shadow var(--dur-3) var(--ease-soft);
 }
 
 .palette-item:hover {
@@ -2693,22 +2941,28 @@ input[type='number'] {
   overflow: hidden;
 }
 
-.dialog::backdrop {
-  background: var(--scrim);
+/* 遮罩先到，面板后到；关闭时反过来 */
+.dialog[open] {
+  animation: dialogIn var(--dur-4) var(--ease-out) 50ms backwards;
 }
 
-.dialog[open] {
-  animation: dialogIn 220ms var(--ease-out);
+.dialog[open]::backdrop {
+  background: var(--scrim);
+  animation: backdropIn var(--dur-3) var(--ease-soft) backwards;
 }
 
 .dialog.is-closing {
-  animation: dialogOut 140ms var(--ease-soft) forwards;
+  animation: dialogOut var(--dur-3) var(--ease-in) both;
+}
+
+.dialog.is-closing::backdrop {
+  animation: backdropOut var(--dur-2) var(--ease-in) 100ms both;
 }
 
 @keyframes dialogIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(var(--shift-3)) scale(0.985);
   }
   to {
     opacity: 1;
@@ -2719,8 +2973,56 @@ input[type='number'] {
 @keyframes dialogOut {
   to {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(var(--shift-2));
   }
+}
+
+@keyframes backdropIn {
+  from {
+    background: transparent;
+  }
+  to {
+    background: var(--scrim);
+  }
+}
+
+@keyframes backdropOut {
+  to {
+    background: transparent;
+  }
+}
+
+/* 面板里的标题与字段随后逐项到位 */
+.dialog[open] .form-head,
+.dialog[open] .form-body > *,
+.dialog[open] .form-foot {
+  --enter-shift: var(--shift-2);
+  animation: enterUp var(--dur-4) var(--ease-out) backwards;
+}
+
+.dialog [data-motion='enter'] {
+  animation: enterUp var(--enter-dur, var(--dur-4)) var(--ease-out) var(--enter-delay, 0ms) backwards;
+}
+
+.dialog[open] .form-head {
+  animation-delay: 150ms;
+}
+
+.dialog[open] .form-body > *:nth-child(1),
+.dialog[open] .form-foot {
+  animation-delay: 180ms;
+}
+
+.dialog[open] .form-body > *:nth-child(2) {
+  animation-delay: 210ms;
+}
+
+.dialog[open] .form-body > *:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+.dialog[open] .form-body > *:nth-child(n + 4) {
+  animation-delay: 270ms;
 }
 
 .dialog-confirm {
@@ -2792,8 +3094,8 @@ input[type='number'] {
   border-radius: var(--radius-chip);
   cursor: pointer;
   transition:
-    color 150ms var(--ease-soft),
-    background 150ms var(--ease-soft);
+    color var(--dur-2) var(--ease-soft),
+    background var(--dur-2) var(--ease-soft);
 }
 
 .absent-toggle:hover {
@@ -2808,6 +3110,7 @@ input[type='number'] {
 .field-score.is-absent .input {
   background: var(--raised);
   color: var(--faint);
+  opacity: 0.5;
 }
 
 .input-suffix {
@@ -2851,6 +3154,21 @@ input[type='number'] {
   min-height: 16px;
 }
 
+.form-error.is-swapped {
+  animation: errIn var(--dur-3) var(--ease-out) backwards;
+}
+
+@keyframes errIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--shift-2));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .form-foot {
   display: flex;
   justify-content: flex-end;
@@ -2885,7 +3203,7 @@ input[type='number'] {
   position: fixed;
   left: 50%;
   bottom: 32px;
-  transform: translate(-50%, 12px);
+  transform: translate(-50%, var(--shift-2));
   background: var(--tooltip-bg);
   color: var(--tooltip-ink);
   font-size: var(--fs-13);
@@ -2893,16 +3211,63 @@ input[type='number'] {
   border-radius: var(--radius-control);
   opacity: 0;
   pointer-events: none;
-  transition:
-    opacity 200ms var(--ease-soft),
-    transform 240ms var(--ease-out);
   z-index: 100;
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .toast.is-on {
-  opacity: 1;
-  transform: translate(-50%, 0);
+  animation: toastIn var(--dur-3) var(--ease-out) both;
+  pointer-events: auto;
+}
+
+.toast.is-off {
+  animation: toastOut var(--dur-2) var(--ease-in) both;
+  pointer-events: none;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, var(--shift-3));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes toastOut {
+  to {
+    opacity: 0;
+    transform: translate(-50%, var(--shift-2));
+  }
+}
+
+/* 停留时间看得见：底下一条线走完就收 */
+.toast-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 100%;
+  background: currentColor;
+  opacity: 0.3;
+  transform-origin: left center;
+  animation: toastBar var(--toast-life, 2600ms) linear both;
+}
+
+.toast.is-paused .toast-bar {
+  animation-play-state: paused;
+}
+
+@keyframes toastBar {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
 }
 
 .toast-bad {
@@ -3028,8 +3393,8 @@ input[type='number'] {
   cursor: pointer;
   text-align: left;
   transition:
-    border-color 150ms var(--ease-soft),
-    background 150ms var(--ease-soft);
+    border-color var(--dur-2) var(--ease-soft),
+    background var(--dur-2) var(--ease-soft);
 }
 
 .sel-btn:hover {
@@ -3042,7 +3407,7 @@ input[type='number'] {
 .sel-arrow {
   color: var(--muted);
   flex: none;
-  transition: transform 190ms var(--ease-soft);
+  transition: transform var(--dur-3) var(--ease-soft);
 }
 
 .sel.is-open .sel-arrow {
@@ -3069,13 +3434,44 @@ input[type='number'] {
   max-height: 268px;
   overflow-y: auto;
   transform-origin: top center;
-  animation: popIn 150ms var(--ease-out);
+}
+
+.sel.is-open .sel-pop {
+  animation: popIn var(--dur-3) var(--ease-out) backwards;
+}
+
+.sel.is-closing .sel-pop {
+  animation: popOut var(--dur-2) var(--ease-in) both;
 }
 
 @keyframes popIn {
   from {
     opacity: 0;
-    transform: scale(0.98) translateY(-2px);
+    transform: scaleY(0.96) translateY(var(--shift-2));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes popOut {
+  to {
+    opacity: 0;
+    transform: translateY(var(--shift-1));
+  }
+}
+
+/* 选项依次亮出来，超过四项就不再往后拖 */
+.sel.is-open .sel-opt {
+  animation: optIn var(--dur-2) var(--ease-out) backwards;
+  animation-delay: calc(min(var(--i, 0), 4) * var(--stagger-1));
+}
+
+@keyframes optIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--shift-2));
   }
   to {
     opacity: 1;
@@ -3095,7 +3491,7 @@ input[type='number'] {
   color: var(--text);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 120ms linear;
+  transition: background var(--dur-1) linear;
 }
 
 .sel-opt:hover {
@@ -3135,7 +3531,7 @@ input[type='number'] {
   gap: 8px;
   cursor: pointer;
   font-variant-numeric: tabular-nums;
-  transition: border-color 150ms var(--ease-soft);
+  transition: border-color var(--dur-2) var(--ease-soft);
 }
 
 .date-btn svg {
@@ -3161,7 +3557,14 @@ input[type='number'] {
   box-shadow: var(--shadow-pop);
   padding: 12px;
   transform-origin: top left;
-  animation: popIn 150ms var(--ease-out);
+}
+
+.datep.is-open .cal-pop {
+  animation: popIn var(--dur-3) var(--ease-out) backwards;
+}
+
+.datep.is-closing .cal-pop {
+  animation: popOut var(--dur-2) var(--ease-in) both;
 }
 
 .cal-pop.cal-in-dialog {
@@ -3195,7 +3598,7 @@ input[type='number'] {
   border-radius: 6px;
   cursor: pointer;
   color: var(--text);
-  transition: background 120ms linear;
+  transition: background var(--dur-1) linear;
 }
 
 .cal-title-btn:hover {
@@ -3205,14 +3608,41 @@ input[type='number'] {
   color: var(--muted);
 }
 
-.cal-panel.cal-swap {
-  animation: calSwap 220ms var(--ease-out) both;
+/* 翻页：旧面板往翻的方向走，新面板从反方向进来 */
+.cal-panel.is-leaving {
+  animation: panelOut var(--dur-2) var(--ease-in) both;
 }
 
-@keyframes calSwap {
+.cal-panel.is-entering {
+  animation: panelIn var(--dur-3) var(--ease-out) backwards;
+}
+
+@keyframes panelOut {
+  to {
+    opacity: 0;
+    transform: translateX(calc(var(--shift-3) * var(--dir, 1) * -1));
+  }
+}
+
+@keyframes panelIn {
   from {
     opacity: 0;
-    transform: translateX(4px);
+    transform: translateX(calc(var(--shift-3) * var(--dir, 1)));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.cal-title.is-swapping {
+  animation: titleSwap var(--dur-2) var(--ease-out) backwards;
+}
+
+@keyframes titleSwap {
+  from {
+    opacity: 0;
+    transform: translateY(var(--shift-1));
   }
   to {
     opacity: 1;
@@ -3239,8 +3669,8 @@ input[type='number'] {
   cursor: pointer;
   font-variant-numeric: tabular-nums;
   transition:
-    background 120ms linear,
-    color 120ms linear;
+    background var(--dur-2) var(--ease-soft),
+    color var(--dur-2) var(--ease-soft);
 }
 
 .cal-month:hover,
@@ -3266,8 +3696,8 @@ input[type='number'] {
   color: var(--muted);
   cursor: pointer;
   transition:
-    background 120ms linear,
-    color 120ms linear;
+    background var(--dur-2) var(--ease-soft),
+    color var(--dur-2) var(--ease-soft);
 }
 
 .cal-nav:hover {
@@ -3304,8 +3734,8 @@ input[type='number'] {
   cursor: pointer;
   font-variant-numeric: tabular-nums;
   transition:
-    background 120ms linear,
-    color 120ms linear;
+    background var(--dur-2) var(--ease-soft),
+    color var(--dur-2) var(--ease-soft);
 }
 
 .cal-day:hover {
@@ -3326,6 +3756,20 @@ input[type='number'] {
   background: var(--btn-hover);
 }
 
+/* 选中那天从中心散开一圈 */
+.cal-day.is-picked {
+  animation: dayPick var(--dur-3) var(--ease-out) both;
+}
+
+@keyframes dayPick {
+  from {
+    box-shadow: 0 0 0 0 var(--accent);
+  }
+  to {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
 .cal-foot {
   display: flex;
   justify-content: flex-end;
@@ -3342,7 +3786,7 @@ input[type='number'] {
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
-  transition: background 120ms linear;
+  transition: background var(--dur-2) var(--ease-soft);
 }
 
 .cal-today:hover {
@@ -3509,7 +3953,8 @@ input[type='number'] {
   border-radius: 1px;
   background: var(--positive);
   transform-origin: left center;
-  animation: barGrow 480ms var(--ease-out) both;
+  animation: barGrow var(--dur-7) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--stagger-2));
 }
 
 .cmp-dbar.is-down {
@@ -3547,7 +3992,7 @@ input[type='number'] {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 300ms var(--ease-out);
+  transition: opacity var(--dur-4) var(--ease-out);
 }
 
 #boot.is-done {
@@ -3570,14 +4015,14 @@ input[type='number'] {
 .boot-mark path {
   stroke-dasharray: 26;
   stroke-dashoffset: 26;
-  animation: bootDraw 500ms var(--ease-out) 40ms forwards;
+  animation: bootDraw var(--dur-5) var(--ease-out) 50ms forwards;
 }
 
 .boot-mark circle {
   opacity: 0;
   transform-origin: 17.6px 3.4px;
   transform: scale(0.2);
-  animation: bootDot 300ms var(--ease-out) 460ms forwards;
+  animation: bootDot var(--dur-3) var(--ease-land) var(--dur-5) forwards;
 }
 
 @keyframes bootDraw {
@@ -3598,7 +4043,7 @@ input[type='number'] {
   font-weight: 500;
   letter-spacing: 0.02em;
   opacity: 0;
-  animation: bootFade 360ms var(--ease-out) 260ms forwards;
+  animation: bootName var(--dur-4) var(--ease-out) 200ms forwards;
 }
 
 .boot-sub {
@@ -3607,7 +4052,7 @@ input[type='number'] {
   letter-spacing: 0.02em;
   min-height: 18px;
   opacity: 0;
-  animation: bootFade 360ms var(--ease-out) 320ms forwards;
+  animation: bootFade var(--dur-3) var(--ease-out) var(--dur-4) forwards;
 }
 
 .boot-bar {
@@ -3618,7 +4063,7 @@ input[type='number'] {
   border-radius: 1px;
   overflow: hidden;
   opacity: 0;
-  animation: bootFade 300ms var(--ease-out) 320ms forwards;
+  animation: bootFade var(--dur-2) var(--ease-out) var(--dur-4) forwards;
 }
 
 .boot-bar > span {
@@ -3628,12 +4073,26 @@ input[type='number'] {
   background: var(--chart-3);
   border-radius: 1px;
   transform-origin: left center;
-  animation: bootBar 520ms var(--ease-out) 360ms both;
+  animation: bootBar var(--dur-6) var(--ease-out) var(--dur-4) both;
 }
 
 @keyframes bootBar {
   from {
     transform: scaleX(0);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes bootName {
+  from {
+    opacity: 0;
+    transform: translateY(var(--shift-2));
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -3650,7 +4109,7 @@ input[type='number'] {
   inset: 0;
   z-index: 300;
   opacity: 0;
-  transition: opacity 200ms var(--ease-out);
+  transition: opacity var(--dur-3) var(--ease-soft);
 }
 
 .tour.is-in {
@@ -3664,6 +4123,7 @@ input[type='number'] {
 }
 .tour.is-out {
   opacity: 0;
+  transition: opacity var(--dur-3) var(--ease-in);
 }
 
 .tour-hole {
@@ -3671,10 +4131,10 @@ input[type='number'] {
   border-radius: var(--radius-card);
   box-shadow: 0 0 0 9999px rgba(15, 15, 15, 0.62);
   transition:
-    left 300ms var(--ease-out),
-    top 300ms var(--ease-out),
-    width 300ms var(--ease-out),
-    height 300ms var(--ease-out);
+    left var(--hole-dur, var(--dur-4)) var(--ease-swap),
+    top var(--hole-dur, var(--dur-4)) var(--ease-swap),
+    width var(--hole-dur, var(--dur-4)) var(--ease-swap),
+    height var(--hole-dur, var(--dur-4)) var(--ease-swap);
 }
 
 .tour-tip {
@@ -3686,8 +4146,54 @@ input[type='number'] {
   outline: 1px solid var(--border);
   box-shadow: var(--shadow-menu);
   transition:
-    left 240ms var(--ease-out),
-    top 240ms var(--ease-out);
+    left var(--dur-4) var(--ease-swap),
+    top var(--dur-4) var(--ease-swap);
+}
+
+.tour-tip.is-entering {
+  animation: tourTipIn var(--dur-4) var(--ease-out) backwards;
+}
+
+@keyframes tourTipIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--shift-3));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.tour-tip.is-leaving {
+  animation: tourTipOut var(--dur-2) var(--ease-in) both;
+}
+
+@keyframes tourTipOut {
+  to {
+    opacity: 0;
+  }
+}
+
+/* 切步时文字先退后进，计数同期交叉 */
+.tour-title.is-swapping,
+.tour-text.is-swapping {
+  animation: tourTextIn var(--dur-2) var(--ease-out) 100ms backwards;
+}
+
+.tour-count.is-swapping {
+  animation: tourTextIn var(--dur-2) linear backwards;
+}
+
+@keyframes tourTextIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--shift-2));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .tour-count {
@@ -3728,7 +4234,7 @@ input[type='number'] {
   font-size: var(--fs-12);
   cursor: pointer;
   padding: 4px 2px;
-  transition: color 140ms linear;
+  transition: color var(--dur-2) linear;
 }
 
 .tour-skip:hover {
@@ -3744,16 +4250,16 @@ input[type='number'] {
   font-size: var(--fs-13);
   cursor: pointer;
   transition:
-    background 140ms linear,
-    border-color 140ms linear,
-    transform 120ms var(--ease-soft);
+    background var(--dur-2) linear,
+    border-color var(--dur-2) var(--ease-soft),
+    transform var(--dur-1) var(--ease-soft);
 }
 
 .tour-btn:hover {
   background: var(--raised);
 }
 .tour-btn:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 .tour-btn.is-primary {
@@ -3797,7 +4303,7 @@ input[type='number'] {
     width: 248px;
     z-index: 40;
     transform: translateX(-102%);
-    transition: transform 260ms var(--ease-out);
+    transition: transform var(--dur-4) var(--ease-in);
     height: 100vh;
     background: var(--ground);
     border-right: 1px solid var(--border);
@@ -3805,14 +4311,40 @@ input[type='number'] {
 
   .side.is-open {
     transform: none;
+    transition: transform var(--dur-5) var(--ease-out);
   }
 
-  body.nav-open::after {
+  body::after {
     content: '';
     position: fixed;
     inset: 0;
     background: var(--scrim);
     z-index: 30;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-3) var(--ease-soft);
+  }
+
+  body.nav-open::after {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @keyframes navIn {
+    from {
+      opacity: 0;
+      transform: translateY(var(--shift-3));
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* 第一次拉开抽屉时导航逐条亮出来 */
+  .side.is-fresh .nav-item {
+    animation: navIn var(--dur-4) var(--ease-out) backwards;
+    animation-delay: calc(min(var(--i, 0), 5) * var(--stagger-1));
   }
 
   .mobile-bar {
@@ -4008,30 +4540,74 @@ input[type='number'] {
   }
 }
 
+/* 减少动态：位移与缩放归零，颜色和透明度留下，时长压到最短 */
 @media (prefers-reduced-motion: reduce) {
+  :root {
+    --shift-1: 0px;
+    --shift-2: 0px;
+    --shift-3: 0px;
+    --shift-4: 0px;
+    --dur-3: 90ms;
+    --dur-4: 90ms;
+    --dur-5: 90ms;
+    --dur-6: 90ms;
+    --dur-7: 90ms;
+    --dur-8: 90ms;
+    --dur-9: 90ms;
+  }
+
   #boot {
     display: none;
   }
+
   *,
   *::before,
   *::after {
-    animation-duration: 0.001ms !important;
+    animation-duration: 90ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
+    transition-duration: 90ms !important;
+    transition-delay: 0ms !important;
   }
-  #main.is-enter > * {
-    animation: none;
+
+  .btn:active,
+  .tour-btn:active,
+  .cal-day.is-picked,
+  .field-shake,
+  .input.is-bad {
+    animation: none !important;
+    transform: none !important;
   }
+
+  .goal-fill,
   .sub-fill,
+  .type-bar-fill,
   .bullet-fill,
-  .type-bar-fill {
-    animation: none;
+  .cmp-dbar {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* 触屏不显示行的左侧标记，按下只用底色 */
+@media (hover: none) {
+  .row-link::before {
+    display: none;
+  }
+  .row-link:active {
+    background: var(--hover);
   }
 }
 
 /* ---------------- 打印 ---------------- */
 
 @media print {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
   :root,
   [data-theme='dark'] {
     --ground: #ffffff;
@@ -4135,6 +4711,29 @@ input[type='number'] {
   border-radius: var(--radius-chip);
   font-size: var(--fs-13);
   color: var(--text);
+  transition:
+    opacity var(--dur-3) var(--ease-in),
+    transform var(--dur-3) var(--ease-in);
+}
+
+.type-chip.is-new {
+  animation: chipIn var(--dur-3) var(--ease-out) backwards;
+}
+
+.type-chip.is-gone {
+  opacity: 0;
+  transform: translateX(calc(var(--shift-3) * -1));
+}
+
+@keyframes chipIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--shift-3));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .type-name {
@@ -4163,8 +4762,8 @@ input[type='number'] {
   cursor: pointer;
   border-radius: 4px;
   transition:
-    background 140ms linear,
-    color 140ms linear;
+    background var(--dur-2) linear,
+    color var(--dur-2) linear;
 }
 
 .type-del:hover {
@@ -4183,19 +4782,7 @@ input[type='number'] {
 
 /* ---------------- 预测点 ---------------- */
 
-.chart-forecast {
-  animation: forecastIn 420ms var(--ease-soft) 900ms both;
-}
-
-@keyframes forecastIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
+/* 虚线与点各自按时间线亮起，由脚本控制，不在这里整体淡入 */
 .forecast-line {
   stroke: var(--chart-3);
   stroke-width: 1.4;
@@ -4278,7 +4865,7 @@ input[type='number'] {
 
 .cal-type.is-bad {
   border-color: var(--negative);
-  animation: calShake 200ms var(--ease-soft);
+  animation: calShake var(--dur-3) var(--ease-soft);
 }
 
 @keyframes calShake {

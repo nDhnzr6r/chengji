@@ -14,7 +14,7 @@
   var fileInput = document.getElementById('fileInput');
 
   var currentView = null;
-  var lastShownTotal = null;
+  var shownKpis = {};
   var comparePair = [null, null];
   var pendingFilter = null;
   var lastSidebarFilter;
@@ -45,22 +45,77 @@
   }
 
   /* 提示条；带上动作时会多一个按钮，停留时间也更长 */
+  var toastState = { timer: 0, life: 0, left: 0, at: 0 };
+  var toastSwapTimer = 0;
+
+  function toastStop() {
+    clearTimeout(toastState.timer);
+    toastState.timer = 0;
+  }
+
+  function toastDismiss() {
+    toastStop();
+    toastEl.classList.remove('is-on', 'is-paused');
+    toastEl.classList.add('is-off');
+    clearTimeout(toastState.timer);
+    toastState.timer = setTimeout(function () {
+      toastEl.className = 'toast';
+      toastEl.replaceChildren();
+    }, T[2]);
+  }
+
+  function toastShow(html, tone, life) {
+    clearTimeout(toastSwapTimer);
+    toastEl.innerHTML = html;
+    toastEl.className = 'toast is-on' + (tone ? ' toast-' + tone : '');
+    void toastEl.offsetWidth;
+    toastState.life = life;
+    toastState.left = life;
+    toastState.at = Date.now();
+    toastStop();
+    toastState.timer = setTimeout(toastDismiss, life);
+  }
+
   function toast(message, tone, action) {
-    toastEl.innerHTML =
+    var life = action ? 7000 : 2600;
+    var html =
       S.esc(message) +
       (action
         ? '<button type="button" class="toast-act" data-action="' + action.id + '">' + S.esc(action.label) + '</button>'
-        : '');
-    toastEl.className = 'toast is-on' + (tone ? ' toast-' + tone : '');
-    clearTimeout(toast._t);
-    toast._t = setTimeout(
-      function () {
-        toastEl.className = 'toast';
-        toastEl.replaceChildren();
-      },
-      action ? 7000 : 2600
-    );
+        : '') +
+      '<span class="toast-bar" style="--toast-life:' +
+      life +
+      'ms"></span>';
+    /* 旧的先退半步，新的再来 */
+    if (toastEl.classList.contains('is-on') && !reducedMotion()) {
+      toastEl.classList.remove('is-on');
+      toastEl.classList.add('is-off');
+      clearTimeout(toastSwapTimer);
+      toastSwapTimer = setTimeout(function () {
+        toastShow(html, tone, life);
+      }, T[2]);
+      return;
+    }
+    toastShow(html, tone, life);
   }
+
+  /* 指针停在上面时倒计时与进度线一起停 */
+  toastEl.addEventListener('mouseenter', function () {
+    if (!toastEl.classList.contains('is-on')) return;
+    var spent = Date.now() - toastState.at;
+    toastState.left = Math.max(0, toastState.life - spent);
+    toastStop();
+    toastEl.classList.add('is-paused');
+  });
+
+  toastEl.addEventListener('mouseleave', function () {
+    if (!toastEl.classList.contains('is-on') || !toastEl.classList.contains('is-paused')) return;
+    toastEl.classList.remove('is-paused');
+    toastState.at = Date.now();
+    toastState.life = toastState.left;
+    toastStop();
+    toastState.timer = setTimeout(toastDismiss, Math.max(400, toastState.left));
+  });
 
   /* ---------------- 存储状态 ---------------- */
 
@@ -97,11 +152,29 @@
     var host = document.getElementById('storageNote');
     var html = storageNoteHTML();
     if (!html) {
-      if (host && host.parentNode) host.parentNode.removeChild(host);
+      if (host && host.parentNode) {
+        if (reducedMotion()) host.remove();
+        else {
+          host.setAttribute('data-motion', 'swap-out');
+          setTimeout(function () {
+            if (host.parentNode) host.remove();
+          }, T[2]);
+        }
+      }
       return;
     }
-    if (host && host.parentNode) host.outerHTML = html;
-    else if (mainEl) mainEl.insertAdjacentHTML('afterbegin', html);
+    if (host && host.parentNode) {
+      host.outerHTML = html;
+      return;
+    }
+    if (!mainEl) return;
+    mainEl.insertAdjacentHTML('afterbegin', html);
+    var fresh = document.getElementById('storageNote');
+    if (!fresh) return;
+    fresh.setAttribute('data-motion', 'enter');
+    fresh.style.setProperty('--enter-delay', '0ms');
+    fresh.style.setProperty('--enter-dur', T[3] + 'ms');
+    fresh.style.setProperty('--enter-shift', '-8px');
   }
 
   /* 保存之后看结果，失败就把话说清楚 */
@@ -141,7 +214,7 @@
     back.filter = state.filter;
     state = back;
     persist();
-    lastShownTotal = null;
+    shownKpis = {};
     refreshSidebar();
     render();
     toast('已撤销');
@@ -186,6 +259,18 @@
     return S.toISO(new Date());
   }
 
+  /* 宽度变了重画图表：只淡入，不重新描边 */
+  function fadeRedraw(host, draw) {
+    if (!host) return;
+    draw();
+    if (reducedMotion()) return;
+    host.style.opacity = '0';
+    requestAnimationFrame(function () {
+      host.style.transition = 'opacity ' + T[3] + 'ms var(--ease-out)';
+      host.style.opacity = '1';
+    });
+  }
+
   function readJSONScript(id) {
     var node = document.getElementById(id);
     if (!node) return null;
@@ -194,6 +279,235 @@
     } catch (err) {
       return null;
     }
+  }
+
+  /* ---------------- 动效 ---------------- */
+
+  /* 时长只取九档；层起点按同一比例放慢，层与节拍共用一套 */
+  var T = { 1: 110, 2: 180, 3: 250, 4: 300, 5: 400, 6: 500, 7: 600, 8: 700, 9: 800 };
+  var STAGGER = { 1: 30, 2: 50, 3: 80 };
+  var PACE = 1.25;
+  var START_DATA = 150;
+
+  /* 计划书里的时刻乘以这个比例，放慢后仍然保持先后关系 */
+  function beat(ms) {
+    return Math.round(ms * PACE);
+  }
+
+  var lastPage = { name: '', at: 0 };
+  var prevPage = '';
+  var lastRadar = null;
+  var chartDelay = START_DATA;
+  var pageTransition = null;
+
+  function reducedMotion() {
+    return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
+  /* 一层里的一组同类元素：起点、错峰、时长、位移 */
+  function seq(list, from, step, dur, shift) {
+    return list.map(function (el, i) {
+      return [el, from + i * step, dur || T[5], shift === undefined ? 6 : shift];
+    });
+  }
+
+  function one(sel, at, dur, shift) {
+    var el = mainEl.querySelector(sel);
+    return el ? [[el, at, dur || T[5], shift === undefined ? 6 : shift]] : [];
+  }
+
+  function all(sel, at, dur, shift) {
+    return seq(list(sel), at || 0, 0, dur, shift);
+  }
+
+  function list(sel) {
+    return Array.prototype.slice.call(mainEl.querySelectorAll(sel));
+  }
+
+  /* 每页的结构、数据、注解三层；时刻从页面进入算起 */
+  function enterPlan(name) {
+    var plan = { structure: [], data: [], annotation: [] };
+
+    if (name === 'overview') {
+      plan.structure = plan.structure
+        .concat(all('.sample-note, .filter-note, .storage-note', 0, T[5], 6))
+        .concat(one('.page-head', 0))
+        .concat(one('.verdict', beat(40), T[5], 6))
+        .concat(one('.verdict-sub', beat(80), T[5], 6))
+        .concat(one('.kpi-strip', START_DATA))
+        .concat(seq(list('.kpi'), beat(120), STAGGER[2], T[5], 6))
+        .concat(one('.card-trend', beat(200)))
+        .concat(one('.card-records', beat(200)))
+        .concat(one('.card-subjects', beat(240)))
+        .concat(one('.card-analysis', beat(240)))
+        .concat(one('.card-types', beat(280)))
+        .concat(one('.card-priority', beat(240)));
+
+      plan.data = plan.data
+        .concat(seq(list('.record'), beat(200), STAGGER[1], T[5], 4))
+        .concat(seq(list('.analysis-row'), beat(200), STAGGER[1], T[5], 4))
+        .concat(seq(list('.bullet-row'), beat(240), STAGGER[2], T[5], 4))
+        .concat(seq(list('.type-bar-row'), beat(280), STAGGER[2], T[5], 4));
+
+      plan.annotation = plan.annotation
+        .concat(all('.kpi-state', beat(600), T[4], 2))
+        .concat(all('.kpi-foot', beat(600), T[4], 2))
+        .concat(all('.bullet-value', beat(600), T[4], 2))
+        .concat(one('.diagnosis', beat(640), T[4], 4))
+        .concat(one('.analysis-note', beat(720), T[4], 2));
+    } else if (name === 'subjects') {
+      plan.structure = plan.structure
+        .concat(one('.page-head', 0))
+        .concat(one('.tabs', beat(40)))
+        .concat(one('.kpi-strip', START_DATA))
+        .concat(seq(list('.kpi'), beat(120), STAGGER[2], T[5], 6))
+        .concat(one('.card-chart', beat(200)))
+        .concat(one('.card-table', beat(200)))
+        .concat(one('.card-side', beat(240)));
+
+      plan.data = plan.data
+        .concat(seq(list('.row-link'), beat(200), STAGGER[1], T[5], 4))
+        .concat(seq(list('.card-side .analysis-row'), beat(240), STAGGER[1], T[5], 4));
+    } else if (name === 'compare') {
+      plan.structure = plan.structure
+        .concat(one('.page-head', 0))
+        .concat(one('.cmp-bar', beat(40)))
+        .concat(one('.kpi-strip', START_DATA))
+        .concat(seq(list('.kpi'), beat(120), STAGGER[2], T[5], 6))
+        .concat(one('.card-radar', beat(200)))
+        .concat(one('.card-cmp', beat(200)))
+        .concat(one('.card-semesters', beat(240)));
+
+      plan.data = plan.data
+        .concat(seq(list('.cmp-row'), beat(160), STAGGER[2], T[5], 4))
+        .concat(seq(list('.sem-block'), beat(200), STAGGER[2], T[5], 4));
+    } else if (name === 'exams') {
+      plan.structure = plan.structure
+        .concat(one('.page-head', 0))
+        .concat(one('.filter-chips', beat(40)))
+        .concat(seq(list('.sem-block'), beat(40), STAGGER[2], T[5], 6));
+
+      plan.data = plan.data
+        .concat(seq(list('.row-link'), beat(120), STAGGER[1], T[5], 4))
+        .concat(one('.table-foot', beat(320), T[4], 2));
+    } else if (name === 'exam') {
+      plan.structure = plan.structure
+        .concat(one('.page-head', 0))
+        .concat(one('.kpi-strip', beat(60)))
+        .concat(seq(list('.kpi'), beat(60), STAGGER[2], T[5], 6))
+        .concat(one('.detail-peers', beat(120), T[5], 4))
+        .concat(one('.statement', beat(200), T[5], 4))
+        .concat(seq(list('.sub-card'), beat(200), STAGGER[2], T[5], 6))
+        .concat(one('.card-position', beat(200)));
+
+      plan.annotation = plan.annotation.concat(one('.diagnosis', beat(520), T[4], 2));
+    } else if (name === 'settings') {
+      plan.structure = plan.structure
+        .concat(one('.page-head', 0))
+        .concat(one('.settings', beat(40)))
+        .concat(one('.set-panel', beat(40)))
+        .concat(seq(list('.set-card'), beat(40), STAGGER[2], T[5], 6));
+    }
+
+    /* 空态自己逐层出现，不再叠一层页面入场 */
+    if (mainEl.querySelector('.block-empty')) {
+      plan.structure = one('.page-head', 0);
+      plan.data = [];
+      plan.annotation = [];
+    }
+
+    return plan;
+  }
+
+  /* 同层错峰由脚本写进变量，样式只读变量 */
+  function markEnter(plan, layers) {
+    var reduce = reducedMotion();
+    Array.prototype.slice.call(mainEl.querySelectorAll('[data-motion="enter"]')).forEach(function (el) {
+      el.removeAttribute('data-motion');
+      el.style.removeProperty('--enter-delay');
+      el.style.removeProperty('--enter-dur');
+      el.style.removeProperty('--enter-shift');
+    });
+
+    layers.forEach(function (name) {
+      plan[name].forEach(function (item) {
+        var el = item[0];
+        el.setAttribute('data-motion', 'enter');
+        el.style.setProperty('--enter-delay', (reduce ? 0 : item[1]) + 'ms');
+        el.style.setProperty('--enter-dur', (reduce ? T[1] : item[2]) + 'ms');
+        el.style.setProperty('--enter-shift', (reduce ? 0 : item[3]) + 'px');
+      });
+    });
+  }
+
+  /* 图表与条状生长的序号，交给样式里的错峰变量 */
+  function markStagger() {
+    mainEl.querySelectorAll('.type-bar-row').forEach(function (row, i) {
+      var fill = row.querySelector('.type-bar-fill');
+      if (fill) fill.style.setProperty('--i', i);
+    });
+    mainEl.querySelectorAll('.sub-card').forEach(function (card, i) {
+      var fill = card.querySelector('.sub-fill');
+      if (fill) fill.style.setProperty('--i', i);
+    });
+    mainEl.querySelectorAll('.cmp-row').forEach(function (row, i) {
+      var bar = row.querySelector('.cmp-dbar');
+      if (bar) bar.style.setProperty('--i', i);
+    });
+  }
+
+  function enterPage(name, opts) {
+    opts = opts || {};
+    var now = Date.now();
+    var repeat = lastPage.name === name && now - lastPage.at < 2000;
+    var full = opts.full === true && !repeat;
+    prevPage = lastPage.name;
+    lastPage = { name: name, at: now };
+    chartDelay = full ? START_DATA : 0;
+
+    var plan = enterPlan(name);
+    markStagger();
+    markEnter(plan, full ? ['structure', 'data', 'annotation'] : ['data', 'annotation']);
+  }
+
+  /* 页面切换：新旧快照交替，侧栏不动，结束后焦点落到新页标题 */
+  function canTransition() {
+    return typeof document.startViewTransition === 'function' && !reducedMotion();
+  }
+
+  function pageSwap(apply) {
+    if (!canTransition()) {
+      apply();
+      focusHeading();
+      return;
+    }
+    if (pageTransition) {
+      pageTransition.skipTransition();
+      pageTransition = null;
+    }
+    var root = document.documentElement;
+    root.setAttribute('data-vt', 'page');
+    pageTransition = document.startViewTransition(function () {
+      apply();
+    });
+    pageTransition.finished.then(
+      function () {
+        root.removeAttribute('data-vt');
+        pageTransition = null;
+        focusHeading();
+      },
+      function () {
+        root.removeAttribute('data-vt');
+        pageTransition = null;
+      }
+    );
+  }
+
+  function focusHeading() {
+    var h = mainEl.querySelector('h1');
+    if (!h) return;
+    h.setAttribute('tabindex', '-1');
+    h.focus({ preventScroll: true });
   }
 
   /* ---------------- 导航 ---------------- */
@@ -206,7 +520,8 @@
     });
   }
 
-  function render() {
+  function render(opts) {
+    opts = opts || {};
     var route = parseHash();
     var name = route.name;
     var picked = route.query.type || 'all';
@@ -294,13 +609,8 @@
     setActive(name);
     if (global.UI) global.UI.mountAll(mainEl);
     initSegs();
-    mainEl.classList.remove('is-enter');
-    void mainEl.offsetWidth;
-    mainEl.classList.add('is-enter');
-
-    requestAnimationFrame(function () {
-      mount(name);
-    });
+    enterPage(name, opts);
+    mount(name, opts);
   }
 
   /* 分段控件的白色滑块：点在哪个上就滑到哪 */
@@ -346,14 +656,14 @@
 
   /* ---------------- 挂载 ---------------- */
 
-  function mount(name) {
-    if (name === 'overview') mountOverview();
-    else if (name === 'subjects') mountSubjects();
-    else if (name === 'compare') mountCompare();
+  function mount(name, opts) {
+    if (name === 'overview') mountOverview(opts);
+    else if (name === 'subjects') mountSubjects(opts);
+    else if (name === 'compare') mountCompare(opts);
     else if (name === 'settings') {
       mountSettings();
       initSettingsNav();
-    } else if (name === 'exam') mountDetail();
+    } else if (name === 'exam') mountDetail(opts);
   }
 
   function mountOverview() {
@@ -441,6 +751,7 @@
         bands: data.bands,
         label: m.title,
         animate: animate !== false,
+        delay: chartDelay,
         /* 预测只在总分这一档画，别的指标没有可比的速度 */
         forecast: metric === 'total' && data.forecast ? data.forecast : null
       };
@@ -502,27 +813,27 @@
       }
     }
 
-    /* KPI 数字滚动：从上一场的值接到这一场 */
-    var totalEl = document.getElementById('kpiTotal');
-    if (totalEl) {
-      var finalTotal = Number(totalEl.textContent) || 0;
-      C.roll(totalEl, lastShownTotal === null ? 0 : lastShownTotal, finalTotal, {
-        duration: lastShownTotal === null ? 900 : 600
+    /* KPI 数字滚动：首次从 0 起，之后从上次的值接上 */
+    ['kpiTotal', 'kpiGrade', 'kpiClass', 'kpiGap'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var to = Number(el.textContent);
+      if (isNaN(to)) return;
+      var from = shownKpis[id];
+      C.roll(el, from === undefined ? 0 : from, to, {
+        duration: from === undefined ? T[9] : T[6],
+        delay: chartDelay + beat(40)
       });
-      lastShownTotal = finalTotal;
-    }
-
-    var gapEl = document.getElementById('kpiGap');
-    if (gapEl) {
-      var gapFinal = Number(gapEl.textContent) || 0;
-      C.roll(gapEl, 0, gapFinal, { duration: 900 });
-    }
+      shownKpis[id] = to;
+    });
 
     bindResize(function () {
       if (currentView !== 'overview') return;
       if (!chart) return;
       chart = null;
-      draw(true);
+      fadeRedraw(host, function () {
+        draw(false);
+      });
     });
   }
 
@@ -576,7 +887,8 @@
         label: '单科走势',
         /* 预测只按得分算，别的指标没有可比的速度 */
         forecast: metric === 'score' ? current.subjectForecast || null : null,
-        animate: animate !== false
+        animate: animate !== false,
+        delay: chartDelay
       };
       var points = pointsOf(metric, current);
       if (!chart) {
@@ -629,29 +941,33 @@
         /* 卡片外框不动，只让里面的内容换一遍 */
         var strip = mainEl.querySelector('.kpi-strip');
         if (strip) {
+          var before = [];
+          strip.querySelectorAll('.kpi-value').forEach(function (el) {
+            before.push(Number(el.textContent));
+          });
           strip.innerHTML = parts.kpiItems;
-          stagger(strip.querySelectorAll('.kpi'), 50);
+          strip.querySelectorAll('.kpi-value').forEach(function (el, i) {
+            var to = Number(el.textContent);
+            if (isNaN(to) || isNaN(before[i])) return;
+            C.roll(el, before[i], to, { duration: T[6] });
+          });
+          strip.classList.remove('text-swap');
+          void strip.offsetWidth;
+          strip.classList.add('text-swap');
         }
-        var sideBody = mainEl.querySelector('.card-side [data-block="side"]');
-        if (sideBody) {
-          sideBody.innerHTML = parts.sideBody;
-          sideBody.classList.remove('fade-in');
-          void mainEl.offsetWidth;
-          sideBody.classList.add('fade-in');
-        }
+        swapContent(mainEl.querySelector('.card-side [data-block="side"]'), parts.sideBody, { dur: T[3] });
         var rows = mainEl.querySelector('.card-table [data-block="rows"]');
         if (rows) {
-          rows.innerHTML = parts.tableRows;
-          stagger(rows.children, 20);
+          swapContent(rows, parts.tableRows, { stagger: STAGGER[1], dur: T[4] });
         }
         var countEl = mainEl.querySelector('.card-table [data-count]');
         if (countEl) countEl.textContent = parts.tableCount + ' 次';
         var titleEl = document.getElementById('subjectChartTitle');
         if (titleEl) {
           titleEl.textContent = next.name + '走势';
-          titleEl.classList.remove('fade-in');
+          titleEl.classList.remove('text-swap');
           void titleEl.offsetWidth;
-          titleEl.classList.add('fade-in');
+          titleEl.classList.add('text-swap');
         }
         syncMetricButtons();
         syncSub();
@@ -676,23 +992,50 @@
     bindResize(function () {
       if (currentView !== 'subjects') return;
       current = V.subjectParts(state, subjectById(activeId));
-      draw(true);
+      var host = document.getElementById('subjectChart');
+      chart = null;
+      fadeRedraw(host, function () {
+        draw(false);
+      });
     });
   }
 
-  /* 让一组元素依次淡入 */
-  function stagger(nodes, step) {
-    var list = Array.prototype.slice.call(nodes);
-    if (!list.length) return;
-    list.forEach(function (el) {
-      el.classList.remove('fade-in');
-      el.style.animationDelay = '';
-    });
-    void list[0].offsetWidth;
-    list.forEach(function (el, i) {
-      el.style.animationDelay = i * step + 'ms';
-      el.classList.add('fade-in');
-    });
+  /* 同区域换内容：旧内容先退，新内容再进，外框不动 */
+  function swapContent(el, html, opts) {
+    opts = opts || {};
+    if (!el) return;
+    if (el._swapTimer) clearTimeout(el._swapTimer);
+    if (reducedMotion()) {
+      el.removeAttribute('data-motion');
+      el.innerHTML = html;
+      return;
+    }
+    el.setAttribute('data-motion', 'swap-out');
+    el._swapTimer = setTimeout(
+      function () {
+        el.removeAttribute('data-motion');
+        el.innerHTML = html;
+        var kids = Array.prototype.slice.call(el.children);
+        kids.forEach(function (node, i) {
+          node.setAttribute('data-motion', 'enter');
+          node.style.setProperty('--enter-delay', (opts.stagger || 0) * i + 'ms');
+          node.style.setProperty('--enter-dur', (opts.dur || T[4]) + 'ms');
+          node.style.setProperty('--enter-shift', '4px');
+        });
+        if (!kids.length) el.setAttribute('data-motion', 'swap');
+        clearTimeout(el._swapClean);
+        el._swapClean = setTimeout(
+          function () {
+            el.removeAttribute('data-motion');
+            Array.prototype.slice.call(el.querySelectorAll('[data-motion="enter"]')).forEach(function (node) {
+              node.removeAttribute('data-motion');
+            });
+          },
+          (opts.dur || T[4]) + (opts.stagger || 0) * kids.length + 40
+        );
+      },
+      opts.out === undefined ? T[2] : opts.out
+    );
   }
 
   var resizeHandler = null;
@@ -707,14 +1050,22 @@
     resizeHandler = fn;
   }
 
-  /* 左栏选中块滑到当前这一项 */
+  /* 左栏选中块滑到当前这一项；刚进来时从顶部滑下去 */
   function initSettingsNav() {
     var host = document.querySelector('.set-nav');
     if (!host) return;
     var thumb = host.querySelector('.set-nav-thumb');
     var on = host.querySelector('.set-nav-item.is-on');
     if (!thumb || !on) return;
+    var first = !host.classList.contains('is-ready');
     host.classList.remove('is-ready');
+    if (first) {
+      thumb.style.height = '0px';
+      thumb.style.transform = 'translateY(0px)';
+      void host.offsetWidth;
+      host.classList.add('is-ready');
+      void host.offsetWidth;
+    }
     thumb.style.height = on.offsetHeight + 'px';
     thumb.style.transform = 'translateY(' + on.offsetTop + 'px)';
     void host.offsetWidth;
@@ -747,9 +1098,14 @@
       if (global.UI) global.UI.mountAll(panel);
       initSegs();
       mountSettings();
-      void panel.offsetWidth;
       panel.classList.remove('is-leaving');
-    }, 150);
+      Array.prototype.slice.call(panel.querySelectorAll('.set-card')).forEach(function (card, i) {
+        card.setAttribute('data-motion', 'enter');
+        card.style.setProperty('--enter-delay', STAGGER[2] + i * STAGGER[2] + 'ms');
+        card.style.setProperty('--enter-dur', T[4] + 'ms');
+        card.style.setProperty('--enter-shift', '6px');
+      });
+    }, T[2]);
   }
 
   /* 只重画设置页这一块，不整页重来，也不用重放进入动画 */
@@ -761,6 +1117,11 @@
     if (global.UI) global.UI.mountAll(panel);
     initSegs();
     mountSettings();
+    Array.prototype.slice.call(panel.querySelectorAll('.set-value, .app-meta')).forEach(function (el) {
+      el.classList.remove('text-swap');
+      void el.offsetWidth;
+      el.classList.add('text-swap');
+    });
   }
 
   /* 侧栏底部的深浅色按钮：收起和展开都不重建侧栏 */
@@ -786,7 +1147,7 @@
     btn.classList.add('is-away');
     setTimeout(function () {
       if (btn.parentNode) btn.parentNode.removeChild(btn);
-    }, 220);
+    }, T[4]);
   }
 
   function mountSettings() {
@@ -797,6 +1158,17 @@
       var ok = persist();
       refreshSidebar();
       return ok;
+    }
+
+    /* 存不进去：红边抖两下，文字说明同时还在 */
+    function pulseBad(el) {
+      el.classList.remove('is-bad');
+      void el.offsetWidth;
+      el.classList.add('is-bad');
+      clearTimeout(el._badTimer);
+      el._badTimer = setTimeout(function () {
+        el.classList.remove('is-bad');
+      }, T[3]);
     }
 
     /* 设置项：控件上带 data-cfg，上下限直接读控件属性 */
@@ -814,12 +1186,18 @@
           if (value !== Number(el.value)) el.value = value;
         }
         c[key] = value;
-        /* 存不进去就别给「已保存」的绿框 */
-        if (!commit()) return;
+        /* 存不进去就红一下，别给「已保存」的绿框 */
+        if (!commit()) {
+          pulseBad(el);
+          return;
+        }
+        el.classList.remove('is-saved');
+        void el.offsetWidth;
         el.classList.add('is-saved');
-        setTimeout(function () {
+        clearTimeout(el._savedTimer);
+        el._savedTimer = setTimeout(function () {
           el.classList.remove('is-saved');
-        }, 900);
+        }, T[6]);
       });
     });
 
@@ -896,6 +1274,13 @@
             rateCell.textContent = subject.full ? S.pctText(Number(subject.target || 0) / Number(subject.full)) : '—';
           }
           refreshSidebar();
+          tr.classList.remove('is-flash');
+          void tr.offsetWidth;
+          tr.classList.add('is-flash');
+          clearTimeout(tr._flashTimer);
+          tr._flashTimer = setTimeout(function () {
+            tr.classList.remove('is-flash');
+          }, T[3]);
         });
       });
     });
@@ -911,16 +1296,22 @@
           { name: '起点', values: data.a.values, style: 'dash' },
           { name: '终点', values: data.b.values, style: 'solid' }
         ],
-        size: Math.min(320, host.clientWidth || 300)
+        size: Math.min(320, host.clientWidth || 300),
+        /* 同一页里换组合时从旧形状长过去，不再重播一次入场 */
+        from: prevPage === 'compare' ? lastRadar : null
       });
+      lastRadar = [data.a.values, data.b.values];
     }
 
     mainEl.querySelectorAll('.cmp-bar .sel').forEach(function (sel) {
       sel.addEventListener('selchange', function () {
         var aSel = mainEl.querySelector('.cmp-bar .sel[data-pick="a"]');
         var bSel = mainEl.querySelector('.cmp-bar .sel[data-pick="b"]');
+        var pick = sel.getAttribute('data-pick');
         comparePair = [aSel.getAttribute('data-value'), bSel.getAttribute('data-value')];
         render();
+        var again = mainEl.querySelector('.cmp-bar .sel[data-pick="' + pick + '"] .sel-btn');
+        if (again) again.focus();
       });
     });
 
@@ -939,7 +1330,7 @@
     var data = readJSONScript('positionData');
     var host = document.getElementById('positionChart');
     if (!data || !host) return;
-    var draw = function () {
+    var draw = function (animate) {
       C.trend(host, {
         points: data.points,
         target: S.targetTotal(state),
@@ -948,19 +1339,31 @@
         xMode: 'time',
         bands: data.bands,
         highlightIndex: data.index,
-        label: '总分走势'
+        label: '总分走势',
+        delay: chartDelay,
+        animate: animate !== false
       });
     };
     draw();
     bindResize(function () {
-      if (currentView === 'exam') draw();
+      if (currentView !== 'exam') return;
+      fadeRedraw(host, function () {
+        draw(false);
+      });
     });
   }
+
+  var brandPlayed = false;
 
   function refreshSidebar() {
     var route = parseHash();
     sideHost.innerHTML = V.sidebar(state, route.name === 'exam' ? 'exams' : route.name);
     updateThemeButtons();
+    if (!brandPlayed) {
+      brandPlayed = true;
+      var brand = sideHost.querySelector('.brand');
+      if (brand) brand.classList.add('is-boot');
+    }
   }
 
   /* ---------------- 对话框 ---------------- */
@@ -969,6 +1372,7 @@
     dialogRoot.innerHTML = html;
     var dlg = dialogRoot.querySelector('dialog');
     if (!dlg) return;
+    var opener = document.activeElement;
     if (typeof dlg.showModal === 'function') {
       dlg.showModal();
     } else {
@@ -978,9 +1382,13 @@
     dlg.addEventListener('close', function () {
       document.body.classList.remove('no-scroll');
       dialogRoot.replaceChildren();
+      if (opener && opener.isConnected && typeof opener.focus === 'function') opener.focus();
     });
     if (onMount) onMount(dlg);
     if (global.UI) global.UI.mountAll(dlg);
+    /* 打开后直接落到第一个能填的字段，不用再点一下 */
+    var first = dlg.querySelector('.form-body input:not([type="hidden"]), .form-body select, .form-body textarea');
+    if (first) first.focus();
     return dlg;
   }
 
@@ -999,8 +1407,9 @@
       finish();
       return;
     }
+    /* 面板先走，遮罩后走；走完再收 */
     dlg.classList.add('is-closing');
-    setTimeout(finish, 140);
+    setTimeout(finish, T[4]);
   }
 
   /* 确认框：标题、正文、按钮文字和确认动作 */
@@ -1056,7 +1465,23 @@
           var v = Number(input.value);
           if (!isNaN(v) && v > 0) sum += v;
         });
-        totalEl.textContent = sum;
+        C.roll(totalEl, undefined, sum, { duration: T[3] });
+      }
+
+      /* 出错时：说清哪里不对，同时让那个字段抖一下 */
+      function showError(text, fieldEl) {
+        errEl.textContent = text;
+        errEl.classList.remove('is-swapped');
+        void errEl.offsetWidth;
+        errEl.classList.add('is-swapped');
+        if (!fieldEl) return;
+        fieldEl.classList.remove('is-bad');
+        void fieldEl.offsetWidth;
+        fieldEl.classList.add('is-bad');
+        clearTimeout(fieldEl._badTimer);
+        fieldEl._badTimer = setTimeout(function () {
+          fieldEl.classList.remove('is-bad');
+        }, T[3]);
       }
 
       dlg.querySelectorAll('input[data-subject]').forEach(function (input) {
@@ -1106,7 +1531,7 @@
         var type = typeEl ? typeEl.getAttribute('data-value') : S.DEFAULT_TYPE;
 
         if (!date) {
-          errEl.textContent = '先填日期。';
+          showError('先填日期。', dateEl ? dateEl.querySelector('.date-btn') : null);
           return;
         }
         if (!name) name = S.suggestName(state, date, type, examId);
@@ -1114,6 +1539,7 @@
         var scores = {};
         var filled = 0;
         var bad = '';
+        var badEl = null;
         dlg.querySelectorAll('input[data-subject]').forEach(function (input) {
           var id = input.getAttribute('data-subject');
           var raw = input.value.trim();
@@ -1124,10 +1550,12 @@
           });
           if (!subject) return;
           if (isNaN(num) || num < 0) {
+            if (!bad) badEl = input;
             bad = bad || subject.name + ' 的分数不是有效数字';
             return;
           }
           if (num > subject.full) {
+            if (!bad) badEl = input;
             bad = bad || subject.name + ' 超过满分 ' + subject.full + ' 分';
             return;
           }
@@ -1136,7 +1564,7 @@
         });
 
         if (bad) {
-          errEl.textContent = bad;
+          showError(bad, badEl);
           return;
         }
 
@@ -1145,7 +1573,7 @@
           if (btn.getAttribute('aria-pressed') === 'true') absent.push(btn.getAttribute('data-absent'));
         });
         if (!filled && !absent.length) {
-          errEl.textContent = '至少填一科分数。';
+          showError('至少填一科分数。', dlg.querySelector('input[data-subject]'));
           return;
         }
 
@@ -1215,11 +1643,23 @@
           });
           toast('已记录「' + name + '」');
         }
-        state.sample = false;
-        persist();
-        closeDialog();
-        refreshSidebar();
-        render();
+        var commitExam = function () {
+          state.sample = false;
+          persist();
+          closeDialog();
+          refreshSidebar();
+          render();
+        };
+
+        /* 先让按钮给出回应，再收对话框 */
+        var saveBtn = form.querySelector('button[type="submit"]');
+        if (saveBtn && !reducedMotion()) {
+          saveBtn.textContent = '已保存';
+          saveBtn.classList.add('is-saved');
+          setTimeout(commitExam, T[3]);
+          return;
+        }
+        commitExam();
       });
     });
   }
@@ -1520,7 +1960,7 @@
           pushUndo();
           state = next;
           persist();
-          lastShownTotal = null;
+          shownKpis = {};
           refreshSidebar();
           render();
           toast('备份已恢复：' + state.exams.length + ' 次考试', null, UNDO);
@@ -1615,6 +2055,15 @@
         dlg.querySelector('[data-action="do-import"]').addEventListener('click', function () {
           doImport(plan);
         });
+        dlg.querySelectorAll('.import-fact b').forEach(function (el) {
+          C.roll(el, 0, Number(el.textContent) || 0, { duration: T[6], delay: START_DATA });
+        });
+        dlg.querySelectorAll('.import-list li').forEach(function (li, i) {
+          li.setAttribute('data-motion', 'enter');
+          li.style.setProperty('--enter-delay', START_DATA + i * STAGGER[2] + 'ms');
+          li.style.setProperty('--enter-dur', T[3] + 'ms');
+          li.style.setProperty('--enter-shift', '4px');
+        });
       }
     );
   }
@@ -1650,13 +2099,26 @@
       var cur = parseHash();
       var base = '#/' + cur.name + (cur.param ? '/' + cur.param : '');
       var target = picked === 'all' ? base : base + '?type=' + encodeURIComponent(picked);
-      if (global.location.hash === target) {
-        /* 点的就是当前这个筛选，地址没变不会触发 hashchange，直接重画 */
-        pendingFilter = null;
-        render();
+      var go = function () {
+        if (global.location.hash === target) {
+          /* 点的就是当前这个筛选，地址没变不会触发 hashchange，直接重画 */
+          pendingFilter = null;
+          render();
+        } else {
+          pendingFilter = picked;
+          global.location.hash = target;
+        }
+      };
+      /* 旧列表先退半步，新列表再进来 */
+      var rows = mainEl.querySelector('.list-rows');
+      if (rows && !reducedMotion()) {
+        rows.setAttribute('data-motion', 'swap-out');
+        setTimeout(function () {
+          rows.removeAttribute('data-motion');
+          go();
+        }, T[2]);
       } else {
-        pendingFilter = picked;
-        global.location.hash = target;
+        go();
       }
       return;
     }
@@ -1682,6 +2144,16 @@
       state.sample = false;
       persist();
       render();
+      var fresh = null;
+      mainEl.querySelectorAll('.type-name').forEach(function (input) {
+        if (input.value === typeName) fresh = input.closest('.type-chip');
+      });
+      if (fresh && !reducedMotion()) {
+        fresh.classList.add('is-new');
+        setTimeout(function () {
+          fresh.classList.remove('is-new');
+        }, T[3]);
+      }
       toast('已加上「' + typeName + '」');
       return;
     }
@@ -1701,7 +2173,13 @@
       });
       state.sample = false;
       persist();
-      render();
+      var gone = delBtn.closest('.type-chip');
+      if (gone && !reducedMotion()) {
+        gone.classList.add('is-gone');
+        setTimeout(render, T[3]);
+      } else {
+        render();
+      }
       return;
     }
 
@@ -1871,14 +2349,14 @@
     } else if (action === 'reload-external') {
       state = S.load();
       setStorageNote(null);
-      lastShownTotal = null;
+      shownKpis = {};
       refreshSidebar();
       render();
       toast('已载入另一个标签页的内容');
     } else if (action === 'set-palette') {
       var want = actionEl.getAttribute('data-pick');
       if (want === S.paletteName()) return;
-      revealChange(actionEl, function () {
+      fadeColors(function () {
         applyPalette(want, true);
         paintPalette(want);
       });
@@ -1918,9 +2396,22 @@
   sideHost.addEventListener('click', function (evt) {
     var toggle = evt.target.closest('#navToggle');
     if (toggle) {
-      var open = sideHost.querySelector('.side').classList.toggle('is-open');
+      var side = sideHost.querySelector('.side');
+      var open = side.classList.toggle('is-open');
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       document.body.classList.toggle('nav-open', open);
+      if (open) {
+        side.querySelectorAll('.nav-item').forEach(function (item, i) {
+          item.style.setProperty('--i', i);
+        });
+        if (!side._navShown) {
+          side._navShown = true;
+          side.classList.add('is-fresh');
+          setTimeout(function () {
+            side.classList.remove('is-fresh');
+          }, T[3] + 120);
+        }
+      }
       return;
     }
     if (evt.target.closest('.nav-item')) {
@@ -2031,7 +2522,7 @@
     clearTimeout(fadeTimer);
     fadeTimer = setTimeout(function () {
       root.classList.remove('is-theme-fading');
-    }, 320);
+    }, T[4]);
   }
 
   /* 新的一套颜色从被点的位置以圆形铺开 */
@@ -2047,10 +2538,16 @@
     var vh = global.innerHeight;
     var r = Math.hypot(Math.max(x, vw - x), Math.max(y, vh - y));
     var rootStyle = document.documentElement.style;
+    var html = document.documentElement;
     rootStyle.setProperty('--tx', x + 'px');
     rootStyle.setProperty('--ty', y + 'px');
     rootStyle.setProperty('--tr', Math.ceil(r) + 'px');
-    document.startViewTransition(change);
+    html.setAttribute('data-vt', 'theme');
+    var vt = document.startViewTransition(change);
+    var done = function () {
+      html.removeAttribute('data-vt');
+    };
+    vt.finished.then(done, done);
   }
 
   function toggleTheme() {
@@ -2078,9 +2575,8 @@
     applyPalette(S.paletteName(), false);
     checkStorage();
     S.requestPersist();
-    var route = parseHash();
-    sideHost.innerHTML = V.sidebar(state, route.name === 'exam' ? 'exams' : route.name);
-    updateThemeButtons();
+    refreshSidebar();
+    lastSidebarFilter = 'all';
 
     var bootEl = document.getElementById('boot');
     var subEl = document.getElementById('bootSub');
@@ -2088,27 +2584,27 @@
 
     if (!bootEl || C.reduced() || !list.length) {
       if (bootEl) bootEl.remove();
-      render();
-      maybeTour(900);
+      render({ full: true });
+      maybeTour(beat(1280));
       return;
     }
 
     if (subEl) subEl.textContent = '正在读取 ' + list.length + ' 次考试';
 
-    /* 遮罩期间内容还没生成，进度条走完再一次性填进来 */
+    /* 数据同步读出，遮罩把品牌画完就走；页面结构与遮罩交叉进入 */
     var done = false;
     function reveal() {
       if (done) return;
       done = true;
-      render();
+      render({ full: true });
       bootEl.classList.add('is-done');
       setTimeout(function () {
         bootEl.remove();
-      }, 460);
-      maybeTour(2400);
+      }, T[4]);
+      maybeTour(beat(1280));
     }
 
-    setTimeout(reveal, 940);
+    setTimeout(reveal, beat(560));
     bootEl.addEventListener('click', reveal);
   }
 
@@ -2132,8 +2628,10 @@
     if (pendingFilter !== null) {
       state.filter = pendingFilter;
       pendingFilter = null;
-      render();
-      global.scrollTo({ top: 0, behavior: 'auto' });
+      pageSwap(function () {
+        global.scrollTo({ top: 0, behavior: 'auto' });
+        render();
+      });
       return;
     }
     /* 地址里没有类型时把当前筛选带过去，已有的其它参数要留着 */
@@ -2145,8 +2643,10 @@
       return;
     }
 
-    render();
-    global.scrollTo({ top: 0, behavior: 'auto' });
+    pageSwap(function () {
+      global.scrollTo({ top: 0, behavior: 'auto' });
+      render();
+    });
   });
 
   /* 另一个标签页写了数据：这边还是打开时的快照，再保存会把对方的改动盖掉 */

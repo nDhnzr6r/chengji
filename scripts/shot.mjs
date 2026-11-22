@@ -22,13 +22,14 @@ function parseArgs(argv) {
     theme: '',
     wait: 900,
     js: '',
-    full: true
+    full: true,
+    reduced: false
   };
   for (let i = 0; i < argv.length; i += 2) {
     const key = argv[i].replace(/^--/, '');
     let value = argv[i + 1];
     if (key === 'width' || key === 'height' || key === 'wait' || key === 'dpr') value = Number(value);
-    else if (key === 'full') value = value !== 'false';
+    else if (key === 'full' || key === 'reduced') value = value !== 'false';
     out[key] = value;
   }
   return out;
@@ -137,6 +138,13 @@ async function main() {
       { width: args.width, height: args.height, deviceScaleFactor: args.dpr, mobile: false },
       sessionId
     );
+    if (args.reduced) {
+      await cdp.send(
+        'Emulation.setEmulatedMedia',
+        { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] },
+        sessionId
+      );
+    }
 
     const base = 'file:///' + path.join(ROOT, 'index.html').replace(/\\/g, '/') + '?t=' + Date.now();
     const url = base + args.hash;

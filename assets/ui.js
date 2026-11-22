@@ -4,15 +4,18 @@
 
   var S = global.Store;
 
+  var CLOSE_OUT = 180;
+  var ENTER_IN = 250;
+
+  function reduceMotion() {
+    return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
   function closeAll(except) {
     document.querySelectorAll('.sel.is-open, .datep.is-open').forEach(function (node) {
-      if (node !== except) {
-        node.classList.remove('is-open');
-        var pop = node.querySelector('.sel-pop') || node._pop;
-        if (pop) pop.hidden = true;
-        var btn = node.querySelector('.sel-btn, .date-btn');
-        if (btn) btn.setAttribute('aria-expanded', 'false');
-      }
+      if (node === except) return;
+      if (node.classList.contains('sel')) closeSelect(node, true);
+      else closeDate(node, true);
     });
   }
 
@@ -47,21 +50,42 @@
   function openSelect(root) {
     closeAll(root);
     var pop = root.querySelector('.sel-pop');
+    if (!pop) return;
+    if (root._closeTimer) {
+      clearTimeout(root._closeTimer);
+      root._closeTimer = 0;
+    }
+    root.classList.remove('is-closing');
     root.classList.add('is-open');
     pop.hidden = false;
+    pop.querySelectorAll('.sel-opt').forEach(function (opt, i) {
+      opt.style.setProperty('--i', i);
+    });
     root.querySelector('.sel-btn').setAttribute('aria-expanded', 'true');
     var on = pop.querySelector('.sel-opt.is-on');
     if (on) on.focus();
   }
 
-  function closeSelect(root) {
-    root.classList.remove('is-open');
+  function closeSelect(root, silent) {
     var pop = root.querySelector('.sel-pop');
-    if (pop) pop.hidden = true;
+    if (root._closeTimer) clearTimeout(root._closeTimer);
+    root.classList.remove('is-open');
+    if (pop && !reduceMotion()) {
+      pop.hidden = false;
+      root.classList.add('is-closing');
+      root._closeTimer = setTimeout(function () {
+        pop.hidden = true;
+        root.classList.remove('is-closing');
+        root._closeTimer = 0;
+      }, CLOSE_OUT);
+    } else if (pop) {
+      pop.hidden = true;
+      root.classList.remove('is-closing');
+    }
     var btn = root.querySelector('.sel-btn');
     if (btn) {
       btn.setAttribute('aria-expanded', 'false');
-      btn.focus();
+      if (!silent) btn.focus();
     }
   }
 
@@ -136,34 +160,87 @@
     return root._cal;
   }
 
-  function renderCal(root, animate) {
-    var st = calState(root);
-    var title = calEl(root, '.cal-title');
+  function calTitleText(st) {
+    if (st.view === 'day') return st.date.getFullYear() + ' 年 ' + (st.date.getMonth() + 1) + ' 月';
+    if (st.view === 'month') return st.date.getFullYear() + ' 年';
+    var start = Math.floor(st.date.getFullYear() / 12) * 12;
+    return start + ' – ' + (start + 11);
+  }
+
+  function paintCal(root, st) {
     ['day', 'month', 'year'].forEach(function (k) {
       var p = calEl(root, '[data-panel="' + k + '"]');
       if (p) p.hidden = k !== st.view;
     });
+    if (st.view === 'day') renderDays(root, st.date);
+    else if (st.view === 'month') renderMonths(root, st.date);
+    else renderYears(root, Math.floor(st.date.getFullYear() / 12) * 12, st.date);
+  }
 
-    if (st.view === 'day') {
-      title.textContent = st.date.getFullYear() + ' 年 ' + (st.date.getMonth() + 1) + ' 月';
-      renderDays(root, st.date);
-    } else if (st.view === 'month') {
-      title.textContent = st.date.getFullYear() + ' 年';
-      renderMonths(root, st.date);
-    } else {
-      var start = Math.floor(st.date.getFullYear() / 12) * 12;
-      title.textContent = start + ' – ' + (start + 11);
-      renderYears(root, start, st.date);
+  function crossTitle(root, text) {
+    var title = calEl(root, '.cal-title');
+    if (!title) return;
+    title.textContent = text;
+    title.classList.remove('is-swapping');
+    void title.offsetWidth;
+    title.classList.add('is-swapping');
+  }
+
+  /* 翻页与换视图：旧面板先走，新面板再进；同面板则先退后进 */
+  function renderCal(root, animate, dir) {
+    var st = calState(root);
+    var target = calEl(root, '[data-panel="' + st.view + '"]');
+    var text = calTitleText(st);
+
+    if (!animate || reduceMotion() || !target) {
+      paintCal(root, st);
+      var title = calEl(root, '.cal-title');
+      if (title) title.textContent = text;
+      return;
     }
 
-    if (animate) {
-      var panel = calEl(root, '[data-panel="' + st.view + '"]');
-      if (panel) {
-        panel.classList.remove('cal-swap');
-        void panel.offsetWidth;
-        panel.classList.add('cal-swap');
-      }
+    var shown = [];
+    ['day', 'month', 'year'].forEach(function (k) {
+      var panel = calEl(root, '[data-panel="' + k + '"]');
+      if (panel && !panel.hidden) shown.push(panel);
+    });
+    var same = shown.length === 1 && shown[0] === target;
+    var dirValue = dir === -1 ? -1 : 1;
+    crossTitle(root, text);
+
+    if (same) {
+      target.style.setProperty('--dir', dirValue);
+      target.classList.remove('is-entering');
+      target.classList.add('is-leaving');
+      setTimeout(function () {
+        target.classList.remove('is-leaving');
+        paintCal(root, st);
+        target.classList.add('is-entering');
+        setTimeout(function () {
+          target.classList.remove('is-entering');
+        }, ENTER_IN);
+      }, CLOSE_OUT);
+      return;
     }
+
+    var leaving = shown.filter(function (p) {
+      return p !== target;
+    });
+    leaving.forEach(function (p) {
+      p.style.setProperty('--dir', dirValue);
+      p.classList.add('is-leaving');
+    });
+    setTimeout(function () {
+      leaving.forEach(function (p) {
+        p.classList.remove('is-leaving');
+      });
+      paintCal(root, st);
+      target.style.setProperty('--dir', dirValue);
+      target.classList.add('is-entering');
+      setTimeout(function () {
+        target.classList.remove('is-entering');
+      }, ENTER_IN);
+    }, CLOSE_OUT);
   }
 
   function renderDays(root, viewDate) {
@@ -251,6 +328,11 @@
     var st = calState(root);
     st.view = 'day';
     st.date = new Date(current.getFullYear(), current.getMonth(), 1);
+    if (root._closeTimer) {
+      clearTimeout(root._closeTimer);
+      root._closeTimer = 0;
+    }
+    root.classList.remove('is-closing');
     renderCal(root);
     root.classList.add('is-open');
     pop.hidden = false;
@@ -279,14 +361,26 @@
     pop.style.top = Math.max(8, top) + 'px';
   }
 
-  function closeDate(root) {
-    root.classList.remove('is-open');
+  function closeDate(root, silent) {
     var pop = root._pop || root.querySelector('.cal-pop');
-    if (pop) pop.hidden = true;
     var btn = root.querySelector('.date-btn');
+    if (root._closeTimer) clearTimeout(root._closeTimer);
+    root.classList.remove('is-open');
+    if (pop && !reduceMotion()) {
+      pop.hidden = false;
+      root.classList.add('is-closing');
+      root._closeTimer = setTimeout(function () {
+        pop.hidden = true;
+        root.classList.remove('is-closing');
+        root._closeTimer = 0;
+      }, CLOSE_OUT);
+    } else if (pop) {
+      pop.hidden = true;
+      root.classList.remove('is-closing');
+    }
     if (btn) {
       btn.setAttribute('aria-expanded', 'false');
-      btn.focus();
+      if (!silent) btn.focus();
     }
   }
 
@@ -379,7 +473,7 @@
         if (st.view === 'day') st.date = new Date(y, m + step, 1);
         else if (st.view === 'month') st.date = new Date(y + step, m, 1);
         else st.date = new Date(y + step * 12, m, 1);
-        renderCal(root, true);
+        renderCal(root, true, step);
         positionPop(root, pop);
       });
     });
@@ -391,6 +485,7 @@
       var day = evt.target.closest('.cal-day');
       if (day) {
         setDate(root, day.getAttribute('data-iso'));
+        day.classList.add('is-picked');
         closeDate(root);
         return;
       }
