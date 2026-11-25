@@ -479,6 +479,84 @@ test('数据检查不受筛选影响', () => {
   assert.ok(issues.some((i) => /超过满分/.test(i.text)));
 });
 
+/* ---------------- 数据检查的确认 ---------------- */
+
+function stateWithBadExam() {
+  const state = S.defaultState();
+  state.filter = 'all';
+  state.exams = [
+    {
+      id: 'bad',
+      name: '坏数据',
+      date: '2026-12-05',
+      type: '月考',
+      scores: { math: 999 },
+      ranks: {},
+      averages: {}
+    }
+  ];
+  return state;
+}
+
+test('确认过的提示不再列出，条数记到已确认', () => {
+  const state = stateWithBadExam();
+  const before = S.auditOpen(state);
+  assert.ok(before.open.length > 0);
+  assert.equal(before.done, 0);
+
+  S.ackAll(state);
+
+  const after = S.auditOpen(state);
+  assert.equal(after.open.length, 0);
+  assert.equal(after.done, before.open.length);
+});
+
+test('确认记录清空后提示重新出现', () => {
+  const state = stateWithBadExam();
+  S.ackAll(state);
+  assert.equal(S.auditOpen(state).open.length, 0);
+
+  S.ackClear();
+  assert.equal(S.auditOpen(state).open.length, S.audit(state).length);
+  assert.equal(S.auditOpen(state).done, 0);
+});
+
+test('数据改过之后提示重新检查', () => {
+  const state = stateWithBadExam();
+  S.ackAll(state);
+  assert.equal(S.auditOpen(state).open.length, 0);
+
+  state.exams[0].scores.math = 88888;
+  const after = S.auditOpen(state);
+  assert.ok(
+    after.open.some((i) => /88888/.test(i.text)),
+    '改过的数据要重新提示'
+  );
+});
+
+test('再确认一次只记当前的问题', () => {
+  const state = stateWithBadExam();
+  S.ackAll(state);
+  const first = S.ackList();
+  assert.ok(first.length > 0);
+
+  state.exams[0].scores.math = 1;
+  state.exams[0].ranks = { class: 999, grade: 0 };
+  S.ackAll(state);
+
+  const second = S.ackList();
+  assert.deepEqual(
+    second,
+    S.audit(state).map((i) => i.text)
+  );
+  assert.notDeepEqual(second, first);
+});
+
+test('确认记录坏掉时按没确认处理', () => {
+  S.writeKey(S.ACK_KEY, '不是数组');
+  assert.deepEqual(S.ackList(), []);
+});
+
 /* ---------------- 导入数据的安全性 ---------------- */
 
 const EVIL = 'x"><img src=x onerror="alert(1)">';

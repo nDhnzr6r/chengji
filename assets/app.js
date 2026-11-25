@@ -2339,6 +2339,14 @@
       if (storageNote && storageNote.kind === 'broken') setStorageNote(null);
       toast('留底的存档已丢弃');
       refreshSettingsPanel();
+    } else if (action === 'ack-all') {
+      S.ackAll(state);
+      refreshSettingsPanel();
+      toast('看过的提示不再出现');
+    } else if (action === 'ack-restore') {
+      S.ackClear();
+      refreshSettingsPanel();
+      toast('已恢复全部提示');
     } else if (action === 'request-persist') {
       S.requestPersist().then(function (result) {
         if (result === true) toast('浏览器已同意长期保留这些数据');

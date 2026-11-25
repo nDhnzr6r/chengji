@@ -403,6 +403,37 @@ test('设置页的输入控件都带 data-cfg 和上下限', () => {
   });
 });
 
+test('数据检查的每条提示都能确认，确认后换成已确认', () => {
+  ls.map.clear();
+  const state = freshState();
+  state.exams = [
+    {
+      id: 'bad',
+      name: '坏数据',
+      date: '2026-12-05',
+      type: '月考',
+      scores: { math: 999 },
+      ranks: {},
+      averages: {}
+    }
+  ];
+
+  const html = V.settingsPanel(state, 'data');
+  assertClean(html, '数据检查');
+  assert.ok(html.includes('data-action="ack-all"'), '要能一次确认这些提示');
+
+  const texts = S.audit(state).map((i) => i.text);
+  assert.ok(texts.length > 0);
+  texts.forEach((text) => assert.ok(html.includes(S.esc(text)), '缺少提示：' + text));
+  S.ackAll(state);
+
+  const after = V.settingsPanel(state, 'data');
+  assertClean(after, '确认后的数据检查');
+  assert.ok(!after.includes('data-action="ack-all"'), '确认过的提示不该再出现');
+  assert.ok(after.includes('已确认 ' + texts.length + ' 处'));
+  assert.ok(after.includes('data-action="ack-restore"'));
+});
+
 /* ---------------- 图表纯函数 ---------------- */
 
 test('图表刻度是整齐的数字', () => {

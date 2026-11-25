@@ -2230,7 +2230,19 @@
 
   /* 数据：导出、导入、检查三张卡片并排 */
   function dataPanel(state) {
-    var issues = S.audit(Object.assign({}, state, { filter: 'all' }));
+    var check = S.auditOpen(Object.assign({}, state, { filter: 'all' }));
+    var open = check.open;
+    var done = check.done;
+    var tag = open.length
+      ? '<span class="set-tag set-tag-warn">发现 ' + open.length + ' 处</span>'
+      : done
+        ? '<span class="set-tag set-tag-ok">已确认 ' + done + ' 处</span>'
+        : '<span class="set-tag set-tag-ok">没有发现问题</span>';
+    var hint = open.length
+      ? '下面这些地方需要看看'
+      : done
+        ? '确认过的提示不再出现，数据改过之后会重新检查'
+        : '分数、名次、人数和平均分都在合理范围内';
 
     return (
       setCards(
@@ -2286,22 +2298,26 @@
             '<div class="set-field">' +
               '<span class="set-field-label">当前存档</span>' +
               '<span class="set-field-control">' +
-              (issues.length
-                ? '<span class="set-tag set-tag-warn">发现 ' + issues.length + ' 处</span>'
-                : '<span class="set-tag set-tag-ok">没有发现问题</span>') +
+              tag +
               '</span>' +
               '<span class="set-field-hint">' +
-              (issues.length ? '下面这些地方需要看看' : '分数、名次、人数和平均分都在合理范围内') +
+              hint +
               '</span>' +
               '</div>' +
-              (issues.length
+              (open.length
                 ? '<ul class="issue-list">' +
-                  issues
+                  open
                     .map(function (i) {
                       return '<li>' + S.esc(i.text) + '</li>';
                     })
                     .join('') +
-                  '</ul>'
+                  '</ul>' +
+                  '<button type="button" class="issue-ack" data-action="ack-all">都看过了</button>'
+                : '') +
+              (done
+                ? '<button type="button" class="text-link issue-restore" data-action="ack-restore">恢复这 ' +
+                  done +
+                  ' 条提示</button>'
                 : '')
           )
         ],

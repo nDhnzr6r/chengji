@@ -4,6 +4,7 @@
 
   var STORAGE_KEY = 'scorebook.v2';
   var BROKEN_KEY = STORAGE_KEY + '.broken';
+  var ACK_KEY = STORAGE_KEY + '.ack';
   var THEME_KEY = 'scorebook.theme';
   var PALETTE_KEY = 'scorebook.palette';
   var THEME_TOGGLE_KEY = 'scorebook.theme.toggle';
@@ -14,6 +15,7 @@
   var PASS_RATE_DEFAULT = 60;
   var GOOD_RATE_DEFAULT = 85;
   var ABSENT_TEXT = '缺考';
+  var ACK_MAX = 200;
 
   /* 分数和名次对不上时用的两条界线：过了一半算靠后，进了前十分之一算靠前 */
   var BACK_SHARE = 50;
@@ -1032,6 +1034,52 @@
     return issues;
   }
 
+  /* 数据检查里点过「都看过了」的提示：只记文本，不碰存档 */
+  function ackList() {
+    var raw = readKey(ACK_KEY, '');
+    if (!raw) return [];
+    var list;
+    try {
+      list = JSON.parse(raw);
+    } catch (err) {
+      return [];
+    }
+    if (!Array.isArray(list)) return [];
+    return list.filter(function (text) {
+      return typeof text === 'string' && text;
+    });
+  }
+
+  /* 把当前这些问题一起记成已确认，下一次确认整体覆盖 */
+  function ackAll(state) {
+    var texts = [];
+    audit(state).forEach(function (issue) {
+      if (texts.length < ACK_MAX) texts.push(issue.text);
+    });
+    return writeKey(ACK_KEY, JSON.stringify(texts));
+  }
+
+  function ackClear() {
+    try {
+      global.localStorage.removeItem(ACK_KEY);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  /* 还没确认的照原样列出来，确认过的只留条数 */
+  function auditOpen(state) {
+    var acked = ackList();
+    var open = [];
+    var done = 0;
+    audit(state).forEach(function (issue) {
+      if (acked.indexOf(issue.text) < 0) open.push(issue);
+      else done++;
+    });
+    return { open: open, done: done };
+  }
+
   /* ---------- 平滑进退、分布、贡献、投入排序 ---------- */
 
   /* 最近三次的平均变化，避免一次波动就上榜 */
@@ -2044,6 +2092,7 @@
     VERSION: VERSION,
     STORAGE_KEY: STORAGE_KEY,
     BROKEN_KEY: BROKEN_KEY,
+    ACK_KEY: ACK_KEY,
     THEME_KEY: THEME_KEY,
     PALETTE_KEY: PALETTE_KEY,
     THEME_TOGGLE_KEY: THEME_TOGGLE_KEY,
@@ -2110,6 +2159,10 @@
     spreadHistory: spreadHistory,
     goalCheck: goalCheck,
     audit: audit,
+    auditOpen: auditOpen,
+    ackList: ackList,
+    ackAll: ackAll,
+    ackClear: ackClear,
     typeFacets: typeFacets,
     examVsPeers: examVsPeers,
     subjectRankOf: subjectRankOf,

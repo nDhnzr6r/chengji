@@ -4825,6 +4825,38 @@ input[type='number'] {
   color: var(--text);
 }
 
+/* 确认过就不再提示；数据改过之后重新检查 */
+.issue-ack {
+  align-self: flex-start;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  font-size: var(--fs-12);
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    color var(--dur-2) var(--ease-soft),
+    border-color var(--dur-2) var(--ease-soft);
+}
+
+.issue-ack:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+.issue-restore {
+  align-self: flex-start;
+  padding: 0;
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+  background: none;
+  cursor: pointer;
+}
+
 .issue-list li::before {
   content: '';
   position: absolute;
