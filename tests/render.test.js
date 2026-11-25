@@ -403,7 +403,7 @@ test('设置页的输入控件都带 data-cfg 和上下限', () => {
   });
 });
 
-test('数据检查的每条提示都能确认，确认后换成已确认', () => {
+test('数据检查确认之后显示没有发现问题', () => {
   ls.map.clear();
   const state = freshState();
   state.exams = [
@@ -430,7 +430,8 @@ test('数据检查的每条提示都能确认，确认后换成已确认', () =>
   const after = V.settingsPanel(state, 'data');
   assertClean(after, '确认后的数据检查');
   assert.ok(!after.includes('data-action="ack-all"'), '确认过的提示不该再出现');
-  assert.ok(after.includes('已确认 ' + texts.length + ' 处'));
+  assert.ok(after.includes('没有发现问题'));
+  assert.ok(!after.includes('已确认'));
   assert.ok(after.includes('data-action="ack-restore"'));
 });
 

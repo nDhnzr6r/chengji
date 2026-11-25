@@ -2235,14 +2235,8 @@
     var done = check.done;
     var tag = open.length
       ? '<span class="set-tag set-tag-warn">发现 ' + open.length + ' 处</span>'
-      : done
-        ? '<span class="set-tag set-tag-ok">已确认 ' + done + ' 处</span>'
-        : '<span class="set-tag set-tag-ok">没有发现问题</span>';
-    var hint = open.length
-      ? '下面这些地方需要看看'
-      : done
-        ? '确认过的提示不再出现，数据改过之后会重新检查'
-        : '分数、名次、人数和平均分都在合理范围内';
+      : '<span class="set-tag set-tag-ok">没有发现问题</span>';
+    var hint = open.length ? '下面这些地方需要看看' : '分数、名次、人数和平均分都在合理范围内';
 
     return (
       setCards(
